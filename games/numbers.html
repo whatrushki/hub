@@ -1,0 +1,1404 @@
+<!DOCTYPE html>
+<html lang="ru">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>NUMBER DUEL // Взломщик Чисел</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link
+        href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;600;700&family=Nunito:wght@700;900&display=swap"
+        rel="stylesheet">
+    <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
+
+    <style>
+        :root {
+            --bg: #6366f1;
+            --bg-pattern: #4f46e5;
+            --card: #ffffff;
+            --primary: #ff5964;
+            --primary-shadow: #d63031;
+            --yellow: #feca57;
+            --yellow-shadow: #e1b12c;
+            --green: #1dd1a1;
+            --green-shadow: #10ac84;
+            --blue: #48dbfb;
+            --blue-shadow: #0abde3;
+            --dark: #222f3e;
+            --gray: #c8d6e5;
+            --light-gray: #f1f2f6;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            user-select: none;
+            font-family: 'Fredoka', cursive, sans-serif;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            background-color: var(--bg);
+            background-image: radial-gradient(var(--bg-pattern) 20%, transparent 20%);
+            background-size: 20px 20px;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 8px;
+            color: var(--dark);
+            overflow-x: hidden;
+        }
+
+        .app-container {
+            width: 100%;
+            max-width: 460px;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            position: relative;
+        }
+
+        .cartoon-card {
+            background: var(--card);
+            border-radius: 24px;
+            padding: 14px;
+            border: 4px solid var(--dark);
+            box-shadow: 0 7px 0 var(--dark);
+        }
+
+        .btn-3d {
+            border: 3px solid var(--dark);
+            border-radius: 16px;
+            padding: 12px 16px;
+            font-size: 16px;
+            font-weight: 700;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            transition: transform 0.06s, box-shadow 0.06s;
+            outline: none;
+            width: 100%;
+        }
+
+        .btn-3d:active {
+            transform: translateY(4px);
+            box-shadow: 0 0 0 var(--dark) !important;
+        }
+
+        .btn-red {
+            background: var(--primary);
+            color: #fff;
+            box-shadow: 0 5px 0 var(--primary-shadow);
+        }
+
+        .btn-green {
+            background: var(--green);
+            color: #fff;
+            box-shadow: 0 5px 0 var(--green-shadow);
+        }
+
+        .btn-yellow {
+            background: var(--yellow);
+            color: var(--dark);
+            box-shadow: 0 5px 0 var(--yellow-shadow);
+        }
+
+        .btn-blue {
+            background: var(--blue);
+            color: var(--dark);
+            box-shadow: 0 5px 0 var(--blue-shadow);
+        }
+
+        /* Header */
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: #fff;
+            padding: 8px 14px;
+            border-radius: 18px;
+            border: 3px solid var(--dark);
+            box-shadow: 0 4px 0 var(--dark);
+        }
+
+        .logo {
+            font-size: 18px;
+            font-weight: 700;
+            color: var(--primary);
+            text-shadow: 2px 2px 0 var(--yellow);
+        }
+
+        .header-controls {
+            display: flex;
+            gap: 6px;
+            align-items: center;
+        }
+
+        .icon-btn {
+            background: var(--light-gray);
+            border: 2px solid var(--dark);
+            border-radius: 10px;
+            padding: 4px 8px;
+            font-size: 13px;
+            cursor: pointer;
+            font-weight: 700;
+        }
+
+        .status-badge {
+            background: var(--light-gray);
+            padding: 4px 8px;
+            border-radius: 10px;
+            font-size: 11px;
+            font-weight: 700;
+            border: 2px solid var(--dark);
+        }
+
+        .menu-screen {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            text-align: center;
+        }
+
+        .menu-title {
+            font-size: 22px;
+            color: var(--dark);
+            line-height: 1.1;
+        }
+
+        /* Settings Box */
+        .settings-box {
+            background: var(--light-gray);
+            border: 3px solid var(--dark);
+            border-radius: 16px;
+            padding: 10px;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            text-align: left;
+        }
+
+        .setting-label {
+            font-size: 12px;
+            font-weight: 700;
+            color: #576574;
+            text-transform: uppercase;
+            margin-bottom: 2px;
+            display: block;
+        }
+
+        .choice-group {
+            display: flex;
+            gap: 5px;
+        }
+
+        .choice-btn {
+            flex: 1;
+            background: #fff;
+            border: 2px solid var(--dark);
+            border-radius: 10px;
+            padding: 6px 3px;
+            font-size: 13px;
+            font-weight: 700;
+            cursor: pointer;
+            text-align: center;
+            transition: 0.1s;
+        }
+
+        .choice-btn.active {
+            background: var(--yellow);
+            box-shadow: 0 3px 0 var(--dark);
+            transform: translateY(-2px);
+        }
+
+        .room-input {
+            width: 100%;
+            border: 3px solid var(--dark);
+            border-radius: 14px;
+            padding: 10px;
+            font-size: 18px;
+            text-align: center;
+            font-family: 'Nunito', sans-serif;
+            font-weight: 900;
+            letter-spacing: 2px;
+            outline: none;
+            background: var(--light-gray);
+        }
+
+        .divider {
+            display: flex;
+            align-items: center;
+            text-align: center;
+            color: var(--gray);
+            font-weight: 700;
+            font-size: 11px;
+        }
+
+        .divider::before,
+        .divider::after {
+            content: '';
+            flex: 1;
+            border-bottom: 2px dashed var(--gray);
+        }
+
+        .divider:not(:empty)::before {
+            margin-right: .5em;
+        }
+
+        .divider:not(:empty)::after {
+            margin-left: .5em;
+        }
+
+        /* Battle Screen */
+        .battle-nav {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 6px;
+            margin-bottom: 6px;
+        }
+
+        .round-info {
+            flex: 1;
+            text-align: center;
+            background: var(--yellow);
+            border: 2px solid var(--dark);
+            border-radius: 10px;
+            padding: 4px;
+            font-size: 12px;
+            font-weight: 800;
+        }
+
+        .dual-arena {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 6px;
+            margin-bottom: 6px;
+        }
+
+        .arena-column {
+            background: var(--light-gray);
+            border: 2px solid var(--dark);
+            border-radius: 14px;
+            padding: 6px;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .arena-header {
+            font-size: 11px;
+            font-weight: 900;
+            text-align: center;
+            padding-bottom: 4px;
+            border-bottom: 2px dashed var(--gray);
+            margin-bottom: 4px;
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .feed-list {
+            height: 125px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column-reverse;
+            gap: 3px;
+        }
+
+        .mini-row {
+            background: #fff;
+            border: 2px solid var(--dark);
+            border-radius: 8px;
+            padding: 3px 5px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-family: 'Nunito', sans-serif;
+            font-weight: 900;
+            font-size: 13px;
+        }
+
+        .d-span {
+            display: inline-block;
+            padding: 0 1px;
+            transition: all 0.15s;
+        }
+
+        .d-span.st-no {
+            color: var(--primary);
+            text-decoration: line-through;
+            opacity: 0.35;
+        }
+
+        .d-span.st-yes {
+            color: #10ac84;
+            background: rgba(29, 209, 161, 0.25);
+            border-radius: 4px;
+        }
+
+        .mini-score {
+            display: flex;
+            gap: 2px;
+            font-size: 10px;
+        }
+
+        .tag-match {
+            background: var(--yellow);
+            padding: 1px 3px;
+            border-radius: 5px;
+            border: 1px solid var(--dark);
+        }
+
+        .tag-exact {
+            background: var(--green);
+            color: #fff;
+            padding: 1px 3px;
+            border-radius: 5px;
+            border: 1px solid var(--dark);
+        }
+
+        /* Emoji Bar */
+        .emoji-bar {
+            display: flex;
+            justify-content: space-between;
+            background: var(--light-gray);
+            border: 2px solid var(--dark);
+            border-radius: 12px;
+            padding: 3px 6px;
+            margin-bottom: 6px;
+        }
+
+        .emoji-btn {
+            background: none;
+            border: none;
+            font-size: 18px;
+            cursor: pointer;
+            transition: transform 0.1s;
+        }
+
+        .emoji-btn:active {
+            transform: scale(1.4);
+        }
+
+        /* Notes Bar */
+        .notes-bar {
+            display: grid;
+            grid-template-columns: repeat(10, 1fr);
+            gap: 3px;
+            background: var(--light-gray);
+            padding: 4px;
+            border-radius: 12px;
+            border: 2px solid var(--dark);
+            margin-bottom: 6px;
+        }
+
+        .note-btn {
+            aspect-ratio: 1;
+            background: #fff;
+            border: 1.5px solid var(--gray);
+            border-radius: 6px;
+            font-size: 12px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: 0.1s;
+        }
+
+        .note-btn.no {
+            background: #ff7675;
+            color: #fff;
+            border-color: var(--dark);
+            text-decoration: line-through;
+        }
+
+        .note-btn.yes {
+            background: var(--green);
+            color: #fff;
+            border-color: var(--dark);
+        }
+
+        /* Slots */
+        .slots-row {
+            display: flex;
+            justify-content: center;
+            gap: 6px;
+            margin: 2px 0 6px;
+        }
+
+        .slot {
+            width: 44px;
+            height: 48px;
+            background: var(--light-gray);
+            border: 3px solid var(--dark);
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 22px;
+            font-family: 'Nunito', sans-serif;
+            font-weight: 900;
+        }
+
+        .slot.active {
+            border-color: var(--primary);
+            background: #fff;
+        }
+
+        /* Numpad */
+        .numpad {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 5px;
+        }
+
+        .num-btn {
+            background: #fff;
+            border: 2px solid var(--dark);
+            box-shadow: 0 3px 0 var(--dark);
+            border-radius: 12px;
+            font-size: 19px;
+            font-family: 'Nunito', sans-serif;
+            font-weight: 900;
+            padding: 8px 0;
+            cursor: pointer;
+            transition: all 0.1s;
+        }
+
+        .num-btn:active {
+            transform: translateY(2px);
+            box-shadow: 0 0 0 var(--dark);
+        }
+
+        .num-btn.pad-no {
+            background: #fab1a0;
+            color: #d63031;
+            text-decoration: line-through;
+            opacity: 0.45;
+        }
+
+        .num-btn.pad-yes {
+            background: #55efc4;
+            border-color: #00b894;
+            box-shadow: 0 3px 0 #00b894;
+        }
+
+        .hidden {
+            display: none !important;
+        }
+
+        /* Floating Emojis */
+        .floating-emoji {
+            position: absolute;
+            font-size: 38px;
+            pointer-events: none;
+            z-index: 150;
+            animation: floatUpAnim 1.6s cubic-bezier(0.2, 0.8, 0.3, 1) forwards;
+        }
+
+        @keyframes floatUpAnim {
+            0% {
+                opacity: 0;
+                transform: translateY(20px) scale(0.4) rotate(0deg);
+            }
+
+            20% {
+                opacity: 1;
+                transform: translateY(0px) scale(1.3) rotate(-10deg);
+            }
+
+            80% {
+                opacity: 1;
+                transform: translateY(-70px) scale(1) rotate(10deg);
+            }
+
+            100% {
+                opacity: 0;
+                transform: translateY(-110px) scale(0.7) rotate(20deg);
+            }
+        }
+
+        .toast {
+            position: fixed;
+            top: 12px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: var(--dark);
+            color: #fff;
+            padding: 6px 14px;
+            border-radius: 20px;
+            font-weight: 700;
+            font-size: 12px;
+            z-index: 200;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.2s;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+        }
+
+        .toast.show {
+            opacity: 1;
+        }
+
+        .popup-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.65);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 16px;
+            z-index: 100;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="toast" id="toast">Уведомление</div>
+
+    <div class="app-container" id="appContainer">
+        <!-- Header -->
+        <div class="header">
+            <div class="logo">🎲 NUMBER DUEL</div>
+            <div class="header-controls">
+                <button class="icon-btn" id="btnSoundToggle" title="Звук и фоновая музыка">🔊 Вкл</button>
+                <div class="status-badge hidden" id="netStatus">🟢 ОНЛАЙН</div>
+            </div>
+        </div>
+
+        <!-- SCREEN 1: Main Menu & Settings -->
+        <div class="cartoon-card menu-screen" id="screenMenu">
+            <h1 class="menu-title">НАСТРОЙКИ ИГРЫ</h1>
+
+            <div class="settings-box">
+                <div>
+                    <label class="setting-label">Длина шифра</label>
+                    <div class="choice-group" id="digitsGroup">
+                        <button class="choice-btn" data-val="3">3 цифры</button>
+                        <button class="choice-btn active" data-val="4">4 цифры</button>
+                        <button class="choice-btn" data-val="5">5 цифр</button>
+                    </div>
+                </div>
+
+                <div>
+                    <label class="setting-label">Использовать ноль «0»</label>
+                    <div class="choice-group" id="zeroGroup">
+                        <button class="choice-btn active" data-val="true">С нулем (0-9)</button>
+                        <button class="choice-btn" data-val="false">Без нуля (1-9)</button>
+                    </div>
+                </div>
+
+                <div>
+                    <label class="setting-label">Режим поединка</label>
+                    <div class="choice-group" id="modeGroup">
+                        <button class="choice-btn active" data-val="turns">🎯 По очереди</button>
+                        <button class="choice-btn" data-val="race">⚡ Гонка (на скорость)</button>
+                    </div>
+                </div>
+            </div>
+
+            <button class="btn-3d btn-green" id="btnPlayBot">🤖 Играть против Бота</button>
+            <div class="divider">ИЛИ С ДРУГОМ ОНЛАЙН</div>
+            <button class="btn-3d btn-yellow" id="btnCreateRoom">👑 Создать комнату</button>
+
+            <div style="display: flex; gap: 6px;">
+                <input type="text" class="room-input" id="inputRoomCode" placeholder="КОД" maxlength="5">
+                <button class="btn-3d btn-blue" id="btnJoinRoom" style="width: 80px;">GO</button>
+            </div>
+        </div>
+
+        <!-- SCREEN 2: Lobby -->
+        <div class="cartoon-card menu-screen hidden" id="screenLobby">
+            <h2 class="menu-title">ЖДЕМ СОПЕРНИКА</h2>
+            <p style="font-size: 13px; color: #576574;">Нажми на код, чтобы скопировать:</p>
+            <div class="room-input" id="displayRoomCode" style="font-size: 30px; background: #fff; cursor: pointer;">
+                -----</div>
+            <button class="btn-3d btn-yellow" id="btnCopyLink">📋 Скопировать ссылку</button>
+            <button class="btn-3d btn-red" id="btnLeaveLobby">Отмена</button>
+        </div>
+
+        <!-- SCREEN 3: Pick Secret -->
+        <div class="cartoon-card menu-screen hidden" id="screenSecret">
+            <h2 class="menu-title" id="secretPrompt">ЗАГАДАЙ 4 ЦИФРЫ</h2>
+            <p style="font-size: 12px; color: #576574;" id="secretRules">Цифры не должны повторяться!</p>
+            <div class="slots-row" id="secretSlots"></div>
+            <button class="btn-3d btn-green" id="btnConfirmSecret">ЗАГАДАТЬ ЧИСЛО</button>
+        </div>
+
+        <!-- SCREEN 4: Battle Screen -->
+        <div class="cartoon-card hidden" id="screenBattle" style="padding: 10px;">
+            <div class="battle-nav">
+                <button class="btn-3d btn-red" id="btnSurrender"
+                    style="width: auto; padding: 5px 10px; font-size: 12px;">🚪 Меню</button>
+                <div class="round-info" id="roundInfo">Твой ход!</div>
+            </div>
+
+            <!-- Dual Feeds -->
+            <div class="dual-arena">
+                <div class="arena-column">
+                    <div class="arena-header">
+                        <span>👤 ТЫ</span>
+                        <span id="myCount" style="color:#576574;">#0</span>
+                    </div>
+                    <div class="feed-list" id="myFeed"></div>
+                </div>
+
+                <div class="arena-column">
+                    <div class="arena-header">
+                        <span id="oppTitle">🤖 БОТ</span>
+                        <span id="oppCount" style="color:#576574;">#0</span>
+                    </div>
+                    <div class="feed-list" id="oppFeed"></div>
+                </div>
+            </div>
+
+            <!-- Emoji Bar -->
+            <div class="emoji-bar">
+                <button class="emoji-btn" data-emoji="🔥">🔥</button>
+                <button class="emoji-btn" data-emoji="💀">💀</button>
+                <button class="emoji-btn" data-emoji="🤡">🤡</button>
+                <button class="emoji-btn" data-emoji="🤔">🤔</button>
+                <button class="emoji-btn" data-emoji="⚡">⚡</button>
+                <button class="emoji-btn" data-emoji="🎉">🎉</button>
+                <button class="emoji-btn" data-emoji="💩">💩</button>
+                <button class="emoji-btn" data-emoji="🚀">🚀</button>
+            </div>
+
+            <!-- Notes (0-9) -->
+            <div class="notes-bar" id="notesBar"></div>
+
+            <!-- Guess Slots -->
+            <div class="slots-row" id="guessSlots"></div>
+        </div>
+
+        <!-- UNIVERSAL NUMPAD -->
+        <div class="cartoon-card hidden" id="keypadCard" style="padding: 8px;">
+            <div class="numpad" id="numpad">
+                <button class="num-btn" data-val="1">1</button>
+                <button class="num-btn" data-val="2">2</button>
+                <button class="num-btn" data-val="3">3</button>
+                <button class="num-btn" data-val="4">4</button>
+                <button class="num-btn" data-val="5">5</button>
+                <button class="num-btn" data-val="6">6</button>
+                <button class="num-btn" data-val="7">7</button>
+                <button class="num-btn" data-val="8">8</button>
+                <button class="num-btn" data-val="9">9</button>
+                <button class="num-btn" data-val="del" style="background: #fab1a0;">⌫</button>
+                <button class="num-btn" data-val="0" id="btnZero">0</button>
+                <button class="num-btn" data-val="ok" style="background: var(--green); color: #fff;">✓</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Popup -->
+    <div class="popup-overlay hidden" id="modalPopup">
+        <div class="cartoon-card" style="text-align: center; max-width: 320px; width: 100%;">
+            <div style="font-size: 48px;" id="modalEmoji">🏆</div>
+            <h2 style="font-size: 22px; margin: 6px 0;" id="modalTitle">ПОБЕДА!</h2>
+            <p style="font-size: 13px; color: #576574; margin-bottom: 14px;" id="modalDesc">Ты взломал шифр быстрее!</p>
+            <button class="btn-3d btn-green" id="btnRestart">В главное меню</button>
+        </div>
+    </div>
+
+    <script>
+        /* 1. AUDIO ENGINE */
+        const AudioFX = {
+            ctx: null,
+            muted: false,
+            bgmTimer: null,
+            bgmStep: 0,
+            scale: [261.63, 293.66, 329.63, 392.00, 440.00, 523.25],
+
+            init() {
+                if (!this.ctx) {
+                    this.ctx = new (window.AudioContext || window.webkitAudioContext)();
+                    this.startBGM();
+                }
+                if (this.ctx.state === 'suspended') this.ctx.resume();
+            },
+
+            playPop() {
+                if (this.muted || !this.ctx) return;
+                const osc = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(450, this.ctx.currentTime);
+                osc.frequency.exponentialRampToValueAtTime(150, this.ctx.currentTime + 0.08);
+                gain.gain.setValueAtTime(0.3, this.ctx.currentTime);
+                gain.gain.linearRampToValueAtTime(0.01, this.ctx.currentTime + 0.08);
+                osc.connect(gain);
+                gain.connect(this.ctx.destination);
+                osc.start();
+                osc.stop(this.ctx.currentTime + 0.08);
+            },
+
+            playBoing() {
+                if (this.muted || !this.ctx) return;
+                const osc = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+                osc.type = 'triangle';
+                osc.frequency.setValueAtTime(160, this.ctx.currentTime);
+                osc.frequency.linearRampToValueAtTime(580, this.ctx.currentTime + 0.15);
+                osc.frequency.linearRampToValueAtTime(220, this.ctx.currentTime + 0.3);
+                gain.gain.setValueAtTime(0.35, this.ctx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + 0.3);
+                osc.connect(gain);
+                gain.connect(this.ctx.destination);
+                osc.start();
+                osc.stop(this.ctx.currentTime + 0.3);
+            },
+
+            playDing() {
+                if (this.muted || !this.ctx) return;
+                const osc = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(880, this.ctx.currentTime);
+                osc.frequency.setValueAtTime(1760, this.ctx.currentTime + 0.06);
+                gain.gain.setValueAtTime(0.3, this.ctx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + 0.25);
+                osc.connect(gain);
+                gain.connect(this.ctx.destination);
+                osc.start();
+                osc.stop(this.ctx.currentTime + 0.25);
+            },
+
+            playBonk() {
+                if (this.muted || !this.ctx) return;
+                const osc = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+                osc.type = 'sawtooth';
+                osc.frequency.setValueAtTime(180, this.ctx.currentTime);
+                osc.frequency.linearRampToValueAtTime(70, this.ctx.currentTime + 0.18);
+                gain.gain.setValueAtTime(0.25, this.ctx.currentTime);
+                gain.gain.linearRampToValueAtTime(0.01, this.ctx.currentTime + 0.18);
+                osc.connect(gain);
+                gain.connect(this.ctx.destination);
+                osc.start();
+                osc.stop(this.ctx.currentTime + 0.18);
+            },
+
+            playVictory() {
+                if (this.muted || !this.ctx) return;
+                [523.25, 659.25, 783.99, 1046.50].forEach((freq, i) => {
+                    setTimeout(() => {
+                        if (this.muted || !this.ctx) return;
+                        const osc = this.ctx.createOscillator();
+                        const gain = this.ctx.createGain();
+                        osc.type = 'triangle';
+                        osc.frequency.setValueAtTime(freq, this.ctx.currentTime);
+                        gain.gain.setValueAtTime(0.3, this.ctx.currentTime);
+                        gain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + 0.35);
+                        osc.connect(gain);
+                        gain.connect(this.ctx.destination);
+                        osc.start();
+                        osc.stop(this.ctx.currentTime + 0.35);
+                    }, i * 110);
+                });
+            },
+
+            playDefeat() {
+                if (this.muted || !this.ctx) return;
+                [440, 415.3, 392, 349.2].forEach((freq, i) => {
+                    setTimeout(() => {
+                        if (this.muted || !this.ctx) return;
+                        const osc = this.ctx.createOscillator();
+                        const gain = this.ctx.createGain();
+                        osc.type = 'sawtooth';
+                        osc.frequency.setValueAtTime(freq, this.ctx.currentTime);
+                        gain.gain.setValueAtTime(0.25, this.ctx.currentTime);
+                        gain.gain.linearRampToValueAtTime(0.01, this.ctx.currentTime + 0.32);
+                        osc.connect(gain);
+                        gain.connect(this.ctx.destination);
+                        osc.start();
+                        osc.stop(this.ctx.currentTime + 0.32);
+                    }, i * 180);
+                });
+            },
+
+            startBGM() {
+                if (this.bgmTimer) return;
+                this.bgmTimer = setInterval(() => {
+                    if (this.muted || !this.ctx) return;
+                    const melody = [0, 2, 4, 2, 3, 1, 4, 5];
+                    const freq = this.scale[melody[this.bgmStep % melody.length]];
+                    this.bgmStep++;
+
+                    const osc = this.ctx.createOscillator();
+                    const gain = this.ctx.createGain();
+                    osc.type = 'sine';
+                    osc.frequency.setValueAtTime(freq, this.ctx.currentTime);
+                    gain.gain.setValueAtTime(0.02, this.ctx.currentTime);
+                    gain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + 0.3);
+                    osc.connect(gain);
+                    gain.connect(this.ctx.destination);
+                    osc.start();
+                    osc.stop(this.ctx.currentTime + 0.3);
+                }, 420);
+            },
+
+            toggleMute() {
+                this.muted = !this.muted;
+                return !this.muted;
+            }
+        };
+
+        window.addEventListener('click', () => AudioFX.init(), { once: true });
+
+        /* 2. STATE */
+        let gameSettings = { digits: 4, allowZero: true, mode: 'turns' };
+        let digitStates = { '0': '0', '1': '0', '2': '0', '3': '0', '4': '0', '5': '0', '6': '0', '7': '0', '8': '0', '9': '0' };
+        let isBotMode = false;
+        let mySecret = "";
+        let opponentSecret = "";
+        let currentBuffer = "";
+        let myTurn = true;
+        let myAttempts = 0;
+        let oppAttempts = 0;
+        let botPossibleAnswers = [];
+        let botRaceTimer = null;
+
+        let peer = null;
+        let conn = null;
+        let myRoomId = "";
+
+        // DOM Elements
+        const appContainer = document.getElementById('appContainer');
+        const toast = document.getElementById('toast');
+        const netStatus = document.getElementById('netStatus');
+        const btnSoundToggle = document.getElementById('btnSoundToggle');
+        const screenMenu = document.getElementById('screenMenu');
+        const screenLobby = document.getElementById('screenLobby');
+        const screenSecret = document.getElementById('screenSecret');
+        const screenBattle = document.getElementById('screenBattle');
+        const keypadCard = document.getElementById('keypadCard');
+        const displayRoomCode = document.getElementById('displayRoomCode');
+        const inputRoomCode = document.getElementById('inputRoomCode');
+        const secretSlots = document.getElementById('secretSlots');
+        const guessSlots = document.getElementById('guessSlots');
+        const notesBar = document.getElementById('notesBar');
+        const myFeed = document.getElementById('myFeed');
+        const oppFeed = document.getElementById('oppFeed');
+        const myCount = document.getElementById('myCount');
+        const oppCount = document.getElementById('oppCount');
+        const oppTitle = document.getElementById('oppTitle');
+        const roundInfo = document.getElementById('roundInfo');
+        const btnZero = document.getElementById('btnZero');
+        const btnSurrender = document.getElementById('btnSurrender');
+        const modalPopup = document.getElementById('modalPopup');
+
+        btnSoundToggle.onclick = () => {
+            AudioFX.init();
+            const isOn = AudioFX.toggleMute();
+            btnSoundToggle.textContent = isOn ? "🔊 Вкл" : "🔇 Выкл";
+        };
+
+        function showToast(msg) {
+            toast.textContent = msg;
+            toast.classList.add('show');
+            setTimeout(() => toast.classList.remove('show'), 2000);
+        }
+
+        function showScreen(screen) {
+            [screenMenu, screenLobby, screenSecret, screenBattle].forEach(s => s.classList.add('hidden'));
+            screen.classList.remove('hidden');
+
+            if (screen === screenSecret || screen === screenBattle) {
+                keypadCard.classList.remove('hidden');
+            } else {
+                keypadCard.classList.add('hidden');
+            }
+        }
+
+        function spawnFloatingEmoji(emoji, isOpponent = false) {
+            AudioFX.playBoing();
+            const el = document.createElement('div');
+            el.className = 'floating-emoji';
+            el.textContent = emoji;
+            el.style.left = (isOpponent ? 70 : 25) + (Math.random() * 10 - 5) + '%';
+            el.style.bottom = '40%';
+            appContainer.appendChild(el);
+            setTimeout(() => el.remove(), 1600);
+        }
+
+        /* 3. SETTINGS & DEDUCTION HIGHLIGHT */
+        function setupChoiceGroup(groupId, key, isBool = false) {
+            const group = document.getElementById(groupId);
+            group.querySelectorAll('.choice-btn').forEach(btn => {
+                btn.onclick = () => {
+                    AudioFX.playPop();
+                    group.querySelectorAll('.choice-btn').forEach(b => b.classList.remove('active'));
+                    btn.classList.add('active');
+                    gameSettings[key] = isBool ? (btn.dataset.val === 'true') : (isNaN(btn.dataset.val) ? btn.dataset.val : parseInt(btn.dataset.val));
+                };
+            });
+        }
+        setupChoiceGroup('digitsGroup', 'digits');
+        setupChoiceGroup('zeroGroup', 'allowZero', true);
+        setupChoiceGroup('modeGroup', 'mode');
+
+        function initNotes() {
+            notesBar.innerHTML = "";
+            Object.keys(digitStates).forEach(k => digitStates[k] = '0');
+            const list = gameSettings.allowZero ? ['1', '2', '3', '4', '5', '6', '7', '8', '9', '0'] : ['1', '2', '3', '4', '5', '6', '7', '8', '9'];
+
+            list.forEach(num => {
+                const btn = document.createElement('button');
+                btn.className = 'note-btn';
+                btn.textContent = num;
+                btn.dataset.digit = num;
+                btn.onclick = () => {
+                    AudioFX.playPop();
+                    let cur = digitStates[num];
+                    digitStates[num] = cur === '0' ? '1' : (cur === '1' ? '2' : '0');
+                    applyGlobalDigitHighlights();
+                };
+                notesBar.appendChild(btn);
+            });
+            applyGlobalDigitHighlights();
+        }
+
+        function applyGlobalDigitHighlights() {
+            notesBar.querySelectorAll('.note-btn').forEach(btn => {
+                const st = digitStates[btn.dataset.digit];
+                btn.className = 'note-btn' + (st === '1' ? ' no' : (st === '2' ? ' yes' : ''));
+            });
+
+            document.querySelectorAll('.num-btn').forEach(btn => {
+                const d = btn.dataset.val;
+                if (d >= '0' && d <= '9') {
+                    const st = digitStates[d];
+                    btn.classList.remove('pad-no', 'pad-yes');
+                    if (st === '1') btn.classList.add('pad-no');
+                    if (st === '2') btn.classList.add('pad-yes');
+                }
+            });
+
+            document.querySelectorAll('.d-span').forEach(span => {
+                const st = digitStates[span.dataset.d];
+                span.className = 'd-span' + (st === '1' ? ' st-no' : (st === '2' ? ' st-yes' : ''));
+            });
+        }
+
+        function buildSlotsUI(container, count) {
+            container.innerHTML = "";
+            for (let i = 0; i < count; i++) {
+                const slot = document.createElement('div');
+                slot.className = 'slot' + (i === 0 ? ' active' : '');
+                container.appendChild(slot);
+            }
+        }
+
+        function updateSlotsDisplay(container, buffer) {
+            const slots = container.children;
+            for (let i = 0; i < gameSettings.digits; i++) {
+                slots[i].textContent = buffer[i] || "";
+                slots[i].className = "slot" + (i === buffer.length ? " active" : "");
+            }
+        }
+
+        /* 4. LOGIC & BOT */
+        function isValidSecret(str) {
+            if (str.length !== gameSettings.digits) return false;
+            if (!gameSettings.allowZero && str.includes('0')) return false;
+            return new Set(str).size === gameSettings.digits;
+        }
+
+        function generateRandomNumber() {
+            let digits = ['1', '2', '3', '4', '5', '6', '7', '8', '9'];
+            if (gameSettings.allowZero) digits.push('0');
+            for (let i = digits.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [digits[i], digits[j]] = [digits[j], digits[i]];
+            }
+            return digits.slice(0, gameSettings.digits).join('');
+        }
+
+        function evaluateGuess(secret, guess) {
+            let exact = 0;
+            let match = 0;
+            for (let i = 0; i < gameSettings.digits; i++) {
+                if (guess[i] === secret[i]) exact++;
+                if (secret.includes(guess[i])) match++;
+            }
+            return { match, exact };
+        }
+
+        function initBotAI() {
+            botPossibleAnswers = [];
+            const max = Math.pow(10, gameSettings.digits) - 1;
+            for (let i = 0; i <= max; i++) {
+                let s = i.toString().padStart(gameSettings.digits, '0');
+                if (isValidSecret(s)) botPossibleAnswers.push(s);
+            }
+        }
+
+        function botMakeMove() {
+            if (botPossibleAnswers.length === 0) return;
+            const botGuess = botPossibleAnswers[Math.floor(Math.random() * botPossibleAnswers.length)];
+            const result = evaluateGuess(mySecret, botGuess);
+
+            oppAttempts++;
+            oppCount.textContent = `#${oppAttempts}`;
+            appendRow(oppFeed, botGuess, result.match, result.exact);
+
+            botPossibleAnswers = botPossibleAnswers.filter(cand => {
+                const r = evaluateGuess(cand, botGuess);
+                return r.match === result.match && r.exact === result.exact;
+            });
+
+            if (result.exact === gameSettings.digits) {
+                if (botRaceTimer) clearInterval(botRaceTimer);
+                AudioFX.playDefeat();
+                showEndGame(false, `Бот разгадал твое число (${mySecret})!`);
+            } else {
+                if (gameSettings.mode === 'turns') {
+                    myTurn = true;
+                    updateTurnStatus();
+                }
+            }
+        }
+
+        /* 5. MULTIPLAYER P2P */
+        function initPeer(customId = null) {
+            netStatus.classList.remove('hidden');
+            netStatus.textContent = "📡 СЕТЬ...";
+            peer = new Peer(customId ? "numduel-" + customId : undefined);
+
+            peer.on('open', (id) => {
+                myRoomId = id.replace("numduel-", "");
+                netStatus.textContent = "🟢 ОНЛАЙН";
+                if (customId) displayRoomCode.textContent = myRoomId;
+            });
+
+            peer.on('connection', (connection) => {
+                conn = connection;
+                setupConnectionHandlers();
+                conn.on('open', () => {
+                    conn.send({ type: 'SYNC_SETTINGS', settings: gameSettings });
+                    prepareSecretScreen();
+                });
+            });
+
+            peer.on('error', (err) => {
+                AudioFX.playBonk();
+                alert("Ошибка сети или комната занята: " + err.type);
+                leaveBattle();
+            });
+        }
+
+        function setupConnectionHandlers() {
+            conn.on('data', (data) => {
+                if (data.type === 'SYNC_SETTINGS') {
+                    gameSettings = data.settings;
+                    prepareSecretScreen();
+                } else if (data.type === 'READY_SECRET') {
+                    opponentSecret = "LOCKED";
+                    if (mySecret) startBattle();
+                } else if (data.type === 'EMOJI') {
+                    spawnFloatingEmoji(data.emoji, true);
+                } else if (data.type === 'SURRENDER') {
+                    AudioFX.playVictory();
+                    showEndGame(true, "Соперник сдался и вышел из боя!");
+                } else if (data.type === 'OPPONENT_MOVE') {
+                    oppAttempts++;
+                    oppCount.textContent = `#${oppAttempts}`;
+                    const result = evaluateGuess(mySecret, data.guess);
+                    appendRow(oppFeed, data.guess, result.match, result.exact);
+
+                    conn.send({ type: 'MOVE_RESULT', guess: data.guess, result: result });
+
+                    if (result.exact === gameSettings.digits) {
+                        AudioFX.playDefeat();
+                        showEndGame(false, `Соперник взломал твое число (${mySecret})!`);
+                    } else if (gameSettings.mode === 'turns') {
+                        myTurn = true;
+                        updateTurnStatus();
+                    }
+                } else if (data.type === 'MOVE_RESULT') {
+                    appendRow(myFeed, data.guess, data.result.match, data.result.exact);
+                    if (data.result.exact === gameSettings.digits) {
+                        AudioFX.playVictory();
+                        showEndGame(true, `Ты первым взломал код соперника!`);
+                    }
+                }
+            });
+        }
+
+        /* 6. INTERACTIONS */
+        document.querySelectorAll('.emoji-btn').forEach(btn => {
+            btn.onclick = () => {
+                const emoji = btn.dataset.emoji;
+                spawnFloatingEmoji(emoji, false);
+                if (conn && conn.open) {
+                    conn.send({ type: 'EMOJI', emoji: emoji });
+                } else if (isBotMode && Math.random() > 0.4) {
+                    setTimeout(() => {
+                        const botEmojis = ['🤖', '🤡', '💀', '🔥', '🤔', '💩'];
+                        spawnFloatingEmoji(botEmojis[Math.floor(Math.random() * botEmojis.length)], true);
+                    }, 700);
+                }
+            };
+        });
+
+        btnSurrender.onclick = () => {
+            if (confirm("Выйти в главное меню? Текущий бой будет прерван.")) {
+                AudioFX.playBonk();
+                if (conn && conn.open) conn.send({ type: 'SURRENDER' });
+                leaveBattle();
+            }
+        };
+
+        function leaveBattle() {
+            if (botRaceTimer) clearInterval(botRaceTimer);
+            if (peer) peer.destroy();
+            netStatus.classList.add('hidden');
+            showScreen(screenMenu);
+        }
+
+        function prepareSecretScreen() {
+            btnZero.style.opacity = gameSettings.allowZero ? "1" : "0.2";
+            btnZero.style.pointerEvents = gameSettings.allowZero ? "auto" : "none";
+            buildSlotsUI(secretSlots, gameSettings.digits);
+            document.getElementById('secretPrompt').textContent = `ЗАГАДАЙ ${gameSettings.digits} ЦИФРЫ`;
+            document.getElementById('secretRules').textContent = gameSettings.allowZero ? "Цифры 0-9 без повторений" : "Цифры 1-9 без нуля и повторений";
+            currentBuffer = "";
+            updateSlotsDisplay(secretSlots, "");
+            showScreen(screenSecret);
+        }
+
+        document.getElementById('btnPlayBot').onclick = () => {
+            AudioFX.playPop();
+            isBotMode = true;
+            netStatus.classList.add('hidden');
+            oppTitle.textContent = "🤖 БОТ";
+            initBotAI();
+            prepareSecretScreen();
+        };
+
+        document.getElementById('btnCreateRoom').onclick = () => {
+            AudioFX.playPop();
+            isBotMode = false;
+            oppTitle.textContent = "👤 СОПЕРНИК";
+            const code = Math.random().toString(36).substring(2, 7).toUpperCase();
+            initPeer(code);
+            showScreen(screenLobby);
+        };
+
+        document.getElementById('btnJoinRoom').onclick = () => {
+            AudioFX.playPop();
+            const code = inputRoomCode.value.trim().toUpperCase();
+            if (code.length < 3) return showToast("Введите код комнаты!");
+            isBotMode = false;
+            oppTitle.textContent = "👤 СОПЕРНИК";
+            netStatus.classList.remove('hidden');
+            netStatus.textContent = "📡 СЕТЬ...";
+            peer = new Peer();
+            peer.on('open', () => {
+                netStatus.textContent = "🟢 ОНЛАЙН";
+                conn = peer.connect("numduel-" + code);
+                setupConnectionHandlers();
+            });
+        };
+
+        displayRoomCode.onclick = () => {
+            AudioFX.playPop();
+            navigator.clipboard.writeText(myRoomId);
+            showToast("Код скопирован!");
+        };
+
+        document.getElementById('btnCopyLink').onclick = () => {
+            AudioFX.playPop();
+            navigator.clipboard.writeText(window.location.href.split('#')[0] + "#" + myRoomId);
+            showToast("Ссылка скопирована!");
+        };
+
+        document.getElementById('btnLeaveLobby').onclick = () => {
+            AudioFX.playPop();
+            leaveBattle();
+        };
+
+        function handleInput(val) {
+            const isSecret = !screenSecret.classList.contains('hidden');
+            const isBattle = !screenBattle.classList.contains('hidden');
+            if (!isSecret && !isBattle) return;
+
+            if (val >= '0' && val <= '9') {
+                if (val === '0' && !gameSettings.allowZero) return;
+                if (currentBuffer.length < gameSettings.digits && !currentBuffer.includes(val)) {
+                    AudioFX.playPop();
+                    currentBuffer += val;
+                } else {
+                    AudioFX.playBonk();
+                }
+            } else if (val === 'del' || val === 'Backspace') {
+                AudioFX.playPop();
+                currentBuffer = currentBuffer.slice(0, -1);
+            } else if (val === 'ok' || val === 'Enter') {
+                if (isSecret) confirmSecret();
+                else if (isBattle) submitGuess();
+                return;
+            }
+
+            const currentSlots = isSecret ? secretSlots : guessSlots;
+            updateSlotsDisplay(currentSlots, currentBuffer);
+        }
+
+        document.getElementById('numpad').onclick = (e) => {
+            const btn = e.target.closest('.num-btn');
+            if (btn) handleInput(btn.dataset.val);
+        };
+
+        window.addEventListener('keydown', (e) => {
+            if (e.target.tagName === 'INPUT') return;
+            if (e.key >= '0' && e.key <= '9') handleInput(e.key);
+            else if (e.key === 'Backspace') handleInput('del');
+            else if (e.key === 'Enter') handleInput('ok');
+        });
+
+        function confirmSecret() {
+            if (!isValidSecret(currentBuffer)) {
+                AudioFX.playBonk();
+                return showToast(`Нужно ${gameSettings.digits} разные цифры!`);
+            }
+            AudioFX.playDing();
+            mySecret = currentBuffer;
+            currentBuffer = "";
+            updateSlotsDisplay(secretSlots, "");
+
+            if (isBotMode) {
+                opponentSecret = generateRandomNumber();
+                startBattle();
+            } else {
+                conn.send({ type: 'READY_SECRET' });
+                if (opponentSecret === "LOCKED") startBattle();
+                else showToast("Число принято! Ждем соперника...");
+            }
+        }
+        document.getElementById('btnConfirmSecret').onclick = confirmSecret;
+
+        /* 7. BATTLE LOOP */
+        function startBattle() {
+            showScreen(screenBattle);
+            initNotes();
+            buildSlotsUI(guessSlots, gameSettings.digits);
+            myFeed.innerHTML = "";
+            oppFeed.innerHTML = "";
+            myAttempts = 0;
+            oppAttempts = 0;
+            myCount.textContent = "#0";
+            oppCount.textContent = "#0";
+            currentBuffer = "";
+            updateSlotsDisplay(guessSlots, "");
+
+            myTurn = true;
+            updateTurnStatus();
+
+            if (isBotMode && gameSettings.mode === 'race') {
+                botRaceTimer = setInterval(botMakeMove, 3500);
+            }
+        }
+
+        function updateTurnStatus() {
+            if (gameSettings.mode === 'race') {
+                roundInfo.textContent = "⚡ ГОНКА: ВЗЛАМЫВАЙТЕ!";
+                roundInfo.style.background = "var(--blue)";
+                return;
+            }
+            if (myTurn) {
+                roundInfo.textContent = "🎯 ТВОЙ ХОД!";
+                roundInfo.style.background = "var(--green)";
+                roundInfo.style.color = "#fff";
+            } else {
+                roundInfo.textContent = "⏳ ХОД СОПЕРНИКА...";
+                roundInfo.style.background = "var(--yellow)";
+                roundInfo.style.color = "var(--dark)";
+            }
+        }
+
+        function submitGuess() {
+            if (gameSettings.mode === 'turns' && !myTurn) {
+                AudioFX.playBonk();
+                return showToast("Сейчас ход соперника!");
+            }
+            if (!isValidSecret(currentBuffer)) {
+                AudioFX.playBonk();
+                return showToast(`Введите ${gameSettings.digits} разные цифры!`);
+            }
+
+            AudioFX.playDing();
+            const guess = currentBuffer;
+            currentBuffer = "";
+            updateSlotsDisplay(guessSlots, "");
+            myAttempts++;
+            myCount.textContent = `#${myAttempts}`;
+
+            if (isBotMode) {
+                const res = evaluateGuess(opponentSecret, guess);
+                appendRow(myFeed, guess, res.match, res.exact);
+                if (res.exact === gameSettings.digits) {
+                    if (botRaceTimer) clearInterval(botRaceTimer);
+                    AudioFX.playVictory();
+                    showEndGame(true, `Ты взломал код бота (${opponentSecret}) за ${myAttempts} ходов!`);
+                } else {
+                    if (gameSettings.mode === 'turns') {
+                        myTurn = false;
+                        updateTurnStatus();
+                        setTimeout(botMakeMove, 900);
+                    }
+                }
+            } else {
+                conn.send({ type: 'OPPONENT_MOVE', guess: guess });
+                if (gameSettings.mode === 'turns') {
+                    myTurn = false;
+                    updateTurnStatus();
+                }
+            }
+        }
+
+        function appendRow(container, guess, match, exact) {
+            const row = document.createElement('div');
+            row.className = 'mini-row';
+
+            let digitsHtml = '';
+            for (let char of guess) {
+                const st = digitStates[char] || '0';
+                const cls = st === '1' ? ' st-no' : (st === '2' ? ' st-yes' : '');
+                digitsHtml += `<span class="d-span${cls}" data-d="${char}">${char}</span>`;
+            }
+
+            row.innerHTML = `
+      <span>${digitsHtml}</span>
+      <div class="mini-score">
+        <span class="tag-match">🔍${match}</span>
+        <span class="tag-exact">🎯${exact}</span>
+      </div>
+    `;
+            container.prepend(row);
+        }
+
+        /* 8. MODAL */
+        function showEndGame(won, msg) {
+            if (botRaceTimer) clearInterval(botRaceTimer);
+            document.getElementById('modalEmoji').textContent = won ? "🏆" : "💥";
+            document.getElementById('modalTitle').textContent = won ? "ПОБЕДА!" : "ПОРАЖЕНИЕ";
+            document.getElementById('modalDesc').textContent = msg;
+            modalPopup.classList.remove('hidden');
+        }
+
+        document.getElementById('btnRestart').onclick = () => {
+            window.location.hash = "";
+            location.reload();
+        };
+
+        window.addEventListener('load', () => {
+            if (window.location.hash.length > 1) {
+                inputRoomCode.value = window.location.hash.substring(1).toUpperCase();
+            }
+        });
+    </script>
+</body>
+
+</html>

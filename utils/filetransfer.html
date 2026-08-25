@@ -1,0 +1,1011 @@
+<!DOCTYPE html>
+<html lang="ru">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>DROPZONE // P2P Передача файлов</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link
+        href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;600;700&family=Nunito:wght@800;900&display=swap"
+        rel="stylesheet">
+    <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+
+    <style>
+        :root {
+            --bg: #6c5ce7;
+            --bg-pattern: #574b90;
+            --card: #ffffff;
+            --primary: #ff7675;
+            --yellow: #feca57;
+            --green: #1dd1a1;
+            --green-shadow: #10ac84;
+            --blue: #54a0ff;
+            --blue-shadow: #2e86de;
+            --dark: #222f3e;
+            --light-gray: #f1f2f6;
+            --gray: #c8d6e5;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            user-select: none;
+            font-family: 'Fredoka', cursive, sans-serif;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            background-color: var(--bg);
+            background-image: radial-gradient(var(--bg-pattern) 20%, transparent 20%);
+            background-size: 24px 24px;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 16px;
+            color: var(--dark);
+        }
+
+        .app-container {
+            width: 100%;
+            max-width: 960px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .cartoon-card {
+            background: var(--card);
+            border-radius: 26px;
+            padding: 20px;
+            border: 4px solid var(--dark);
+            box-shadow: 0 8px 0 var(--dark);
+        }
+
+        .btn-3d {
+            border: 3px solid var(--dark);
+            border-radius: 16px;
+            padding: 12px 18px;
+            font-size: 15px;
+            font-weight: 700;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            transition: transform 0.08s, box-shadow 0.08s;
+            outline: none;
+            width: 100%;
+        }
+
+        .btn-3d:active {
+            transform: translateY(4px);
+            box-shadow: 0 0 0 var(--dark) !important;
+        }
+
+        .btn-green {
+            background: var(--green);
+            color: #fff;
+            box-shadow: 0 5px 0 var(--green-shadow);
+        }
+
+        .btn-yellow {
+            background: var(--yellow);
+            color: var(--dark);
+            box-shadow: 0 5px 0 #e1b12c;
+        }
+
+        .btn-blue {
+            background: var(--blue);
+            color: #fff;
+            box-shadow: 0 5px 0 var(--blue-shadow);
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: #fff;
+            padding: 10px 18px;
+            border-radius: 20px;
+            border: 3px solid var(--dark);
+            box-shadow: 0 5px 0 var(--dark);
+        }
+
+        .logo {
+            font-size: 20px;
+            font-weight: 700;
+            color: var(--primary);
+            text-shadow: 2px 2px 0 var(--yellow);
+        }
+
+        .header-controls {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .icon-btn {
+            background: var(--light-gray);
+            border: 2px solid var(--dark);
+            border-radius: 10px;
+            padding: 5px 10px;
+            font-size: 13px;
+            cursor: pointer;
+            font-weight: 700;
+        }
+
+        .status-badge {
+            background: var(--light-gray);
+            padding: 5px 12px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 800;
+            border: 2px solid var(--dark);
+        }
+
+        .tabs-row {
+            display: flex;
+            gap: 8px;
+        }
+
+        .tab-btn {
+            flex: 1;
+            background: #fff;
+            border: 3px solid var(--dark);
+            border-radius: 16px;
+            padding: 10px;
+            font-size: 15px;
+            font-weight: 800;
+            cursor: pointer;
+            text-align: center;
+            box-shadow: 0 4px 0 var(--dark);
+            transition: all 0.1s;
+        }
+
+        .tab-btn.active {
+            background: var(--yellow);
+            transform: translateY(-2px);
+            box-shadow: 0 6px 0 var(--dark);
+        }
+
+        .two-col-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+        }
+
+        @media (max-width: 768px) {
+            .two-col-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .dropzone {
+            border: 3px dashed var(--blue-shadow);
+            background: var(--light-gray);
+            border-radius: 20px;
+            padding: 22px 16px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.15s;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .dropzone:hover,
+        .dropzone.dragover {
+            background: #e8f0fe;
+            border-color: var(--blue);
+            transform: scale(1.01);
+        }
+
+        .drop-icon {
+            font-size: 36px;
+            animation: floatIcon 2s ease-in-out infinite;
+        }
+
+        @keyframes floatIcon {
+
+            0%,
+            100% {
+                transform: translateY(0);
+            }
+
+            50% {
+                transform: translateY(-5px);
+            }
+        }
+
+        .file-queue {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            max-height: 300px;
+            overflow-y: auto;
+            margin: 8px 0;
+            padding-right: 4px;
+        }
+
+        .file-queue::-webkit-scrollbar {
+            width: 4px;
+        }
+
+        .file-queue::-webkit-scrollbar-thumb {
+            background: var(--gray);
+            border-radius: 4px;
+        }
+
+        .file-item {
+            background: var(--light-gray);
+            border: 2px solid var(--dark);
+            border-radius: 14px;
+            padding: 8px 12px;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            font-size: 13px;
+        }
+
+        .file-item-header {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .file-item-info {
+            flex: 1;
+            overflow: hidden;
+        }
+
+        .file-item-name {
+            font-weight: 700;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .file-item-size {
+            font-size: 11px;
+            color: #576574;
+            font-family: 'Nunito', sans-serif;
+            font-weight: 800;
+        }
+
+        .mini-progress-bg {
+            background: #fff;
+            border: 1.5px solid var(--dark);
+            border-radius: 8px;
+            height: 10px;
+            overflow: hidden;
+        }
+
+        .mini-progress-fill {
+            background: var(--green);
+            height: 100%;
+            width: 0%;
+            transition: width 0.05s linear;
+        }
+
+        .queue-summary {
+            display: flex;
+            justify-content: space-between;
+            font-size: 13px;
+            font-weight: 800;
+            color: #576574;
+            font-family: 'Nunito', sans-serif;
+            padding: 0 4px;
+        }
+
+        .qr-container {
+            background: #fff;
+            border: 3px solid var(--dark);
+            border-radius: 18px;
+            padding: 12px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 6px;
+            margin-top: 10px;
+        }
+
+        .room-input {
+            width: 100%;
+            border: 3px solid var(--dark);
+            border-radius: 14px;
+            padding: 12px;
+            font-size: 20px;
+            text-align: center;
+            font-family: 'Nunito', sans-serif;
+            font-weight: 900;
+            letter-spacing: 3px;
+            outline: none;
+            background: var(--light-gray);
+        }
+
+        .mini-badge {
+            padding: 4px 8px;
+            border-radius: 8px;
+            font-size: 11px;
+            font-weight: 800;
+            border: 1.5px solid var(--dark);
+            background: var(--yellow);
+            display: inline-flex;
+            align-items: center;
+        }
+
+        .hidden {
+            display: none !important;
+        }
+
+        .toast {
+            position: fixed;
+            top: 16px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: var(--dark);
+            color: #fff;
+            padding: 8px 18px;
+            border-radius: 20px;
+            font-weight: 700;
+            font-size: 13px;
+            z-index: 300;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.2s;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+        }
+
+        .toast.show {
+            opacity: 1;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="toast" id="toast">Уведомление</div>
+
+    <div class="app-container">
+        <div class="header">
+            <div class="logo">📦 DROPZONE</div>
+            <div class="header-controls">
+                <button class="icon-btn" id="btnSoundToggle">🔊 Вкл</button>
+                <div class="status-badge" id="netBadge">🟡 СЕТЬ...</div>
+            </div>
+        </div>
+
+        <div class="tabs-row">
+            <button class="tab-btn active" id="tabSend">🚀 Отправить</button>
+            <button class="tab-btn" id="tabReceive">📥 Принять</button>
+        </div>
+
+        <!-- РЕЖИМ 1: ОТПРАВИТЬ -->
+        <div class="cartoon-card" id="cardSend">
+            <div class="two-col-grid">
+                <div style="display: flex; flex-direction: column; gap: 10px;">
+                    <div class="dropzone" id="dropzone">
+                        <div class="drop-icon">📁</div>
+                        <div style="font-size: 15px; font-weight: 700;">Перетащи файлы сюда</div>
+                        <div style="font-size: 12px; color: #576574;">или нажми для добавления в очередь</div>
+                        <input type="file" id="fileInput" multiple class="hidden">
+                    </div>
+
+                    <div class="qr-container" id="qrBlock">
+                        <div style="font-size: 12px; font-weight: 700; color: #576574;">Код комнаты:</div>
+                        <div style="font-size: 22px; font-weight: 900; letter-spacing: 3px; font-family: 'Nunito'; color: var(--primary);"
+                            id="displayCode">...</div>
+                        <div id="qrcode"
+                            style="min-height: 120px; display: flex; align-items: center; justify-content: center;">
+                        </div>
+                    </div>
+
+                    <button class="btn-3d btn-yellow" id="btnCopyLink">📋 Копировать ссылку</button>
+                </div>
+
+                <div>
+                    <div class="queue-summary">
+                        <span id="queueCount">Всего: 0 файлов</span>
+                        <span id="queueTotalSize">0 MB</span>
+                    </div>
+                    <div class="file-queue" id="senderQueueList">
+                        <div style="text-align: center; color: #8395a7; font-size: 13px; padding: 40px 0;">
+                            Очередь пуста.<br>Добавьте файлы слева!
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- РЕЖИМ 2: ПРИНЯТЬ -->
+        <div class="cartoon-card hidden" id="cardReceive">
+            <div class="two-col-grid">
+                <div style="display: flex; flex-direction: column; gap: 10px; justify-content: center;">
+                    <div style="text-align: center;">
+                        <div style="font-size: 18px; font-weight: 700; margin-bottom: 4px;">ПОДКЛЮЧЕНИЕ</div>
+                        <div style="font-size: 12px; color: #576574;">Введи 5-значный код отправителя:</div>
+                    </div>
+                    <input type="text" class="room-input" id="inputRoomCode" placeholder="КОД" maxlength="5">
+                    <button class="btn-3d btn-blue" id="btnConnect">⚡ Подключиться</button>
+                </div>
+
+                <div>
+                    <div class="queue-summary">
+                        <span id="receiveQueueCount">Входящие: 0 файлов</span>
+                        <span id="receiveQueueTotalSize">0 MB</span>
+                    </div>
+                    <div class="file-queue" id="receiverQueueList">
+                        <div style="text-align: center; color: #8395a7; font-size: 13px; padding: 40px 0;">
+                            Ожидание подключения к отправителю...
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        /* 1. AUDIO ENGINE */
+        const AudioFX = {
+            ctx: null,
+            muted: false,
+            init() {
+                if (!this.ctx) this.ctx = new (window.AudioContext || window.webkitAudioContext)();
+                if (this.ctx.state === 'suspended') this.ctx.resume();
+            },
+            playPop() {
+                if (this.muted || !this.ctx) return;
+                const osc = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(450, this.ctx.currentTime);
+                osc.frequency.exponentialRampToValueAtTime(150, this.ctx.currentTime + 0.08);
+                gain.gain.setValueAtTime(0.2, this.ctx.currentTime);
+                gain.gain.linearRampToValueAtTime(0.01, this.ctx.currentTime + 0.08);
+                osc.connect(gain); gain.connect(this.ctx.destination);
+                osc.start(); osc.stop(this.ctx.currentTime + 0.08);
+            },
+            playSuccess() {
+                if (this.muted || !this.ctx) return;
+                [523.25, 659.25, 783.99, 1046.50].forEach((f, i) => {
+                    setTimeout(() => {
+                        if (this.muted || !this.ctx) return;
+                        const osc = this.ctx.createOscillator();
+                        const gain = this.ctx.createGain();
+                        osc.type = 'triangle';
+                        osc.frequency.setValueAtTime(f, this.ctx.currentTime);
+                        gain.gain.setValueAtTime(0.2, this.ctx.currentTime);
+                        gain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + 0.3);
+                        osc.connect(gain); gain.connect(this.ctx.destination);
+                        osc.start(); osc.stop(this.ctx.currentTime + 0.3);
+                    }, i * 90);
+                });
+            }
+        };
+        window.addEventListener('click', () => AudioFX.init(), { once: true });
+
+        /* 2. CONFIG & STATE */
+        const CHUNK_SIZE = 32 * 1024; // 32 KB оптимально для WebRTC MTU
+        const PEER_CONFIG = {
+            config: {
+                iceServers: [
+                    { urls: 'stun:stun.l.google.com:19302' },
+                    { urls: 'stun:global.stun.twilio.com:3478' }
+                ]
+            }
+        };
+
+        let peer = null;
+        let conn = null;
+        let myRoomId = "";
+
+        let senderFiles = [];
+        let isSenderBusy = false;
+        let pendingAcks = {};
+
+        let receiverFiles = [];
+        let currentReceivingId = null;
+
+        // DOM
+        const toast = document.getElementById('toast');
+        const netBadge = document.getElementById('netBadge');
+        const btnSoundToggle = document.getElementById('btnSoundToggle');
+        const tabSend = document.getElementById('tabSend');
+        const tabReceive = document.getElementById('tabReceive');
+        const cardSend = document.getElementById('cardSend');
+        const cardReceive = document.getElementById('cardReceive');
+        const dropzone = document.getElementById('dropzone');
+        const fileInput = document.getElementById('fileInput');
+        const senderQueueList = document.getElementById('senderQueueList');
+        const queueCount = document.getElementById('queueCount');
+        const queueTotalSize = document.getElementById('queueTotalSize');
+        const displayCode = document.getElementById('displayCode');
+        const btnCopyLink = document.getElementById('btnCopyLink');
+        const inputRoomCode = document.getElementById('inputRoomCode');
+        const btnConnect = document.getElementById('btnConnect');
+        const receiverQueueList = document.getElementById('receiverQueueList');
+        const receiveQueueCount = document.getElementById('receiveQueueCount');
+        const receiveQueueTotalSize = document.getElementById('receiveQueueTotalSize');
+
+        function showToast(msg) {
+            toast.textContent = msg;
+            toast.classList.add('show');
+            setTimeout(() => toast.classList.remove('show'), 2200);
+        }
+
+        function formatBytes(bytes) {
+            if (!bytes || bytes === 0) return '0 Bytes';
+            const k = 1024;
+            const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+        }
+
+        function getFileIcon(type, name) {
+            type = type || ''; name = name || '';
+            if (type.includes('image')) return '🖼️';
+            if (type.includes('video')) return '🎬';
+            if (type.includes('audio')) return '🎵';
+            if (type.includes('pdf') || name.endsWith('.pdf')) return '📕';
+            if (type.includes('zip') || type.includes('rar') || name.endsWith('.zip')) return '📦';
+            return '📄';
+        }
+
+        btnSoundToggle.onclick = () => {
+            AudioFX.init();
+            AudioFX.muted = !AudioFX.muted;
+            btnSoundToggle.textContent = AudioFX.muted ? "🔇 Выкл" : "🔊 Вкл";
+        };
+
+        /* 3. TABS */
+        tabSend.onclick = () => {
+            AudioFX.playPop();
+            tabSend.classList.add('active');
+            tabReceive.classList.remove('active');
+            cardSend.classList.remove('hidden');
+            cardReceive.classList.add('hidden');
+            if (!peer || peer.destroyed) initSender();
+        };
+
+        tabReceive.onclick = () => {
+            AudioFX.playPop();
+            tabReceive.classList.add('active');
+            tabSend.classList.remove('active');
+            cardReceive.classList.remove('hidden');
+            cardSend.classList.add('hidden');
+            if (peer && !peer.destroyed) {
+                peer.destroy();
+                peer = null;
+                conn = null;
+                netBadge.innerHTML = "⚪ ОЖИДАНИЕ";
+            }
+        };
+
+        /* 4. SENDER */
+        let qrAttempts = 0;
+        function renderQRCode(url) {
+            const qrEl = document.getElementById('qrcode');
+            qrEl.innerHTML = "";
+            if (typeof QRCode !== 'undefined') {
+                new QRCode(qrEl, {
+                    text: url,
+                    width: 120,
+                    height: 120,
+                    colorDark: "#222f3e",
+                    colorLight: "#ffffff"
+                });
+            } else if (qrAttempts++ < 10) {
+                setTimeout(() => renderQRCode(url), 200);
+            }
+        }
+
+        function initSender() {
+            if (peer && !peer.destroyed) peer.destroy();
+            myRoomId = Math.random().toString(36).substring(2, 7).toUpperCase();
+            displayCode.textContent = myRoomId;
+            const shareUrl = window.location.href.split('#')[0] + "#" + myRoomId;
+            renderQRCode(shareUrl);
+
+            peer = new Peer("dz-" + myRoomId, PEER_CONFIG);
+
+            peer.on('open', () => {
+                netBadge.innerHTML = "🟡 ЖДЕМ ПИРА";
+                netBadge.style.color = "#d35400";
+            });
+
+            peer.on('connection', (c) => {
+                conn = c;
+                conn.on('open', () => {
+                    AudioFX.playPop();
+                    netBadge.innerHTML = "🟢 ПОДКЛЮЧЕНО";
+                    netBadge.style.color = "#27ae60";
+                    showToast("Устройство подключено!");
+                    syncManifestToPeer();
+                });
+                setupConnectionDataListener();
+            });
+
+            peer.on('error', (err) => {
+                console.warn("PeerJS Sender Error:", err);
+                if (err.type === 'unavailable-id') initSender();
+            });
+        }
+
+        btnCopyLink.onclick = () => {
+            AudioFX.playPop();
+            const url = window.location.href.split('#')[0] + "#" + myRoomId;
+            if (navigator.clipboard) {
+                navigator.clipboard.writeText(url).then(() => showToast("Ссылка скопирована!"));
+            }
+        };
+
+        /* 5. QUEUE */
+        dropzone.onclick = () => fileInput.click();
+        dropzone.ondragover = (e) => { e.preventDefault(); dropzone.classList.add('dragover'); };
+        dropzone.ondragleave = () => dropzone.classList.remove('dragover');
+        dropzone.ondrop = (e) => {
+            e.preventDefault();
+            dropzone.classList.remove('dragover');
+            if (e.dataTransfer.files.length > 0) addFilesToQueue(Array.from(e.dataTransfer.files));
+        };
+
+        fileInput.onchange = () => {
+            if (fileInput.files.length > 0) {
+                addFilesToQueue(Array.from(fileInput.files));
+                fileInput.value = '';
+            }
+        };
+
+        function addFilesToQueue(files) {
+            AudioFX.playPop();
+            const newItems = [];
+
+            files.forEach(f => {
+                const item = {
+                    id: 'f_' + Date.now() + '_' + Math.random().toString(36).substr(2, 6),
+                    file: f,
+                    name: f.name,
+                    size: f.size,
+                    type: f.type,
+                    status: 'queued'
+                };
+                senderFiles.push(item);
+                newItems.push({ id: item.id, name: item.name, size: item.size, type: item.type, status: 'queued' });
+            });
+
+            renderSenderQueue();
+
+            if (conn && conn.open) {
+                conn.send({ type: 'APPEND_FILES', files: newItems });
+                runSenderWorker();
+            }
+        }
+
+        function renderSenderQueue() {
+            if (senderFiles.length === 0) {
+                senderQueueList.innerHTML = `<div style="text-align: center; color: #8395a7; font-size: 13px; padding: 40px 0;">Очередь пуста.<br>Добавьте файлы слева!</div>`;
+                queueCount.textContent = `Всего: 0 файлов`;
+                queueTotalSize.textContent = `0 MB`;
+                return;
+            }
+
+            senderQueueList.innerHTML = "";
+            let totalBytes = 0;
+
+            senderFiles.forEach(f => {
+                totalBytes += f.size;
+                const itemEl = document.createElement('div');
+                itemEl.className = 'file-item';
+                itemEl.id = `senderItem-${f.id}`;
+                itemEl.innerHTML = `
+                    <div class="file-item-header">
+                        <div style="font-size: 22px;">${getFileIcon(f.type, f.name)}</div>
+                        <div class="file-item-info">
+                            <div class="file-item-name">${f.name}</div>
+                            <div class="file-item-size">${formatBytes(f.size)}</div>
+                        </div>
+                        <span class="mini-badge" id="senderBadge-${f.id}">
+                            ${f.status === 'sent' ? '✅ Отправлен' : (f.status === 'sending' ? '🚀 Отправка...' : '⏳ В очереди')}
+                        </span>
+                    </div>
+                    <div class="mini-progress-bg">
+                        <div class="mini-progress-fill" id="senderProgress-${f.id}" style="width: ${f.status === 'sent' ? '100%' : '0%'}"></div>
+                    </div>
+                `;
+                senderQueueList.appendChild(itemEl);
+            });
+
+            queueCount.textContent = `Всего: ${senderFiles.length} файлов`;
+            queueTotalSize.textContent = formatBytes(totalBytes);
+        }
+
+        function updateSenderItemUI(id, badgeText, percent) {
+            const badge = document.getElementById(`senderBadge-${id}`);
+            const progress = document.getElementById(`senderProgress-${id}`);
+            if (badge) badge.textContent = badgeText;
+            if (progress) progress.style.width = percent + '%';
+        }
+
+        /* 6. WORKER & DATA CHANNEL BACKPRESSURE */
+        function syncManifestToPeer() {
+            if (!conn || !conn.open) return;
+            const manifest = senderFiles.map(f => ({
+                id: f.id, name: f.name, size: f.size, type: f.type, status: f.status
+            }));
+            conn.send({ type: 'SYNC_MANIFEST', files: manifest });
+            runSenderWorker();
+        }
+
+        function waitForAck(ackKey) {
+            return new Promise(resolve => { pendingAcks[ackKey] = resolve; });
+        }
+
+        function resolveAck(ackKey) {
+            if (pendingAcks[ackKey]) {
+                pendingAcks[ackKey]();
+                delete pendingAcks[ackKey];
+            }
+        }
+
+        // Надежный доступ к WebRTC DataChannel
+        function getRawDataChannel() {
+            return conn ? (conn._dc || conn.dataChannel) : null;
+        }
+
+        async function runSenderWorker() {
+            if (isSenderBusy || !conn || !conn.open) return;
+            isSenderBusy = true;
+
+            while (true) {
+                const item = senderFiles.find(f => f.status === 'queued');
+                if (!item) break;
+
+                item.status = 'sending';
+                updateSenderItemUI(item.id, '🚀 Отправка...', 0);
+
+                conn.send({
+                    type: 'FILE_START',
+                    id: item.id,
+                    name: item.name,
+                    size: item.size,
+                    type: item.type
+                });
+
+                await waitForAck('READY_' + item.id);
+
+                let offset = 0;
+                const file = item.file;
+                const startTime = Date.now();
+
+                while (offset < file.size) {
+                    const slice = file.slice(offset, offset + CHUNK_SIZE);
+                    const buffer = await slice.arrayBuffer();
+
+                    // Контроль заполнения буфера (WebRTC Backpressure)
+                    const dc = getRawDataChannel();
+                    while (dc && dc.bufferedAmount > 256 * 1024) {
+                        await new Promise(r => setTimeout(r, 10));
+                    }
+
+                    conn.send(buffer);
+                    offset += buffer.byteLength;
+
+                    const percent = file.size === 0 ? 100 : Math.min(100, Math.round((offset / file.size) * 100));
+                    const elapsed = (Date.now() - startTime) / 1000;
+                    const speedMB = elapsed > 0 ? (offset / (1024 * 1024)) / elapsed : 0;
+                    updateSenderItemUI(item.id, `${percent}% (${speedMB.toFixed(1)} МБ/с)`, percent);
+                }
+
+                // Ждем пока данные физически уйдут в сеть
+                const dc = getRawDataChannel();
+                while (dc && dc.bufferedAmount > 0) {
+                    await new Promise(r => setTimeout(r, 10));
+                }
+
+                conn.send({ type: 'FILE_END', id: item.id, totalBytes: file.size });
+                await waitForAck('SAVED_' + item.id);
+
+                item.status = 'sent';
+                updateSenderItemUI(item.id, '✅ Отправлен', 100);
+            }
+
+            isSenderBusy = false;
+            AudioFX.playSuccess();
+            showToast("Все файлы отправлены!");
+        }
+
+        /* 7. RECEIVER */
+        btnConnect.onclick = () => {
+            const code = inputRoomCode.value.trim().toUpperCase();
+            if (code.length < 3) return showToast("Введите код комнаты!");
+            connectToHost(code);
+        };
+
+        function connectToHost(code) {
+            AudioFX.playPop();
+            netBadge.innerHTML = "📡 СВЯЗЬ...";
+            if (peer && !peer.destroyed) peer.destroy();
+
+            peer = new Peer(PEER_CONFIG);
+
+            peer.on('open', () => {
+                conn = peer.connect("dz-" + code, { reliable: true });
+
+                conn.on('open', () => {
+                    netBadge.innerHTML = "🟢 ПОДКЛЮЧЕНО";
+                    netBadge.style.color = "#27ae60";
+                    showToast("Подключено к отправителю!");
+                    conn.send({ type: 'PEER_GREETING' });
+                });
+
+                setupConnectionDataListener();
+                conn.on('error', (err) => console.warn("Conn error:", err));
+            });
+
+            peer.on('error', (err) => {
+                netBadge.innerHTML = "🔴 ОШИБКА";
+                showToast("Не удалось подключиться: " + err.type);
+            });
+        }
+
+        function setupConnectionDataListener() {
+            conn.on('data', async (data) => {
+                // 1. JSON / Управляющие пакеты
+                if (data && typeof data === 'object' && !(data instanceof ArrayBuffer) && !ArrayBuffer.isView(data) && !(data instanceof Blob) && data.type) {
+                    if (data.type === 'ACK') {
+                        resolveAck(data.ackKey);
+                    } else if (data.type === 'PEER_GREETING') {
+                        syncManifestToPeer();
+                    } else if (data.type === 'SYNC_MANIFEST' || data.type === 'APPEND_FILES') {
+                        data.files.forEach(f => {
+                            if (!receiverFiles.some(rf => rf.id === f.id)) {
+                                receiverFiles.push({
+                                    id: f.id,
+                                    name: f.name,
+                                    size: f.size,
+                                    type: f.type,
+                                    status: f.status || 'queued',
+                                    chunks: [],
+                                    receivedBytes: 0,
+                                    url: null
+                                });
+                            }
+                        });
+                        renderReceiverQueue();
+                    } else if (data.type === 'FILE_START') {
+                        currentReceivingId = data.id;
+                        let item = receiverFiles.find(rf => rf.id === data.id);
+                        if (!item) {
+                            item = { id: data.id, name: data.name, size: data.size, type: data.type, status: 'receiving', chunks: [], receivedBytes: 0, url: null };
+                            receiverFiles.push(item);
+                            renderReceiverQueue();
+                        }
+                        item.status = 'receiving';
+                        item.chunks = [];
+                        item.receivedBytes = 0;
+                        item.startTime = Date.now();
+                        updateReceiverItemUI(item.id, '🚀 Получение...', 0);
+                        conn.send({ type: 'ACK', ackKey: 'READY_' + data.id });
+                    } else if (data.type === 'FILE_END') {
+                        saveReceivedFile(data.id);
+                    }
+                    return;
+                }
+
+                // 2. Бинарные чанки
+                let buffer = null;
+                if (data instanceof ArrayBuffer) {
+                    buffer = data;
+                } else if (ArrayBuffer.isView(data)) {
+                    buffer = data.buffer.slice(data.byteOffset, data.byteOffset + data.byteLength);
+                } else if (data instanceof Blob) {
+                    buffer = await data.arrayBuffer();
+                }
+
+                if (buffer && currentReceivingId) {
+                    const item = receiverFiles.find(rf => rf.id === currentReceivingId);
+                    if (item && item.status === 'receiving') {
+                        item.chunks.push(buffer);
+                        item.receivedBytes += buffer.byteLength;
+
+                        const percent = item.size === 0 ? 100 : Math.min(100, Math.round((item.receivedBytes / item.size) * 100));
+                        const elapsed = (Date.now() - item.startTime) / 1000;
+                        const speedMB = elapsed > 0 ? (item.receivedBytes / (1024 * 1024)) / elapsed : 0;
+                        updateReceiverItemUI(item.id, `${percent}% (${speedMB.toFixed(1)} МБ/с)`, percent);
+                    }
+                }
+            });
+        }
+
+        function renderReceiverQueue() {
+            if (receiverFiles.length === 0) {
+                receiverQueueList.innerHTML = `<div style="text-align: center; color: #8395a7; font-size: 13px; padding: 40px 0;">Ожидание файлов от отправителя...</div>`;
+                receiveQueueCount.textContent = `Входящие: 0 файлов`;
+                receiveQueueTotalSize.textContent = `0 MB`;
+                return;
+            }
+
+            receiverQueueList.innerHTML = "";
+            let totalBytes = 0;
+
+            receiverFiles.forEach(f => {
+                totalBytes += f.size;
+                const itemEl = document.createElement('div');
+                itemEl.className = 'file-item';
+                itemEl.id = `receiverItem-${f.id}`;
+                itemEl.innerHTML = `
+                    <div class="file-item-header">
+                        <div style="font-size: 22px;">${getFileIcon(f.type, f.name)}</div>
+                        <div class="file-item-info">
+                            <div class="file-item-name">${f.name}</div>
+                            <div class="file-item-size">${formatBytes(f.size)}</div>
+                        </div>
+                        <span class="mini-badge" id="receiverBadge-${f.id}">
+                            ${f.url ? `<a href="${f.url}" download="${f.name}" style="color: inherit; text-decoration: none;">💾 Скачать</a>` : '⏳ В очереди'}
+                        </span>
+                    </div>
+                    <div class="mini-progress-bg">
+                        <div class="mini-progress-fill" id="receiverProgress-${f.id}" style="width: ${f.status === 'received' ? '100%' : '0%'}"></div>
+                    </div>
+                `;
+                receiverQueueList.appendChild(itemEl);
+            });
+
+            receiveQueueCount.textContent = `Входящие: ${receiverFiles.length} файлов`;
+            receiveQueueTotalSize.textContent = formatBytes(totalBytes);
+        }
+
+        function updateReceiverItemUI(id, badgeHtml, percent) {
+            const badge = document.getElementById(`receiverBadge-${id}`);
+            const progress = document.getElementById(`receiverProgress-${id}`);
+            if (badge) badge.innerHTML = badgeHtml;
+            if (progress) progress.style.width = percent + '%';
+        }
+
+        function saveReceivedFile(fileId) {
+            const item = receiverFiles.find(rf => rf.id === fileId);
+            if (!item || item.status === 'received') return;
+
+            item.status = 'received';
+            AudioFX.playPop();
+
+            const blob = new Blob(item.chunks, { type: item.type || 'application/octet-stream' });
+            item.chunks = []; // Освобождаем ОЗУ
+            item.url = URL.createObjectURL(blob);
+
+            updateReceiverItemUI(
+                item.id,
+                `<a href="${item.url}" download="${item.name}" class="mini-badge" style="background: var(--green); color: #fff; text-decoration: none; cursor: pointer;">💾 Скачать</a>`,
+                100
+            );
+
+            // Автоскачивание
+            const autoLink = document.createElement('a');
+            autoLink.href = item.url;
+            autoLink.download = item.name;
+            document.body.appendChild(autoLink);
+            autoLink.click();
+            setTimeout(() => document.body.removeChild(autoLink), 500);
+
+            conn.send({ type: 'ACK', ackKey: 'SAVED_' + fileId });
+        }
+
+        /* 8. HASH ROUTE */
+        window.addEventListener('load', () => {
+            if (window.location.hash.length > 1) {
+                const code = window.location.hash.substring(1).toUpperCase();
+                tabReceive.click();
+                inputRoomCode.value = code;
+                connectToHost(code);
+            } else {
+                initSender();
+            }
+        });
+    </script>
+</body>
+
+</html>

@@ -1151,7 +1151,12 @@
         function initPeer(customId = null) {
             netStatus.classList.remove('hidden');
             netStatus.textContent = "📡 СЕТЬ...";
-            peer = new Peer(customId ? "battleship-" + customId : undefined);
+            peer = new Peer(customId ? "battleship-" + customId : undefined, {
+                host: '0.peerjs.com',
+                port: 443,
+                secure: true,
+                debug: 2
+            });
 
             peer.on('open', (id) => {
                 myRoomId = id.replace("battleship-", "");
@@ -1176,9 +1181,11 @@
             conn.on('data', (data) => {
                 if (data.type === 'READY_FLEET') {
                     opponentReady = true;
-                    if (myShips.length === FLEET_SCHEMA.length && !screenPlacement.classList.contains('hidden') && !btnReadyToFight.disabled) {
+                    showToast("Соперник готов к бою!");
+                    if (myShips.length === FLEET_SCHEMA.length && !screenPlacement.classList.contains('hidden')) {
                         startBattle();
                     }
+                }
                 } else if (data.type === 'SHOOT') {
                     const cellIdx = data.cell;
                     const cellEl = myFleetGrid.children[cellIdx];

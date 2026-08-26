@@ -293,17 +293,19 @@
             transition: border-color 0.2s ease, box-shadow 0.2s ease;
         }
 
-        /* ПОДСВЕТКА ГОВОРЯЩЕГО (ТОЛЬКО ДЛЯ КАМЕР) */
+        /* ПОДСВЕТКА ГОВОРЯЩЕГО (ТОЛЬКО КАМЕРЫ, ИСКЛЮЧАЯ ЭКРАН) */
         .video-tile.speaking:not(.screen-tile) {
             border-color: var(--google-blue) !important;
             box-shadow: 0 0 14px rgba(168, 199, 250, 0.45) !important;
         }
 
-        /* ДЕМОНСТРАЦИЯ ЭКРАНА — БЕЗ ПОДСВЕТКИ ГОВОРЯЩЕГО */
+        /* ДЕМОНСТРАЦИЯ ЭКРАНА — БЕЗ ПОДСВЕТКИ */
         .video-tile.screen-tile,
-        .video-tile.screen-tile.speaking {
+        .video-tile.screen-tile.speaking,
+        div.video-tile.screen-tile {
             border-color: var(--google-blue) !important;
             box-shadow: none !important;
+            outline: none !important;
         }
 
         .video-tile video {
@@ -313,7 +315,6 @@
             background: #000;
         }
 
-        /* Зеркалирование только при наличии класса mirrored (фронталка) */
         .video-tile.mirrored video {
             transform: scaleX(-1);
         }
@@ -323,12 +324,13 @@
             object-fit: contain;
         }
 
+        /* ПОЛНОЭКРАННЫЙ РЕЖИМ (PSEUDO-FULLSCREEN) */
         .video-tile.pseudo-fullscreen {
             position: fixed !important;
             inset: 0 !important;
             width: 100vw !important;
             height: 100dvh !important;
-            z-index: 99999 !important;
+            z-index: 10000 !important;
             border-radius: 0 !important;
             border: none !important;
             background: #000 !important;
@@ -411,7 +413,7 @@
             z-index: 2;
         }
 
-        /* 3. АДАПТИВНАЯ НИЖНЯЯ ПАНЕЛЬ */
+        /* 3. НИЖНЯЯ ПАНЕЛЬ */
         .conf-controls-bar {
             display: flex;
             justify-content: center;
@@ -475,35 +477,36 @@
             border-color: rgba(242, 139, 130, 0.3);
         }
 
-        /* 4. ВСПЛЫВАЮЩИЕ УВЕДОМЛЕНИЯ НОВЫХ СООБЩЕНИЙ ЧАТА (СНИЗУ СПРАВА) */
+        /* 4. ВСПЛЫВАЮЩИЕ УВЕДОМЛЕНИЯ СВЕРХУ (ПОВЕРХ ВСЕГО И FULLSCREEN) */
         .chat-toast-container {
-            position: absolute;
-            bottom: 60px;
+            position: fixed;
+            top: 12px;
             right: 16px;
             display: flex;
             flex-direction: column;
             gap: 6px;
-            z-index: 100;
+            z-index: 2147483647 !important;
+            /* Максимальный Z-Index в браузере */
             pointer-events: none;
             max-width: 320px;
             width: calc(100% - 32px);
         }
 
         .chat-floating-toast {
-            background: rgba(30, 31, 32, 0.92);
+            background: rgba(30, 31, 32, 0.94);
             border: 1px solid var(--border-focus);
             backdrop-filter: blur(12px);
             border-radius: var(--radius-md);
             padding: 8px 12px;
             color: var(--text-primary);
             font-size: 12px;
-            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+            box-shadow: 0 8px 28px rgba(0, 0, 0, 0.7);
             pointer-events: auto;
             cursor: pointer;
             display: flex;
             flex-direction: column;
             gap: 2px;
-            animation: slideInUp 0.25s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
+            animation: slideInDown 0.25s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
             transition: opacity 0.3s ease, transform 0.3s ease;
         }
 
@@ -523,10 +526,10 @@
             text-overflow: ellipsis;
         }
 
-        @keyframes slideInUp {
+        @keyframes slideInDown {
             from {
                 opacity: 0;
-                transform: translateY(16px);
+                transform: translateY(-16px);
             }
 
             to {
@@ -535,7 +538,7 @@
             }
         }
 
-        /* 5. ЧАТ ПАНЕЛЬ */
+        /* 5. ЧАТ ПАНЕЛЬ (ПОДДЕРЖКА ПОВЕРХ FULLSCREEN) */
         .chat-drawer {
             width: 340px;
             height: 100%;
@@ -543,7 +546,19 @@
             border-left: 1px solid var(--border-subtle);
             display: flex;
             flex-direction: column;
-            z-index: 40;
+            z-index: 2147483640 !important;
+            /* Открывается поверх любого Fullscreen */
+            position: relative;
+            box-shadow: -4px 0 24px rgba(0, 0, 0, 0.6);
+        }
+
+        /* Когда активен Fullscreen/Pseudo-Fullscreen, чат становится абсолютным боковым оверлеем */
+        body.has-fullscreen .chat-drawer {
+            position: fixed !important;
+            top: 0 !important;
+            bottom: 0 !important;
+            right: 0 !important;
+            height: 100dvh !important;
         }
 
         .chat-header {
@@ -708,7 +723,7 @@
             border-radius: var(--radius-full);
             font-size: 12px;
             font-weight: 500;
-            z-index: 5000;
+            z-index: 2147483647 !important;
             opacity: 0;
             pointer-events: none;
             transition: opacity 0.2s ease;
@@ -731,7 +746,7 @@
             align-items: center;
             justify-content: center;
             padding: 16px;
-            z-index: 4000;
+            z-index: 2147483645 !important;
         }
 
         .studio-modal {
@@ -850,7 +865,7 @@
             }
 
             .chat-toast-container {
-                bottom: 56px;
+                top: 8px;
                 right: 8px;
                 left: 8px;
                 max-width: none;
@@ -865,6 +880,9 @@
         <span class="material-symbols-outlined" id="toastIcon">info</span>
         <span id="toastText">Уведомление</span>
     </div>
+
+    <!-- ВСПЛЫВАЮЩИЕ СООБЩЕНИЯ СВЕРХУ (ПОВЕРХ ВСЕГО) -->
+    <div class="chat-toast-container" id="chatToastContainer"></div>
 
     <div class="conf-app" id="reactionContainer">
         <!-- 1. STUDIO HEADER -->
@@ -895,7 +913,6 @@
         <div class="lobby-container" id="lobbyScreen">
             <div class="lobby-card">
                 <div class="lobby-preview-pane">
-                    <!-- Класс mirrored управляется динамически в зависимости от камеры -->
                     <div class="video-tile mirrored" id="previewTile"
                         style="width: 100%; max-width: 280px; aspect-ratio: 4/3;">
                         <video id="previewVideo" autoplay playsinline webkit-playsinline muted></video>
@@ -968,6 +985,9 @@
                             <div class="tile-overlay">
                                 <div class="tile-top-actions">
                                     <div class="hand-badge p2p-hidden" id="myHandBadge">✋ Рука</div>
+                                    <button class="tile-action-btn" title="Чат" onclick="toggleChat()">
+                                        <span class="material-symbols-outlined">chat</span>
+                                    </button>
                                     <button class="tile-action-btn" title="Закрепить"
                                         onclick="toggleSpotlight('tile-cam-local')">
                                         <span class="material-symbols-outlined">keep</span>
@@ -990,7 +1010,7 @@
                     <div class="spotlight-strip p2p-hidden" id="spotlightStrip"></div>
                 </div>
 
-                <!-- ЧАТ -->
+                <!-- ЧАТ (МОЖЕТ ОТОБРАЖАТЬСЯ ПОВЕРХ FULLSCREEN) -->
                 <div class="chat-drawer p2p-hidden" id="chatPanel">
                     <div class="chat-header">
                         <span style="display: flex; align-items: center; gap: 6px;">
@@ -1010,9 +1030,6 @@
                     </div>
                 </div>
             </div>
-
-            <!-- ВСПЛЫВАЮЩИЕ СООБЩЕНИЯ (КОГДА ЧАТ ЗАКРЫТ) -->
-            <div class="chat-toast-container" id="chatToastContainer"></div>
 
             <!-- ПАНЕЛЬ РЕАКЦИЙ -->
             <div class="reactions-bar p2p-hidden" id="reactionBar">
@@ -1101,7 +1118,7 @@
 
     <script>
         /* ==========================================================================
-           1. АУДИОСИНТЕЗАТОР И VAD (ДЕТЕКТОР РЕЧИ)
+           1. АУДИОСИНТЕЗАТОР И VAD (ИСКЛЮЧАЯ ЭКРАН)
            ========================================================================== */
         const SoundFX = {
             ctx: null,
@@ -1204,8 +1221,8 @@
             }
 
             updateSpeakerUI(peerId, isSpeaking) {
+                // Подсвечиваем ТОЛЬКО плитку камеры tile-cam-*
                 const tile = document.getElementById(`tile-cam-${peerId}`);
-                // Демонстрация экрана защищена от подсветки
                 if (tile && !tile.classList.contains('screen-tile')) {
                     tile.classList.toggle('speaking', isSpeaking);
                 }
@@ -1223,7 +1240,7 @@
         let isMicOn = true;
         let isScreenSharing = false;
         let isHandRaised = false;
-        let currentFacingMode = 'user'; // 'user' (фронтальная) или 'environment' (задняя)
+        let currentFacingMode = 'user';
         let activeSpotlightId = null;
         let screenStream = null;
 
@@ -1290,11 +1307,10 @@
         }
 
         /* ==========================================================================
-           3. НАДЕЖНОЕ ПЕРЕКЛЮЧЕНИЕ КАМЕРЫ БЕЗ ЗЕРКАЛИРОВАНИЯ ЗАДНЕЙ
+           3. ПЕРЕКЛЮЧЕНИЕ КАМЕР И ЗЕРКАЛО
            ========================================================================== */
         function updateMirrorState() {
             const isFront = (currentFacingMode === 'user');
-            // Зеркалим ТОЛЬКО фронтальную камеру
             if (previewTile) previewTile.classList.toggle('mirrored', isFront);
             if (tileCamLocal) tileCamLocal.classList.toggle('mirrored', isFront);
         }
@@ -1311,7 +1327,6 @@
             try {
                 return await navigator.mediaDevices.getUserMedia({ video: videoConstraints, audio: audioConstraints });
             } catch (err) {
-                // Fallback с мягкими ограничениями
                 return await navigator.mediaDevices.getUserMedia({
                     video: { facingMode },
                     audio: true
@@ -1339,12 +1354,9 @@
             }
         }
 
-        // Переключение фронтальной / задней камеры с полным сбросом трека
         async function flipCamera() {
             const nextMode = (currentFacingMode === 'user') ? 'environment' : 'user';
-            sysLog(`Переключение камеры: ${currentFacingMode} -> ${nextMode}`);
 
-            // 1. Полностью глушим старый видеотрек, освобождая камеру
             if (net.localStream) {
                 net.localStream.getVideoTracks().forEach(track => {
                     track.stop();
@@ -1353,14 +1365,12 @@
             }
 
             try {
-                // 2. Запрашиваем новый стрим с явным facingMode
                 let newStream = null;
                 try {
                     newStream = await navigator.mediaDevices.getUserMedia({
                         video: { facingMode: { exact: nextMode }, width: { ideal: 1280 }, height: { ideal: 720 } }
                     });
                 } catch (eExact) {
-                    // Fallback если exact не поддерживается
                     newStream = await navigator.mediaDevices.getUserMedia({
                         video: { facingMode: nextMode }
                     });
@@ -1380,16 +1390,11 @@
                 localVideo.play().catch(() => { });
                 previewVideo.play().catch(() => { });
 
-                // Обновляем зеркалирование
                 updateMirrorState();
-
-                // Заменяем трек в P2P соединениях
                 net.replaceTrack(newVideoTrack, 'video');
                 showToast(currentFacingMode === 'user' ? "Фронтальная камера" : "Основная камера (без зеркала)", 'flip_camera_ios');
             } catch (err) {
-                sysLog("Ошибка переключения камеры: " + err.message);
                 showToast("Не удалось переключить камеру: " + err.message, 'error');
-                // Восстанавливаем прежнюю камеру
                 initPreview();
             }
         }
@@ -1476,7 +1481,7 @@
         document.getElementById('btnTogglePreviewMic').onclick = toggleMicrophone;
 
         /* ==========================================================================
-           4. ГОРЯЧИЕ КЛАВИШИ И PUSH-TO-TALK
+           4. ГОРЯЧИЕ КЛАВИШИ
            ========================================================================== */
         let spacePressed = false;
         window.addEventListener('keydown', (e) => {
@@ -1492,7 +1497,7 @@
             } else if (e.key.toLowerCase() === 'h') {
                 toggleHandRaise();
             } else if (e.key.toLowerCase() === 'c') {
-                chatPanel.classList.toggle('p2p-hidden');
+                toggleChat();
             }
         });
 
@@ -1504,7 +1509,7 @@
         });
 
         /* ==========================================================================
-           5. ПОДНЯТИЕ РУКИ И ЭКРАН
+           5. РУКА И ДЕМОНСТРАЦИЯ ЭКРАНА
            ========================================================================== */
         function toggleHandRaise() {
             isHandRaised = !isHandRaised;
@@ -1554,7 +1559,7 @@
         btnScreenShare.onclick = toggleScreenShare;
 
         /* ==========================================================================
-           6. УПРАВЛЕНИЕ КАРТОЧКАМИ В СЕТКЕ
+           6. УПРАВЛЕНИЕ КАРТОЧКАМИ, SPOTLIGHT И FULLSCREEN
            ========================================================================== */
         function addOrUpdateCamTile(peerId, stream, participantName) {
             const tileId = `tile-cam-${peerId}`;
@@ -1572,6 +1577,9 @@
                     <div class="tile-overlay">
                         <div class="tile-top-actions">
                             <div class="hand-badge p2p-hidden" id="hand-${peerId}">✋ Рука</div>
+                            <button class="tile-action-btn" title="Чат" onclick="toggleChat()">
+                                <span class="material-symbols-outlined">chat</span>
+                            </button>
                             <button class="tile-action-btn" title="Закрепить" onclick="toggleSpotlight('${tileId}')">
                                 <span class="material-symbols-outlined">keep</span>
                             </button>
@@ -1610,6 +1618,9 @@
                     <video id="video-screen-${peerId}" autoplay playsinline webkit-playsinline ${isLocal ? 'muted' : ''}></video>
                     <div class="tile-overlay">
                         <div class="tile-top-actions">
+                            <button class="tile-action-btn" title="Чат" onclick="toggleChat()">
+                                <span class="material-symbols-outlined">chat</span>
+                            </button>
                             <button class="tile-action-btn" title="Закрепить" onclick="toggleSpotlight('${tileId}')">
                                 <span class="material-symbols-outlined">keep</span>
                             </button>
@@ -1698,22 +1709,37 @@
 
             if (tile.classList.contains('pseudo-fullscreen')) {
                 tile.classList.remove('pseudo-fullscreen');
+                document.body.classList.remove('has-fullscreen');
                 return;
             }
 
             if (!document.fullscreenElement && !document.webkitFullscreenElement) {
                 if (tile.requestFullscreen) {
-                    tile.requestFullscreen().catch(() => tile.classList.add('pseudo-fullscreen'));
+                    tile.requestFullscreen().catch(() => {
+                        tile.classList.add('pseudo-fullscreen');
+                        document.body.classList.add('has-fullscreen');
+                    });
                 } else if (tile.webkitRequestFullscreen) {
                     tile.webkitRequestFullscreen();
                 } else {
                     tile.classList.add('pseudo-fullscreen');
+                    document.body.classList.add('has-fullscreen');
                 }
             } else {
                 if (document.exitFullscreen) document.exitFullscreen();
                 else if (document.webkitExitFullscreen) document.webkitExitFullscreen();
             }
         };
+
+        // Отслеживание сброса нативного Fullscreen
+        document.addEventListener('fullscreenchange', () => {
+            if (!document.fullscreenElement) {
+                document.body.classList.remove('has-fullscreen');
+                document.querySelectorAll('.pseudo-fullscreen').forEach(el => el.classList.remove('pseudo-fullscreen'));
+            } else {
+                document.body.classList.add('has-fullscreen');
+            }
+        });
 
         /* ==========================================================================
            7. НАСТРОЙКИ ОБОРУДОВАНИЯ
@@ -1818,6 +1844,7 @@
             lobbyScreen.classList.remove('p2p-hidden');
             netBadge.className = "studio-badge";
             netBadgeText.textContent = "STANDBY";
+            document.body.classList.remove('has-fullscreen');
             updateGridCount();
         }
         document.getElementById('btnLeaveCall').onclick = leaveConference;
@@ -1858,7 +1885,7 @@
         net.on('data', (data, senderPeerId) => {
             if (data.type === 'CHAT_MSG') {
                 appendChatMessage(data.name, data.text, false);
-                // Если чат закрыт — показываем всплывающее уведомление снизу справа
+                // Если чат закрыт — всплывающее уведомление сверху поверх всего
                 if (chatPanel.classList.contains('p2p-hidden')) {
                     showFloatingChatToast(data.name, data.text);
                 }
@@ -1890,7 +1917,7 @@
         });
 
         /* ==========================================================================
-           10. ЧАТ, РЕАКЦИИ И ВСПЛЫВАЮЩИЕ ПЛАШКИ
+           10. ЧАТ, РЕАКЦИИ И ВСПЛЫВАЮЩИЕ ПЛАШКИ СВЕРХУ
            ========================================================================== */
         function showFloatingChatToast(sender, text) {
             const toastEl = document.createElement('div');
@@ -1904,17 +1931,29 @@
             `;
 
             toastEl.onclick = () => {
-                chatPanel.classList.remove('p2p-hidden');
+                toggleChat(true);
                 toastEl.remove();
             };
 
             chatToastContainer.appendChild(toastEl);
             setTimeout(() => {
                 toastEl.style.opacity = '0';
-                toastEl.style.transform = 'translateY(10px)';
+                toastEl.style.transform = 'translateY(-10px)';
                 setTimeout(() => toastEl.remove(), 300);
             }, 4500);
         }
+
+        function toggleChat(forceOpen = null) {
+            if (forceOpen === true) {
+                chatPanel.classList.remove('p2p-hidden');
+            } else {
+                chatPanel.classList.toggle('p2p-hidden');
+            }
+            if (!chatPanel.classList.contains('p2p-hidden')) {
+                chatToastContainer.innerHTML = '';
+            }
+        }
+        window.toggleChat = toggleChat;
 
         btnReactionToggle.onclick = () => reactionBar.classList.toggle('p2p-hidden');
         document.querySelectorAll('.reaction-item-btn').forEach(btn => {
@@ -1935,12 +1974,7 @@
             setTimeout(() => el.remove(), 1800);
         }
 
-        btnChatToggle.onclick = () => {
-            chatPanel.classList.toggle('p2p-hidden');
-            if (!chatPanel.classList.contains('p2p-hidden')) {
-                chatToastContainer.innerHTML = '';
-            }
-        };
+        btnChatToggle.onclick = () => toggleChat();
         document.getElementById('btnCloseChat').onclick = () => chatPanel.classList.add('p2p-hidden');
         document.getElementById('btnSendChat').onclick = sendChatMessage;
         inputChatMessage.onkeydown = (e) => { if (e.key === 'Enter') sendChatMessage(); };

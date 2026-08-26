@@ -1,5 +1,5 @@
 /**
- * P2PNet v2.1 - Исправлена работа с MediaStream в Mesh
+ * P2PNet v2.2 - Поддержка независимых потоков Камеры и Экрана
  */
 class P2PNet {
     static ALPHABET = "23456789ABCDEFGHJKMNPQRSTUVWXYZ";
@@ -26,7 +26,8 @@ class P2PNet {
 
         this.peers = new Map();
         this.localStream = null;
-        this._incomingFiles = {};
+        this.screenStream = null;
+        this.screenCalls = new Map();
         this._events = {};
     }
 
@@ -83,7 +84,7 @@ class P2PNet {
                 return this.roomId;
             } catch (err) {
                 if (err.type === 'unavailable-id' && !customCode) {
-                    this._log(`ID ${code} занят, подбираем другой...`);
+                    this._log(`ID ${code} занят, пробуем другой...`);
                     continue;
                 }
                 throw err;
@@ -122,7 +123,6 @@ class P2PNet {
 
     _initPeer(fixedId = null) {
         return new Promise((resolve, reject) => {
-            // ВАЖНО: сохраняем localStream при инициализации пира
             this.destroy(true);
             this.isDestroyed = false;
 
@@ -203,18 +203,13 @@ class P2PNet {
                 this._handleSystemPacket(conn.peer, packet);
                 return;
             }
-
-            if (packet.__fileChunk) {
-                this._handleFileChunk(conn.peer, packet);
-                return;
-            }
-
             this.emit('data', packet, conn.peer);
         });
 
         conn.on('close', () => {
             this._log(`Пир отключился: ${conn.peer}`);
             this.peers.delete(conn.peer);
+            this.screenCalls.delete(conn.peer);
             this.emit('peer-disconnected', { peerId: conn.peer, totalPeers: this.peers.size });
         });
 
@@ -231,9 +226,11 @@ class P2PNet {
 
             if (this.peers.has(senderPeerId)) this.peers.get(senderPeerId).name = packet.name;
 
-            // Звоним подключившемуся участнику
             if (this.localStream) {
-                setTimeout(() => this.call(senderPeerId, this.localStream), 300);
+                setTimeout(() => this.call(senderPeerId, this.localStream, { type: 'camera' }), 300);
+            }
+            if (this.screenStream) {
+                setTimeout(() => this.callScreen(senderPeerId, this.screenStream), 500);
             }
         }
         else if (packet.__sys === 'ROOM_MEMBERS') {
@@ -247,7 +244,10 @@ class P2PNet {
             if (packet.peerId !== this.peer.id && !this.peers.has(packet.peerId)) {
                 this._connectToPeer(packet.peerId);
                 if (this.localStream) {
-                    setTimeout(() => this.call(packet.peerId, this.localStream), 300);
+                    setTimeout(() => this.call(packet.peerId, this.localStream, { type: 'camera' }), 300);
+                }
+                if (this.screenStream) {
+                    setTimeout(() => this.callScreen(packet.peerId, this.screenStream), 500);
                 }
             }
         }
@@ -276,7 +276,7 @@ class P2PNet {
         });
     }
 
-    /* МЕДИАПОТОКИ */
+    /* МЕДИА-ЗВОНКИ (КАМЕРА И ЭКРАН) */
     async startMedia(constraints = { video: true, audio: true }) {
         if (this.localStream && this.localStream.active) {
             return this.localStream;
@@ -286,13 +286,13 @@ class P2PNet {
         return this.localStream;
     }
 
-    call(remotePeerId, stream) {
+    call(remotePeerId, stream, metadata = { type: 'camera' }) {
         if (!this.peer || this.peer.destroyed) return;
         const mediaStream = stream || this.localStream;
         if (!mediaStream) return;
 
-        this._log(`Исходящий медиазвонок к: ${remotePeerId}`);
-        const call = this.peer.call(remotePeerId, mediaStream);
+        this._log(`Исходящий звонок [${metadata.type}] к: ${remotePeerId}`);
+        const call = this.peer.call(remotePeerId, mediaStream, { metadata });
         if (!call) return;
 
         let peerRecord = this.peers.get(remotePeerId);
@@ -304,36 +304,69 @@ class P2PNet {
         }
 
         call.on('stream', (remoteStream) => {
-            this._log(`Получен remote-stream от ${remotePeerId}`);
-            this.emit('remote-stream', { peerId: remotePeerId, stream: remoteStream });
+            this._log(`Получен stream [${metadata.type}] от ${remotePeerId}`);
+            this.emit('remote-stream', { peerId: remotePeerId, stream: remoteStream, metadata });
         });
+    }
+
+    callScreen(remotePeerId, stream, senderName = '') {
+        if (!this.peer || this.peer.destroyed || !stream) return;
+        this._log(`Исходящий звонок ЭКРАНА к: ${remotePeerId}`);
+        const call = this.peer.call(remotePeerId, stream, { metadata: { type: 'screen', name: senderName } });
+        if (call) {
+            this.screenCalls.set(remotePeerId, call);
+        }
     }
 
     _handleIncomingCall(call) {
-        this._log(`Входящий видеозвонок от: ${call.peer}`);
-        call.answer(this.localStream);
+        const meta = call.metadata || { type: 'camera' };
+        this._log(`Входящий звонок [${meta.type}] от: ${call.peer}`);
 
-        let peerRecord = this.peers.get(call.peer);
-        if (!peerRecord) {
-            peerRecord = { conn: null, call, queue: [], isReady: false, name: '' };
-            this.peers.set(call.peer, peerRecord);
+        if (meta.type === 'screen') {
+            // Для входящего экрана отвечаем пустым потоком
+            call.answer();
         } else {
-            peerRecord.call = call;
+            // Для камеры отвечаем своим локальным стримом
+            call.answer(this.localStream);
         }
 
         call.on('stream', (remoteStream) => {
-            this._log(`Получен remote-stream от входящего: ${call.peer}`);
-            this.emit('remote-stream', { peerId: call.peer, stream: remoteStream });
+            this._log(`Получен remote-stream [${meta.type}] от: ${call.peer}`);
+            this.emit('remote-stream', { peerId: call.peer, stream: remoteStream, metadata: meta });
         });
     }
 
+    // Замена трека в активных соединениях камеры
     replaceTrack(newTrack, kind = 'video') {
         this.peers.forEach(peerRecord => {
             if (peerRecord.call && peerRecord.call.peerConnection) {
-                const sender = peerRecord.call.peerConnection.getSenders().find(s => s.track && s.track.kind === kind);
-                if (sender) sender.replaceTrack(newTrack);
+                const senders = peerRecord.call.peerConnection.getSenders();
+                const sender = senders.find(s => s.track && s.track.kind === kind);
+                if (sender) {
+                    sender.replaceTrack(newTrack);
+                }
             }
         });
+    }
+
+    // Запуск демонстрации экрана как второго независимого потока
+    startScreenShare(stream, myName = '') {
+        this.screenStream = stream;
+        this.peers.forEach((_, peerId) => {
+            this.callScreen(peerId, stream, myName);
+        });
+    }
+
+    stopScreenShare() {
+        if (this.screenStream) {
+            this.screenStream.getTracks().forEach(t => t.stop());
+            this.screenStream = null;
+        }
+        this.screenCalls.forEach(call => {
+            try { call.close(); } catch (e) { }
+        });
+        this.screenCalls.clear();
+        this.broadcast({ type: 'SCREEN_STOPPED', peerId: this.peer?.id });
     }
 
     getShareUrl() {
@@ -343,6 +376,8 @@ class P2PNet {
 
     destroy(keepStream = false) {
         this.isDestroyed = true;
+        this.stopScreenShare();
+
         this.peers.forEach(p => {
             if (p.conn) try { p.conn.close(); } catch (e) { }
             if (p.call) try { p.call.close(); } catch (e) { }

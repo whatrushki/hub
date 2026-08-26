@@ -15,83 +15,216 @@
     <script src="../libs/code/p2p-net.js"></script>
 
     <style>
-        /* Специфичные мобильные стили для видеоконференции */
         html,
         body {
             height: 100%;
+            height: 100dvh;
             overflow: hidden;
+            margin: 0;
+            padding: 0;
         }
 
-        .conf-container {
+        .conf-app {
             width: 100%;
-            max-width: 1100px;
             height: 100%;
+            max-width: 1300px;
             display: flex;
             flex-direction: column;
-            gap: 8px;
-            padding: 4px;
+            gap: 6px;
+            padding: 6px;
+            box-sizing: border-box;
         }
 
-        .conf-video-area {
+        /* Область видео и чата */
+        .conf-main-area {
             flex: 1;
             display: flex;
-            gap: 8px;
+            gap: 6px;
             overflow: hidden;
             position: relative;
             min-height: 0;
         }
 
+        /* Сетка видеопотоков */
         .conf-grid {
             flex: 1;
             display: grid;
             gap: 8px;
-            grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-            grid-auto-rows: 1fr;
+            grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+            grid-auto-rows: minmax(180px, 1fr);
             overflow-y: auto;
-            align-content: center;
+            align-content: start;
+            padding: 2px;
+            transition: all 0.2s ease;
         }
 
-        @media (max-width: 600px) {
-            .conf-grid {
-                grid-template-columns: 1fr;
-            }
+        /* Режим Spotlight (один поток во весь экран, остальные снизу полоской) */
+        .conf-grid.has-spotlight {
+            display: flex;
+            flex-direction: column;
         }
 
-        .conf-controls {
+        .conf-grid.has-spotlight .video-tile.spotlight {
+            flex: 1;
+            min-height: 0;
+            width: 100%;
+            max-height: 80vh;
+        }
+
+        .conf-grid.has-spotlight .video-tile:not(.spotlight) {
+            height: 110px;
+            width: 180px;
+            flex-shrink: 0;
+        }
+
+        .conf-grid-strip {
+            display: flex;
+            gap: 8px;
+            overflow-x: auto;
+            padding: 4px 0;
+        }
+
+        /* Карточка видеопотока */
+        .video-tile {
+            background: #1e272e;
+            border: var(--p2p-border-width) solid var(--p2p-border);
+            border-radius: var(--p2p-radius-md);
+            overflow: hidden;
+            position: relative;
+            box-shadow: var(--p2p-shadow-sm);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            aspect-ratio: 16/9;
+            min-height: 140px;
+        }
+
+        .video-tile video {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+            background: #000;
+        }
+
+        .video-tile.mirrored video {
+            transform: scaleX(-1);
+        }
+
+        .video-tile.screen-tile {
+            border-color: var(--p2p-color-info);
+        }
+
+        .video-tile.screen-tile video {
+            transform: none !important;
+            object-fit: contain;
+        }
+
+        /* Плашка имени и оверлей кнопок на карточке */
+        .tile-overlay {
+            position: absolute;
+            inset: 0;
+            pointer-events: none;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            padding: 6px;
+            z-index: 10;
+        }
+
+        .tile-top-actions {
+            display: flex;
+            justify-content: flex-end;
+            gap: 4px;
+            pointer-events: auto;
+            opacity: 0.85;
+            transition: opacity 0.15s;
+        }
+
+        .tile-top-actions:hover {
+            opacity: 1;
+        }
+
+        .tile-action-btn {
+            background: rgba(34, 47, 62, 0.85);
+            color: #fff;
+            border: 1.5px solid #fff;
+            border-radius: 8px;
+            width: 30px;
+            height: 30px;
+            font-size: 14px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            backdrop-filter: blur(4px);
+        }
+
+        .tile-tag {
+            align-self: flex-start;
+            background: rgba(34, 47, 62, 0.88);
+            color: #fff;
+            padding: 3px 8px;
+            border-radius: 8px;
+            font-size: 11px;
+            font-weight: 800;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            pointer-events: auto;
+        }
+
+        .tile-avatar {
+            position: absolute;
+            font-size: 54px;
+            z-index: 2;
+        }
+
+        /* Нижняя панель управления */
+        .conf-controls-bar {
             display: flex;
             justify-content: center;
             align-items: center;
-            gap: 8px;
+            gap: 6px;
             flex-wrap: wrap;
-            padding: 6px;
+            padding: 6px 10px;
             background: var(--p2p-surface);
             border: var(--p2p-border-width) solid var(--p2p-border);
             border-radius: var(--p2p-radius-lg);
             box-shadow: var(--p2p-shadow-sm);
         }
 
-        .btn-ctrl {
+        .ctrl-btn {
             width: 44px;
             height: 44px;
             font-size: 18px;
             padding: 0;
-            display: flex;
+            display: inline-flex;
             align-items: center;
             justify-content: center;
+            position: relative;
         }
 
-        .btn-ctrl.off {
+        .ctrl-btn.off {
             background: var(--p2p-color-danger) !important;
             color: #fff !important;
         }
 
+        .ctrl-btn.active-screen {
+            background: var(--p2p-color-info) !important;
+            color: #fff !important;
+            box-shadow: 0 0 10px var(--p2p-color-info);
+        }
+
+        /* Выезжающая шторка чата */
         .chat-drawer {
-            width: 300px;
+            width: 320px;
             height: 100%;
             display: flex;
             flex-direction: column;
             position: relative;
-            z-index: 50;
+            z-index: 40;
+            padding: 0;
         }
 
         @media (max-width: 768px) {
@@ -108,13 +241,13 @@
 <body>
     <div class="p2p-toast" id="toast">Уведомление</div>
 
-    <div class="conf-container" id="reactionContainer">
+    <div class="conf-app" id="reactionContainer">
         <!-- Шапка -->
         <header class="p2p-header" style="padding: 6px 12px;">
             <div class="p2p-logo" style="font-size: 16px;">🎥 DROPCONF</div>
             <div class="p2p-header-actions">
-                <button class="p2p-btn p2p-btn-neutral p2p-btn-icon" id="btnLogToggle">📜</button>
-                <button class="p2p-btn p2p-btn-neutral p2p-btn-icon" id="btnSoundToggle">🔊</button>
+                <button class="p2p-btn p2p-btn-neutral p2p-btn-icon" id="btnLogToggle" title="Логи">📜</button>
+                <button class="p2p-btn p2p-btn-neutral p2p-btn-icon" id="btnSoundToggle" title="Звук UI">🔊</button>
                 <div class="p2p-badge p2p-badge-waiting" id="netBadge">🟡 СЕТЬ...</div>
             </div>
         </header>
@@ -122,12 +255,11 @@
         <!-- 1. ЭКРАН ЛОББИ -->
         <div class="p2p-card" id="lobbyScreen"
             style="flex: 1; display: flex; flex-direction: column; justify-content: center; overflow-y: auto;">
-            <div class="p2p-grid-2col" style="align-items: center;">
+            <div class="p2p-grid-2col" style="align-items: center; max-width: 750px; margin: 0 auto; width: 100%;">
                 <div style="display: flex; flex-direction: column; gap: 8px; align-items: center;">
-                    <div class="p2p-video-card mirrored" style="width: 100%; max-width: 320px; aspect-ratio: 4/3;">
-                        <video id="previewVideo" autoplay playsinline muted
-                            style="width: 100%; height: 100%; object-fit: cover;"></video>
-                        <div id="previewAvatar" style="position: absolute; font-size: 54px; display: none;">😎</div>
+                    <div class="video-tile mirrored" style="width: 100%; max-width: 320px; aspect-ratio: 4/3;">
+                        <video id="previewVideo" autoplay playsinline muted></video>
+                        <div id="previewAvatar" class="tile-avatar" style="display: none;">😎</div>
                     </div>
                     <div style="display: flex; gap: 8px; width: 100%; max-width: 320px;">
                         <button class="p2p-btn p2p-btn-warning" id="btnTogglePreviewMic" style="padding: 8px;">🎤
@@ -137,13 +269,12 @@
                     </div>
                 </div>
 
-                <div
-                    style="display: flex; flex-direction: column; gap: 10px; justify-content: center; max-width: 360px; margin: 0 auto; width: 100%;">
+                <div style="display: flex; flex-direction: column; gap: 10px; justify-content: center; width: 100%;">
                     <div>
                         <div
                             style="font-size: 12px; font-weight: 700; color: var(--p2p-text-muted); margin-bottom: 2px;">
                             ТВОЁ ИМЯ:</div>
-                        <input type="text" class="p2p-input" id="inputUserName" placeholder="Имя в звонке"
+                        <input type="text" class="p2p-input" id="inputUserName" placeholder="Введите имя..."
                             maxlength="15">
                     </div>
                     <div class="p2p-divider"></div>
@@ -162,27 +293,34 @@
 
         <!-- 2. ЭКРАН ЗВОНКА -->
         <div id="conferenceScreen" class="p2p-hidden"
-            style="flex: 1; display: flex; flex-direction: column; gap: 8px; overflow: hidden; min-height: 0;">
-            <div class="conf-video-area">
-                <!-- Сетка участников -->
+            style="flex: 1; display: flex; flex-direction: column; gap: 6px; overflow: hidden; min-height: 0;">
+            <div class="conf-main-area">
+                <!-- Сетка стримов (Камеры и Экраны) -->
                 <div class="conf-grid" id="videoGrid">
-                    <div class="p2p-video-card mirrored" id="myVideoCard">
-                        <video id="localVideo" autoplay playsinline muted
-                            style="width: 100%; height: 100%; object-fit: cover;"></video>
-                        <div id="myAvatar" style="position: absolute; font-size: 48px; display: none;">😎</div>
-                        <div
-                            style="position: absolute; bottom: 6px; left: 6px; background: rgba(34,47,62,0.85); color: #fff; padding: 3px 8px; border-radius: 8px; font-size: 11px; font-weight: 800; display: flex; gap: 4px; z-index: 10;">
-                            <span id="myTagMic">🎤</span>
-                            <span id="myTagName">Вы</span>
+                    <!-- Локальная камера -->
+                    <div class="video-tile mirrored" id="localCamTile">
+                        <video id="localVideo" autoplay playsinline muted></video>
+                        <div id="myAvatar" class="tile-avatar" style="display: none;">😎</div>
+                        <div class="tile-overlay">
+                            <div class="tile-top-actions">
+                                <button class="tile-action-btn btn-spotlight" title="Закрепить поток"
+                                    onclick="toggleSpotlight('localCamTile')">📌</button>
+                                <button class="tile-action-btn btn-fullscreen" title="На весь экран"
+                                    onclick="toggleNativeFullscreen('localCamTile')">⛶</button>
+                            </div>
+                            <div class="tile-tag">
+                                <span id="myTagMic">🎤</span>
+                                <span id="myTagName">Вы</span>
+                            </div>
                         </div>
                     </div>
                 </div>
 
-                <!-- Чат -->
-                <div class="p2p-card chat-drawer p2p-hidden" id="chatPanel" style="padding: 0;">
+                <!-- Панель чата -->
+                <div class="p2p-card chat-drawer p2p-hidden" id="chatPanel">
                     <div
                         style="padding: 8px 12px; background: var(--p2p-surface-muted); font-weight: 800; font-size: 12px; border-bottom: 2px solid var(--p2p-border); display: flex; justify-content: space-between;">
-                        <span>💬 ЧАТ</span>
+                        <span>💬 ЧАТ ЗВОНКА</span>
                         <span style="cursor: pointer;" id="btnCloseChat">✖</span>
                     </div>
                     <div id="chatMessages"
@@ -204,18 +342,20 @@
                 <button class="p2p-btn p2p-btn-neutral p2p-btn-icon reaction-btn" data-emoji="😂">😂</button>
                 <button class="p2p-btn p2p-btn-neutral p2p-btn-icon reaction-btn" data-emoji="🔥">🔥</button>
                 <button class="p2p-btn p2p-btn-neutral p2p-btn-icon reaction-btn" data-emoji="🎉">🎉</button>
+                <button class="p2p-btn p2p-btn-neutral p2p-btn-icon reaction-btn" data-emoji="👏">👏</button>
             </div>
 
-            <!-- Нижняя панель управления -->
-            <div class="conf-controls">
-                <button class="p2p-btn p2p-btn-neutral btn-ctrl" id="btnMicToggle" title="Микрофон">🎤</button>
-                <button class="p2p-btn p2p-btn-neutral btn-ctrl" id="btnCamToggle" title="Камера">📷</button>
-                <button class="p2p-btn p2p-btn-neutral btn-ctrl" id="btnScreenShare" title="Экран">🖥️</button>
-                <button class="p2p-btn p2p-btn-neutral btn-ctrl" id="btnReactionToggle" title="Реакции">🎉</button>
-                <button class="p2p-btn p2p-btn-neutral btn-ctrl" id="btnChatToggle" title="Чат">💬</button>
-                <button class="p2p-btn p2p-btn-neutral btn-ctrl" id="btnInviteInfo" title="Пригласить">🔗</button>
+            <!-- Панель управления -->
+            <div class="conf-controls-bar">
+                <button class="p2p-btn p2p-btn-neutral ctrl-btn" id="btnMicToggle" title="Микрофон">🎤</button>
+                <button class="p2p-btn p2p-btn-neutral ctrl-btn" id="btnCamToggle" title="Камера">📷</button>
+                <button class="p2p-btn p2p-btn-neutral ctrl-btn" id="btnScreenShare"
+                    title="Поделиться экраном">🖥️</button>
+                <button class="p2p-btn p2p-btn-neutral ctrl-btn" id="btnReactionToggle" title="Реакции">🎉</button>
+                <button class="p2p-btn p2p-btn-neutral ctrl-btn" id="btnChatToggle" title="Чат">💬</button>
+                <button class="p2p-btn p2p-btn-neutral ctrl-btn" id="btnInviteInfo" title="Пригласить">🔗</button>
                 <button class="p2p-btn p2p-btn-danger" id="btnLeaveCall"
-                    style="width: auto; padding: 0 12px; height: 44px;">🔴 Выйти</button>
+                    style="width: auto; padding: 0 14px; height: 44px;">🔴 Выйти</button>
             </div>
         </div>
 
@@ -232,7 +372,7 @@
             </div>
         </div>
 
-        <!-- Консоль логов -->
+        <!-- Лог консоль -->
         <div class="p2p-card p2p-hidden" id="logConsole"
             style="position: absolute; bottom: 65px; left: 10px; right: 10px; background: #222f3e; color: #1dd1a1; font-family: monospace; font-size: 10px; max-height: 100px; overflow-y: auto; z-index: 200;">
             LOG: Инициализация...
@@ -240,6 +380,7 @@
     </div>
 
     <script>
+        /* 1. AUDIO FEEDBACK */
         const AudioFX = {
             ctx: null, muted: false,
             init() { if (!this.ctx) this.ctx = new (window.AudioContext || window.webkitAudioContext)(); },
@@ -271,11 +412,15 @@
             logConsole.innerHTML = `[${time}] ${text}<br>` + logConsole.innerHTML;
         }
 
+        /* 2. STATE & NET */
         const net = new P2PNet({ appPrefix: 'dropconf', mode: 'mesh', debug: true });
 
         let myName = "Участник";
-        let isCamOn = true, isMicOn = true;
+        let isCamOn = true;
+        let isMicOn = true;
+        let isScreenSharing = false;
         let screenStream = null;
+        let activeSpotlightId = null;
 
         const toast = document.getElementById('toast');
         const netBadge = document.getElementById('netBadge');
@@ -285,12 +430,12 @@
         const previewAvatar = document.getElementById('previewAvatar');
         const inputUserName = document.getElementById('inputUserName');
         const inputRoomCode = document.getElementById('inputRoomCode');
-        const myVideoCard = document.getElementById('myVideoCard');
         const localVideo = document.getElementById('localVideo');
         const myAvatar = document.getElementById('myAvatar');
         const myTagName = document.getElementById('myTagName');
         const myTagMic = document.getElementById('myTagMic');
         const videoGrid = document.getElementById('videoGrid');
+
         const btnMicToggle = document.getElementById('btnMicToggle');
         const btnCamToggle = document.getElementById('btnCamToggle');
         const btnScreenShare = document.getElementById('btnScreenShare');
@@ -303,14 +448,16 @@
 
         function showToast(msg) { toast.textContent = msg; toast.classList.add('show'); setTimeout(() => toast.classList.remove('show'), 2200); }
 
+        /* 3. ИНИЦИАЛИЗАЦИЯ МЕДИА */
         async function initPreview() {
             try {
-                const stream = await net.startMedia({ video: true, audio: true });
+                const stream = await net.startMedia({ video: { width: 1280, height: 720 }, audio: true });
                 previewVideo.srcObject = stream;
                 localVideo.srcObject = stream;
             } catch (e) {
-                sysLog("Камера/микрофон недоступны: " + e.message);
-                isCamOn = false; isMicOn = false;
+                sysLog("Камера/микрофон не получены: " + e.message);
+                isCamOn = false;
+                isMicOn = false;
                 previewAvatar.style.display = 'block';
                 myAvatar.style.display = 'block';
                 btnCamToggle.classList.add('off');
@@ -318,33 +465,278 @@
             }
         }
 
-        document.getElementById('btnTogglePreviewCam').onclick = () => {
-            if (!net.localStream) return;
-            const track = net.localStream.getVideoTracks()[0];
-            if (track) {
-                isCamOn = !isCamOn;
-                track.enabled = isCamOn;
-                previewVideo.style.display = isCamOn ? 'block' : 'none';
-                previewAvatar.style.display = isCamOn ? 'none' : 'block';
+        /* 4. УПРАВЛЕНИЕ ЖЕЛЕЗОМ (ПОЛНОЕ ВЫКЛЮЧЕНИЕ / ВКЛЮЧЕНИЕ ТРЕКОВ) */
+        async function toggleCamera() {
+            if (isCamOn) {
+                // Полностью глушим железо (светодиод камеры гаснет)
+                if (net.localStream) {
+                    net.localStream.getVideoTracks().forEach(t => {
+                        t.stop();
+                        net.localStream.removeTrack(t);
+                    });
+                }
+                isCamOn = false;
+                localVideo.srcObject = null;
+                previewVideo.srcObject = null;
+                myAvatar.style.display = 'block';
+                previewAvatar.style.display = 'block';
+                btnCamToggle.classList.add('off');
+                btnCamToggle.innerHTML = '🚫 📷';
+                net.broadcast({ type: 'CAM_STATUS', isCamOn: false });
+                sysLog("Камера выключена (железо освобождено)");
+            } else {
+                // Заново запрашиваем видеопоток у операционной системы
+                try {
+                    const freshStream = await navigator.mediaDevices.getUserMedia({ video: { width: 1280, height: 720 } });
+                    const newVideoTrack = freshStream.getVideoTracks()[0];
+
+                    if (!net.localStream) {
+                        net.localStream = freshStream;
+                    } else {
+                        net.localStream.addTrack(newVideoTrack);
+                    }
+
+                    localVideo.srcObject = net.localStream;
+                    previewVideo.srcObject = net.localStream;
+                    localVideo.play().catch(() => { });
+                    previewVideo.play().catch(() => { });
+
+                    myAvatar.style.display = 'none';
+                    previewAvatar.style.display = 'none';
+                    isCamOn = true;
+                    btnCamToggle.classList.remove('off');
+                    btnCamToggle.innerHTML = '📷';
+
+                    // Подменяем трек во всех активных звонках
+                    net.replaceTrack(newVideoTrack, 'video');
+                    net.broadcast({ type: 'CAM_STATUS', isCamOn: true });
+                    sysLog("Камера включена заново");
+                } catch (err) {
+                    showToast("Не удалось включить камеру: " + err.message);
+                }
+            }
+        }
+
+        async function toggleMicrophone() {
+            if (isMicOn) {
+                // Полностью глушим микрофон
+                if (net.localStream) {
+                    net.localStream.getAudioTracks().forEach(t => {
+                        t.stop();
+                        net.localStream.removeTrack(t);
+                    });
+                }
+                isMicOn = false;
+                myTagMic.textContent = '🔇';
+                btnMicToggle.classList.add('off');
+                btnMicToggle.innerHTML = '🚫 🎤';
+                document.getElementById('btnTogglePreviewMic').textContent = '🔇 Выкл';
+                net.broadcast({ type: 'MIC_STATUS', isMicOn: false });
+                sysLog("Микрофон выключен (железо освобождено)");
+            } else {
+                // Заново запрашиваем аудиопоток
+                try {
+                    const freshStream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true } });
+                    const newAudioTrack = freshStream.getAudioTracks()[0];
+
+                    if (!net.localStream) {
+                        net.localStream = freshStream;
+                    } else {
+                        net.localStream.addTrack(newAudioTrack);
+                    }
+
+                    isMicOn = true;
+                    myTagMic.textContent = '🎤';
+                    btnMicToggle.classList.remove('off');
+                    btnMicToggle.innerHTML = '🎤';
+                    document.getElementById('btnTogglePreviewMic').textContent = '🎤 Микрофон';
+
+                    // Подменяем аудиотрек в звонках
+                    net.replaceTrack(newAudioTrack, 'audio');
+                    net.broadcast({ type: 'MIC_STATUS', isMicOn: true });
+                    sysLog("Микрофон включен заново");
+                } catch (err) {
+                    showToast("Не удалось включить микрофон: " + err.message);
+                }
+            }
+        }
+
+        btnCamToggle.onclick = toggleCamera;
+        btnMicToggle.onclick = toggleMicrophone;
+        document.getElementById('btnTogglePreviewCam').onclick = toggleCamera;
+        document.getElementById('btnTogglePreviewMic').onclick = toggleMicrophone;
+
+        /* 5. НЕЗАВИСИМАЯ ДЕМОНСТРАЦИЯ ЭКРАНА СО ЗВУКОМ */
+        async function toggleScreenShare() {
+            if (isScreenSharing) {
+                stopScreenShare();
+            } else {
+                if (!navigator.mediaDevices || !navigator.mediaDevices.getDisplayMedia) {
+                    return showToast("Экран не поддерживается на данном устройстве");
+                }
+
+                try {
+                    // Запрашиваем экран и звук вкладки/системы
+                    screenStream = await navigator.mediaDevices.getDisplayMedia({
+                        video: { cursor: "always" },
+                        audio: true
+                    });
+
+                    isScreenSharing = true;
+                    btnScreenShare.classList.add('active-screen');
+                    btnScreenShare.innerHTML = '🛑 Экран';
+
+                    // 1. Создаем отдельную плитку для своего экрана
+                    addOrUpdateScreenTile('local-screen', screenStream, `${myName} (Экран)`, true);
+
+                    // 2. Рассылаем экран как отдельный медиапоток всем участникам
+                    net.startScreenShare(screenStream, myName);
+
+                    // Обработка кнопки "Остановить показ" в браузере
+                    screenStream.getVideoTracks()[0].onended = () => {
+                        stopScreenShare();
+                    };
+                    sysLog("Экран и аудио транслируются отдельным потоком");
+                } catch (err) {
+                    if (err.name !== 'NotAllowedError') {
+                        showToast("Ошибка экрана: " + err.message);
+                    }
+                }
+            }
+        }
+
+        function stopScreenShare() {
+            if (screenStream) {
+                screenStream.getTracks().forEach(t => t.stop());
+                screenStream = null;
+            }
+            isScreenSharing = false;
+            btnScreenShare.classList.remove('active-screen');
+            btnScreenShare.innerHTML = '🖥️';
+
+            // Удаляем свою плитку экрана
+            removeTile('tile-local-screen');
+            net.stopScreenShare();
+            sysLog("Демонстрация экрана остановлена");
+        }
+
+        btnScreenShare.onclick = toggleScreenShare;
+
+        /* 6. УПРАВЛЕНИЕ КАРТОЧКАМИ В СЕТКЕ (ПОЛНОЭКРАННЫЙ РЕЖИМ И SPOTLIGHT) */
+        function addOrUpdateCamTile(peerId, stream, participantName) {
+            const tileId = `tile-cam-${peerId}`;
+            let tile = document.getElementById(tileId);
+
+            if (!tile) {
+                tile = document.createElement('div');
+                tile.className = 'video-tile mirrored';
+                tile.id = tileId;
+                tile.innerHTML = `
+                    <video id="video-cam-${peerId}" autoplay playsinline style="width:100%; height:100%;"></video>
+                    <div id="avatar-cam-${peerId}" class="tile-avatar" style="display:none;">😎</div>
+                    <div class="tile-overlay">
+                        <div class="tile-top-actions">
+                            <button class="tile-action-btn" title="Закрепить" onclick="toggleSpotlight('${tileId}')">📌</button>
+                            <button class="tile-action-btn" title="Во весь экран" onclick="toggleNativeFullscreen('${tileId}')">⛶</button>
+                        </div>
+                        <div class="tile-tag">
+                            <span id="mic-cam-${peerId}">🎤</span>
+                            <span>${participantName || 'Участник'}</span>
+                        </div>
+                    </div>
+                `;
+                videoGrid.appendChild(tile);
+                AudioFX.playJoin();
+            }
+
+            const videoEl = document.getElementById(`video-cam-${peerId}`);
+            if (videoEl && stream) {
+                videoEl.srcObject = stream;
+                videoEl.play().catch(e => sysLog("Autoplay cam: " + e));
+            }
+        }
+
+        function addOrUpdateScreenTile(peerId, stream, titleName, isLocal = false) {
+            const tileId = `tile-screen-${peerId}`;
+            let tile = document.getElementById(tileId);
+
+            if (!tile) {
+                tile = document.createElement('div');
+                tile.className = 'video-tile screen-tile';
+                tile.id = tileId;
+                tile.innerHTML = `
+                    <video id="video-screen-${peerId}" autoplay playsinline ${isLocal ? 'muted' : ''} style="width:100%; height:100%;"></video>
+                    <div class="tile-overlay">
+                        <div class="tile-top-actions">
+                            <button class="tile-action-btn" title="Закрепить" onclick="toggleSpotlight('${tileId}')">📌</button>
+                            <button class="tile-action-btn" title="Во весь экран" onclick="toggleNativeFullscreen('${tileId}')">⛶</button>
+                        </div>
+                        <div class="tile-tag" style="background: rgba(9, 132, 227, 0.9);">
+                            <span>🖥️</span>
+                            <span>${titleName || 'Демонстрация экрана'}</span>
+                        </div>
+                    </div>
+                `;
+                videoGrid.appendChild(tile);
+                AudioFX.playJoin();
+            }
+
+            const videoEl = document.getElementById(`video-screen-${peerId}`);
+            if (videoEl && stream) {
+                videoEl.srcObject = stream;
+                videoEl.play().catch(e => sysLog("Autoplay screen: " + e));
+            }
+        }
+
+        function removeTile(tileId) {
+            const tile = document.getElementById(tileId);
+            if (tile) {
+                if (activeSpotlightId === tileId) {
+                    toggleSpotlight(tileId);
+                }
+                tile.remove();
+            }
+        }
+
+        // Spotlight (закрепление видео в центре интерфейса)
+        window.toggleSpotlight = function (tileId) {
+            const tile = document.getElementById(tileId);
+            if (!tile) return;
+
+            if (activeSpotlightId === tileId) {
+                tile.classList.remove('spotlight');
+                videoGrid.classList.remove('has-spotlight');
+                activeSpotlightId = null;
+            } else {
+                if (activeSpotlightId) {
+                    const prev = document.getElementById(activeSpotlightId);
+                    if (prev) prev.classList.remove('spotlight');
+                }
+                tile.classList.add('spotlight');
+                videoGrid.classList.add('has-spotlight');
+                activeSpotlightId = tileId;
             }
         };
 
-        document.getElementById('btnTogglePreviewMic').onclick = () => {
-            if (!net.localStream) return;
-            const track = net.localStream.getAudioTracks()[0];
-            if (track) {
-                isMicOn = !isMicOn;
-                track.enabled = isMicOn;
-                document.getElementById('btnTogglePreviewMic').textContent = isMicOn ? '🎤 Микрофон' : '🔇 Выкл';
+        // Fullscreen API (на весь дисплей устройства)
+        window.toggleNativeFullscreen = function (tileId) {
+            const tile = document.getElementById(tileId);
+            if (!tile) return;
+
+            if (!document.fullscreenElement) {
+                if (tile.requestFullscreen) tile.requestFullscreen();
+                else if (tile.webkitRequestFullscreen) tile.webkitRequestFullscreen();
+            } else {
+                if (document.exitFullscreen) document.exitFullscreen();
             }
         };
 
+        /* 7. ВХОД И СОЗДАНИЕ КОМНАТЫ */
         document.getElementById('btnCreateRoom').onclick = async () => {
             AudioFX.playPop();
             prepareJoin();
             try {
                 const code = await net.createRoom();
-                sysLog(`Хост онлайн: ${code}`);
                 netBadge.innerHTML = `🟢 ${code}`;
                 netBadge.className = "p2p-badge p2p-badge-online";
                 showToast("Комната создана!");
@@ -369,49 +761,25 @@
             myTagName.textContent = myName + " (Вы)";
             lobbyScreen.classList.add('p2p-hidden');
             conferenceScreen.classList.remove('p2p-hidden');
-
-            // Синхронизируем состояние кнопок камеры и микрофона
-            localVideo.style.display = isCamOn ? 'block' : 'none';
-            myAvatar.style.display = isCamOn ? 'none' : 'block';
-            myTagMic.textContent = isMicOn ? '🎤' : '🔇';
-            btnCamToggle.classList.toggle('off', !isCamOn);
-            btnMicToggle.classList.toggle('off', !isMicOn);
         }
 
-        /* СОБЫТИЯ СЕТИ */
+        /* 8. P2P СОБЫТИЯ */
         net.on('status', ({ online }) => {
             netBadge.innerHTML = online ? (net.roomId ? `🟢 ${net.roomId}` : `🟢 ОНЛАЙН`) : "🟡 СЕТЬ...";
             netBadge.className = online ? "p2p-badge p2p-badge-online" : "p2p-badge p2p-badge-waiting";
         });
 
-        net.on('remote-stream', ({ peerId, stream }) => {
-            sysLog(`Отображаем видео участника: ${peerId}`);
-            let card = document.getElementById(`videoCard-${peerId}`);
-            if (!card) {
-                card = document.createElement('div');
-                card.className = 'p2p-video-card';
-                card.id = `videoCard-${peerId}`;
-                card.innerHTML = `
-                    <video id="video-${peerId}" autoplay playsinline style="width: 100%; height: 100%; object-fit: cover;"></video>
-                    <div id="avatar-${peerId}" style="position: absolute; font-size: 48px; display: none;">😺</div>
-                    <div style="position: absolute; bottom: 6px; left: 6px; background: rgba(34,47,62,0.85); color: #fff; padding: 3px 8px; border-radius: 8px; font-size: 11px; font-weight: 800; display: flex; gap: 4px; z-index: 10;">
-                        <span id="tagMic-${peerId}">🎤</span><span id="tagName-${peerId}">Участник</span>
-                    </div>
-                `;
-                videoGrid.appendChild(card);
-                AudioFX.playJoin();
-            }
-            const remoteVideo = document.getElementById(`video-${peerId}`);
-            if (remoteVideo) {
-                remoteVideo.srcObject = stream;
-                remoteVideo.play().catch(e => sysLog("Autoplay audio/video blocked: " + e));
+        net.on('remote-stream', ({ peerId, stream, metadata }) => {
+            if (metadata?.type === 'screen') {
+                addOrUpdateScreenTile(peerId, stream, `${metadata.name || 'Участник'} (Экран)`);
+            } else {
+                addOrUpdateCamTile(peerId, stream, metadata?.name);
             }
         });
 
         net.on('peer-disconnected', ({ peerId }) => {
-            sysLog(`Удаляем видео карточку ${peerId}`);
-            const card = document.getElementById(`videoCard-${peerId}`);
-            if (card) card.remove();
+            removeTile(`tile-cam-${peerId}`);
+            removeTile(`tile-screen-${peerId}`);
         });
 
         net.on('data', (data, senderPeerId) => {
@@ -421,79 +789,21 @@
             } else if (data.type === 'REACTION') {
                 spawnFloatingReaction(data.emoji);
             } else if (data.type === 'MIC_STATUS') {
-                const tagMic = document.getElementById(`tagMic-${senderPeerId}`);
-                if (tagMic) tagMic.textContent = data.isMicOn ? '🎤' : '🔇';
+                const micEl = document.getElementById(`mic-cam-${senderPeerId}`);
+                if (micEl) micEl.textContent = data.isMicOn ? '🎤' : '🔇';
             } else if (data.type === 'CAM_STATUS') {
-                const remoteVid = document.getElementById(`video-${senderPeerId}`);
-                const remoteAvt = document.getElementById(`avatar-${senderPeerId}`);
-                if (remoteVid && remoteAvt) {
-                    remoteVid.style.display = data.isCamOn ? 'block' : 'none';
-                    remoteAvt.style.display = data.isCamOn ? 'none' : 'block';
+                const vid = document.getElementById(`video-cam-${senderPeerId}`);
+                const avt = document.getElementById(`avatar-cam-${senderPeerId}`);
+                if (vid && avt) {
+                    vid.style.display = data.isCamOn ? 'block' : 'none';
+                    avt.style.display = data.isCamOn ? 'none' : 'block';
                 }
+            } else if (data.type === 'SCREEN_STOPPED') {
+                removeTile(`tile-screen-${senderPeerId}`);
             }
         });
 
-        /* УПРАВЛЕНИЕ МЕДИА В ЗВОНКЕ */
-        btnMicToggle.onclick = () => {
-            if (!net.localStream) return;
-            const track = net.localStream.getAudioTracks()[0];
-            if (track) {
-                isMicOn = !isMicOn;
-                track.enabled = isMicOn;
-                btnMicToggle.classList.toggle('off', !isMicOn);
-                myTagMic.textContent = isMicOn ? '🎤' : '🔇';
-                net.broadcast({ type: 'MIC_STATUS', isMicOn });
-            }
-        };
-
-        btnCamToggle.onclick = () => {
-            if (!net.localStream) return;
-            const track = net.localStream.getVideoTracks()[0];
-            if (track) {
-                isCamOn = !isCamOn;
-                track.enabled = isCamOn;
-                localVideo.style.display = isCamOn ? 'block' : 'none';
-                myAvatar.style.display = isCamOn ? 'none' : 'block';
-                btnCamToggle.classList.toggle('off', !isCamOn);
-                net.broadcast({ type: 'CAM_STATUS', isCamOn });
-            }
-        };
-
-        btnScreenShare.onclick = async () => {
-            if (!navigator.mediaDevices || !navigator.mediaDevices.getDisplayMedia) {
-                return showToast("Экран не поддерживается на смартфонах");
-            }
-
-            if (!screenStream) {
-                try {
-                    screenStream = await navigator.mediaDevices.getDisplayMedia({ video: true });
-                    const track = screenStream.getVideoTracks()[0];
-                    net.replaceTrack(track, 'video');
-                    localVideo.srcObject = screenStream;
-                    myVideoCard.classList.remove('mirrored');
-                    btnScreenShare.classList.add('off');
-                    track.onended = stopScreenShare;
-                } catch (e) {
-                    sysLog("Демонстрация отменена.");
-                }
-            } else {
-                stopScreenShare();
-            }
-        };
-
-        function stopScreenShare() {
-            if (!screenStream) return;
-            screenStream.getTracks().forEach(t => t.stop());
-            screenStream = null;
-            const camTrack = net.localStream ? net.localStream.getVideoTracks()[0] : null;
-            if (camTrack) {
-                net.replaceTrack(camTrack, 'video');
-                localVideo.srcObject = net.localStream;
-            }
-            myVideoCard.classList.add('mirrored');
-            btnScreenShare.classList.remove('off');
-        }
-
+        /* 9. РЕАКЦИИ И ЧАТ */
         btnReactionToggle.onclick = () => reactionBar.classList.toggle('p2p-hidden');
         document.querySelectorAll('.reaction-btn').forEach(btn => {
             btn.onclick = () => {
@@ -544,7 +854,7 @@
         document.getElementById('btnInviteInfo').onclick = () => {
             document.getElementById('modalRoomCode').textContent = net.roomId;
             const qrEl = document.getElementById('modalQrCode'); qrEl.innerHTML = "";
-            new QRCode(qrEl, { text: net.getShareUrl(), width: 120, height: 120, colorDark: "#222f3e", colorLight: "#ffffff" });
+            new QRCode(qrEl, { text: net.getShareUrl(), width: 140, height: 140, colorDark: "#222f3e", colorLight: "#ffffff" });
             document.getElementById('inviteModal').classList.remove('p2p-hidden');
         };
         document.getElementById('btnCloseInviteModal').onclick = () => document.getElementById('inviteModal').classList.add('p2p-hidden');

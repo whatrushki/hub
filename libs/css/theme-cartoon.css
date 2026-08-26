@@ -1,0 +1,50 @@
+:root {
+    /* Fonts */
+    --p2p-font-main: 'Fredoka', cursive, sans-serif;
+    --p2p-font-display: 'Fredoka', cursive, sans-serif;
+    --p2p-font-mono: 'Nunito', monospace;
+
+    /* Backgrounds */
+    --p2p-bg: #6366f1;
+    --p2p-bg-pattern: radial-gradient(#4f46e5 20%, transparent 20%);
+    --p2p-bg-pattern-size: 20px 20px;
+    --p2p-surface: #ffffff;
+    --p2p-surface-muted: #f1f2f6;
+
+    /* Palette */
+    --p2p-color-primary: #ff5964;
+    --p2p-color-success: #1dd1a1;
+    --p2p-color-warning: #feca57;
+    --p2p-color-info: #54a0ff;
+    --p2p-color-danger: #ff6b6b;
+
+    /* Borders & Texts */
+    --p2p-border: #222f3e;
+    --p2p-border-muted: #c8d6e5;
+    --p2p-text: #222f3e;
+    --p2p-text-muted: #576574;
+    --p2p-btn-text-light: #ffffff;
+    --p2p-btn-text-dark: #222f3e;
+
+    /* Geometry & Thickness */
+    --p2p-border-width: 3.5px;
+    --p2p-radius-xs: 6px;
+    --p2p-radius-sm: 12px;
+    --p2p-radius-md: 16px;
+    --p2p-radius-lg: 24px;
+    --p2p-radius-full: 999px;
+
+    /* 3D Shadows & Active Presses */
+    --p2p-shadow-card: 0 7px 0 var(--p2p-border);
+    --p2p-shadow-sm: 0 3px 0 var(--p2p-border);
+    --p2p-shadow-btn-primary: 0 5px 0 #d63031;
+    --p2p-shadow-btn-success: 0 5px 0 #10ac84;
+    --p2p-shadow-btn-warning: 0 5px 0 #e1b12c;
+    --p2p-shadow-btn-info: 0 5px 0 #2e86de;
+    --p2p-shadow-btn-danger: 0 5px 0 #ee5253;
+    --p2p-shadow-btn-neutral: 0 4px 0 var(--p2p-border);
+    --p2p-btn-active-transform: translateY(4px);
+    --p2p-shadow-active: 0 0 0 transparent;
+
+    --p2p-logo-shadow: 2px 2px 0 var(--p2p-color-warning);
+}

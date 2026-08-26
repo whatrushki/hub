@@ -1,0 +1,50 @@
+:root {
+    /* Fonts */
+    --p2p-font-main: 'JetBrains Mono', monospace, sans-serif;
+    --p2p-font-display: 'JetBrains Mono', monospace;
+    --p2p-font-mono: 'JetBrains Mono', monospace;
+
+    /* Backgrounds */
+    --p2p-bg: #090a0f;
+    --p2p-bg-pattern: linear-gradient(rgba(0, 255, 204, 0.04) 1px, transparent 1px), linear-gradient(90deg, rgba(0, 255, 204, 0.04) 1px, transparent 1px);
+    --p2p-bg-pattern-size: 24px 24px;
+    --p2p-surface: #12151f;
+    --p2p-surface-muted: #1a1f2c;
+
+    /* Palette */
+    --p2p-color-primary: #ff0055;
+    --p2p-color-success: #00ffcc;
+    --p2p-color-warning: #ffe600;
+    --p2p-color-info: #00b4d8;
+    --p2p-color-danger: #ff3333;
+
+    /* Borders & Texts */
+    --p2p-border: #00ffcc;
+    --p2p-border-muted: #2d3748;
+    --p2p-text: #e2e8f0;
+    --p2p-text-muted: #718096;
+    --p2p-btn-text-light: #090a0f;
+    --p2p-btn-text-dark: #090a0f;
+
+    /* Geometry */
+    --p2p-border-width: 2px;
+    --p2p-radius-xs: 2px;
+    --p2p-radius-sm: 4px;
+    --p2p-radius-md: 6px;
+    --p2p-radius-lg: 8px;
+    --p2p-radius-full: 4px;
+
+    /* Cyber Glows */
+    --p2p-shadow-card: 0 0 15px rgba(0, 255, 204, 0.15), inset 0 0 10px rgba(0, 255, 204, 0.05);
+    --p2p-shadow-sm: 0 0 8px rgba(0, 255, 204, 0.2);
+    --p2p-shadow-btn-primary: 0 0 12px rgba(255, 0, 85, 0.5);
+    --p2p-shadow-btn-success: 0 0 12px rgba(0, 255, 204, 0.5);
+    --p2p-shadow-btn-warning: 0 0 12px rgba(255, 230, 0, 0.5);
+    --p2p-shadow-btn-info: 0 0 12px rgba(0, 180, 216, 0.5);
+    --p2p-shadow-btn-danger: 0 0 12px rgba(255, 51, 51, 0.5);
+    --p2p-shadow-btn-neutral: none;
+    --p2p-btn-active-transform: scale(0.97);
+    --p2p-shadow-active: none;
+
+    --p2p-logo-shadow: 0 0 8px var(--p2p-color-primary);
+}

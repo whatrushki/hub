@@ -6,464 +6,67 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>DROPZONE // P2P Передача файлов</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link
-        href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;600;700&family=Nunito:wght@800;900&display=swap"
+    <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@600;700&family=Nunito:wght@800;900&display=swap"
         rel="stylesheet">
+    <link rel="stylesheet" href="../libs/css/p2p-ui.css">
+    <link rel="stylesheet" href="../libs/css/theme-cartoon.css" id="themeStylesheet">
     <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
-
-    <style>
-        :root {
-            --bg: #6c5ce7;
-            --bg-pattern: #574b90;
-            --card: #ffffff;
-            --primary: #ff7675;
-            --yellow: #feca57;
-            --green: #1dd1a1;
-            --green-shadow: #10ac84;
-            --blue: #54a0ff;
-            --blue-shadow: #2e86de;
-            --dark: #222f3e;
-            --light-gray: #f1f2f6;
-            --gray: #c8d6e5;
-        }
-
-        * {
-            box-sizing: border-box;
-            margin: 0;
-            padding: 0;
-            user-select: none;
-            font-family: 'Fredoka', cursive, sans-serif;
-            -webkit-tap-highlight-color: transparent;
-        }
-
-        body {
-            background-color: var(--bg);
-            background-image: radial-gradient(var(--bg-pattern) 20%, transparent 20%);
-            background-size: 24px 24px;
-            min-height: 100vh;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            padding: 16px;
-            color: var(--dark);
-        }
-
-        .app-container {
-            width: 100%;
-            max-width: 960px;
-            display: flex;
-            flex-direction: column;
-            gap: 12px;
-        }
-
-        .cartoon-card {
-            background: var(--card);
-            border-radius: 26px;
-            padding: 20px;
-            border: 4px solid var(--dark);
-            box-shadow: 0 8px 0 var(--dark);
-        }
-
-        .btn-3d {
-            border: 3px solid var(--dark);
-            border-radius: 16px;
-            padding: 12px 18px;
-            font-size: 15px;
-            font-weight: 700;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 8px;
-            transition: transform 0.08s, box-shadow 0.08s;
-            outline: none;
-            width: 100%;
-            text-decoration: none;
-        }
-
-        .btn-3d:active {
-            transform: translateY(4px);
-            box-shadow: 0 0 0 var(--dark) !important;
-        }
-
-        .btn-green {
-            background: var(--green);
-            color: #fff;
-            box-shadow: 0 5px 0 var(--green-shadow);
-        }
-
-        .btn-yellow {
-            background: var(--yellow);
-            color: var(--dark);
-            box-shadow: 0 5px 0 #e1b12c;
-        }
-
-        .btn-blue {
-            background: var(--blue);
-            color: #fff;
-            box-shadow: 0 5px 0 var(--blue-shadow);
-        }
-
-        .header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            background: #fff;
-            padding: 10px 18px;
-            border-radius: 20px;
-            border: 3px solid var(--dark);
-            box-shadow: 0 5px 0 var(--dark);
-        }
-
-        .logo {
-            font-size: 20px;
-            font-weight: 700;
-            color: var(--primary);
-            text-shadow: 2px 2px 0 var(--yellow);
-        }
-
-        .header-controls {
-            display: flex;
-            align-items: center;
-            gap: 6px;
-        }
-
-        .icon-btn {
-            background: var(--light-gray);
-            border: 2px solid var(--dark);
-            border-radius: 10px;
-            padding: 5px 10px;
-            font-size: 13px;
-            cursor: pointer;
-            font-weight: 700;
-            transition: all 0.1s;
-        }
-
-        .icon-btn:active {
-            transform: scale(0.95);
-        }
-
-        .status-badge {
-            background: var(--light-gray);
-            padding: 5px 12px;
-            border-radius: 12px;
-            font-size: 12px;
-            font-weight: 800;
-            border: 2px solid var(--dark);
-        }
-
-        .tabs-row {
-            display: flex;
-            gap: 8px;
-        }
-
-        .tab-btn {
-            flex: 1;
-            background: #fff;
-            border: 3px solid var(--dark);
-            border-radius: 16px;
-            padding: 10px;
-            font-size: 15px;
-            font-weight: 800;
-            cursor: pointer;
-            text-align: center;
-            box-shadow: 0 4px 0 var(--dark);
-            transition: all 0.1s;
-        }
-
-        .tab-btn.active {
-            background: var(--yellow);
-            transform: translateY(-2px);
-            box-shadow: 0 6px 0 var(--dark);
-        }
-
-        .two-col-grid {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 16px;
-        }
-
-        @media (max-width: 768px) {
-            .two-col-grid {
-                grid-template-columns: 1fr;
-            }
-        }
-
-        .dropzone {
-            border: 3px dashed var(--blue-shadow);
-            background: var(--light-gray);
-            border-radius: 20px;
-            padding: 22px 16px;
-            text-align: center;
-            cursor: pointer;
-            transition: all 0.15s;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            gap: 6px;
-        }
-
-        .dropzone:hover,
-        .dropzone.dragover {
-            background: #e8f0fe;
-            border-color: var(--blue);
-            transform: scale(1.01);
-        }
-
-        .drop-icon {
-            font-size: 36px;
-            animation: floatIcon 2s ease-in-out infinite;
-        }
-
-        @keyframes floatIcon {
-
-            0%,
-            100% {
-                transform: translateY(0);
-            }
-
-            50% {
-                transform: translateY(-5px);
-            }
-        }
-
-        .file-queue {
-            display: flex;
-            flex-direction: column;
-            gap: 8px;
-            max-height: 290px;
-            overflow-y: auto;
-            margin: 8px 0;
-            padding-right: 6px;
-        }
-
-        .file-queue::-webkit-scrollbar {
-            width: 5px;
-        }
-
-        .file-queue::-webkit-scrollbar-thumb {
-            background: var(--gray);
-            border-radius: 4px;
-        }
-
-        .file-item {
-            background: var(--light-gray);
-            border: 2.5px solid var(--dark);
-            border-radius: 14px;
-            padding: 8px 12px;
-            display: flex;
-            flex-direction: column;
-            gap: 6px;
-            font-size: 13px;
-        }
-
-        .file-item-header {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            overflow: hidden;
-        }
-
-        .file-item-info {
-            flex: 1;
-            min-width: 0;
-            overflow: hidden;
-        }
-
-        .file-item-name {
-            font-weight: 700;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-        }
-
-        .file-item-size {
-            font-size: 11px;
-            color: #576574;
-            font-family: 'Nunito', sans-serif;
-            font-weight: 800;
-        }
-
-        .mini-progress-bg {
-            background: #fff;
-            border: 2px solid var(--dark);
-            border-radius: 8px;
-            height: 10px;
-            overflow: hidden;
-        }
-
-        .mini-progress-fill {
-            background: var(--green);
-            height: 100%;
-            width: 0%;
-            transition: width 0.05s linear;
-        }
-
-        .queue-summary {
-            display: flex;
-            justify-content: space-between;
-            font-size: 13px;
-            font-weight: 800;
-            color: #576574;
-            font-family: 'Nunito', sans-serif;
-            padding: 0 4px;
-        }
-
-        .qr-container {
-            background: #fff;
-            border: 3px solid var(--dark);
-            border-radius: 18px;
-            padding: 12px;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            gap: 6px;
-            margin-top: 10px;
-        }
-
-        .room-input {
-            width: 100%;
-            border: 3px solid var(--dark);
-            border-radius: 14px;
-            padding: 12px;
-            font-size: 20px;
-            text-align: center;
-            font-family: 'Nunito', sans-serif;
-            font-weight: 900;
-            letter-spacing: 3px;
-            outline: none;
-            background: var(--light-gray);
-        }
-
-        /* ЧИСТЫЕ БЕЙДЖИ БЕЗ АРТЕФАКТОВ */
-        .mini-badge {
-            padding: 4px 10px;
-            border-radius: 10px;
-            font-size: 11px;
-            font-weight: 800;
-            border: 2px solid var(--dark);
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            gap: 4px;
-            flex-shrink: 0;
-            text-decoration: none !important;
-            transition: all 0.15s ease;
-        }
-
-        .badge-queued {
-            background: var(--yellow);
-            color: var(--dark);
-        }
-
-        .badge-sending,
-        .badge-receiving {
-            background: var(--blue);
-            color: #ffffff;
-        }
-
-        .badge-success {
-            background: var(--green);
-            color: #ffffff;
-            cursor: pointer;
-            box-shadow: 0 2px 0 var(--green-shadow);
-        }
-
-        .badge-success:active {
-            transform: translateY(2px);
-            box-shadow: none;
-        }
-
-        .log-console {
-            background: #222f3e;
-            color: #1dd1a1;
-            font-family: monospace;
-            font-size: 11px;
-            padding: 10px 14px;
-            border-radius: 16px;
-            max-height: 120px;
-            overflow-y: auto;
-            border: 3px solid var(--dark);
-            user-select: text;
-        }
-
-        .hidden {
-            display: none !important;
-        }
-
-        .toast {
-            position: fixed;
-            top: 16px;
-            left: 50%;
-            transform: translateX(-50%);
-            background: var(--dark);
-            color: #fff;
-            padding: 8px 18px;
-            border-radius: 20px;
-            font-weight: 700;
-            font-size: 13px;
-            z-index: 300;
-            opacity: 0;
-            pointer-events: none;
-            transition: opacity 0.2s;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
-        }
-
-        .toast.show {
-            opacity: 1;
-        }
-    </style>
+    <script src="../libs/code/p2p-net.js"></script>
 </head>
 
 <body>
-    <div class="toast" id="toast">Уведомление</div>
+    <div class="p2p-toast" id="toast">Уведомление</div>
 
-    <div class="app-container">
-        <div class="header">
-            <div class="logo">📦 DROPZONE</div>
-            <div class="header-controls">
-                <button class="icon-btn" id="btnLogToggle">📜 Лог</button>
-                <button class="icon-btn" id="btnSoundToggle">🔊 Вкл</button>
-                <div class="status-badge" id="netBadge">🟡 СЕТЬ...</div>
+    <div class="p2p-app wide">
+        <header class="p2p-header">
+            <div class="p2p-logo">📦 DROPZONE</div>
+            <div class="p2p-header-actions">
+                <button class="p2p-btn p2p-btn-neutral p2p-btn-icon" id="btnLogToggle">📜 Лог</button>
+                <button class="p2p-btn p2p-btn-neutral p2p-btn-icon" id="btnSoundToggle">🔊 Вкл</button>
+                <div class="p2p-badge p2p-badge-waiting" id="netBadge">🟡 СЕТЬ...</div>
             </div>
-        </div>
+        </header>
 
-        <div class="tabs-row">
-            <button class="tab-btn active" id="tabSend">🚀 Отправить</button>
-            <button class="tab-btn" id="tabReceive">📥 Принять</button>
+        <div class="p2p-tabs">
+            <button class="p2p-tab active" id="tabSend">🚀 Отправить</button>
+            <button class="p2p-tab" id="tabReceive">📥 Принять</button>
         </div>
 
         <!-- РЕЖИМ 1: ОТПРАВИТЬ -->
-        <div class="cartoon-card" id="cardSend">
-            <div class="two-col-grid">
+        <div class="p2p-card" id="cardSend">
+            <div class="p2p-grid-2col">
                 <div style="display: flex; flex-direction: column; gap: 10px;">
-                    <div class="dropzone" id="dropzone">
-                        <div class="drop-icon">📁</div>
+                    <div class="p2p-dropzone" id="dropzone">
+                        <div style="font-size: 36px;">📁</div>
                         <div style="font-size: 15px; font-weight: 700;">Перетащи файлы сюда</div>
-                        <div style="font-size: 12px; color: #576574;">или нажми для выбора</div>
-                        <input type="file" id="fileInput" multiple class="hidden">
+                        <div style="font-size: 12px; color: var(--p2p-text-muted);">или нажми для выбора</div>
+                        <input type="file" id="fileInput" multiple class="p2p-hidden">
                     </div>
 
-                    <div class="qr-container" id="qrBlock">
-                        <div style="font-size: 12px; font-weight: 700; color: #576574;">Код комнаты:</div>
-                        <div style="font-size: 22px; font-weight: 900; letter-spacing: 3px; font-family: 'Nunito'; color: var(--primary);"
+                    <div
+                        style="background: #fff; border: var(--p2p-border-width) solid var(--p2p-border); border-radius: var(--p2p-radius-md); padding: 12px; display: flex; flex-direction: column; align-items: center; gap: 6px; margin-top: 10px;">
+                        <div style="font-size: 12px; font-weight: 700; color: var(--p2p-text-muted);">Код комнаты:</div>
+                        <div style="font-size: 22px; font-weight: 900; letter-spacing: 3px; font-family: var(--p2p-font-mono); color: var(--p2p-color-primary);"
                             id="displayCode">...</div>
                         <div id="qrcode"
                             style="min-height: 120px; display: flex; align-items: center; justify-content: center;">
                         </div>
                     </div>
 
-                    <button class="btn-3d btn-yellow" id="btnCopyLink">📋 Копировать ссылку</button>
+                    <button class="p2p-btn p2p-btn-warning" id="btnCopyLink">📋 Копировать ссылку</button>
                 </div>
 
                 <div>
-                    <div class="queue-summary">
+                    <div
+                        style="display: flex; justify-content: space-between; font-size: 13px; font-weight: 800; color: var(--p2p-text-muted); padding: 0 4px;">
                         <span id="queueCount">Всего: 0 файлов</span>
                         <span id="queueTotalSize">0 MB</span>
                     </div>
-                    <div class="file-queue" id="senderQueueList">
-                        <div style="text-align: center; color: #8395a7; font-size: 13px; padding: 40px 0;">
+                    <div id="senderQueueList"
+                        style="display: flex; flex-direction: column; gap: 8px; max-height: 290px; overflow-y: auto; margin: 8px 0; padding-right: 6px;">
+                        <div
+                            style="text-align: center; color: var(--p2p-text-muted); font-size: 13px; padding: 40px 0;">
                             Очередь пуста.<br>Добавьте файлы слева!
                         </div>
                     </div>
@@ -472,24 +75,29 @@
         </div>
 
         <!-- РЕЖИМ 2: ПРИНЯТЬ -->
-        <div class="cartoon-card hidden" id="cardReceive">
-            <div class="two-col-grid">
+        <div class="p2p-card p2p-hidden" id="cardReceive">
+            <div class="p2p-grid-2col">
                 <div style="display: flex; flex-direction: column; gap: 10px; justify-content: center;">
                     <div style="text-align: center;">
                         <div style="font-size: 18px; font-weight: 700; margin-bottom: 4px;">ПОДКЛЮЧЕНИЕ</div>
-                        <div style="font-size: 12px; color: #576574;">Введи 5-значный код отправителя:</div>
+                        <div style="font-size: 12px; color: var(--p2p-text-muted);">Введи 5-значный код отправителя:
+                        </div>
                     </div>
-                    <input type="text" class="room-input" id="inputRoomCode" placeholder="КОД" maxlength="5">
-                    <button class="btn-3d btn-blue" id="btnConnect">⚡ Подключиться</button>
+                    <input type="text" class="p2p-input p2p-input-code" id="inputRoomCode" placeholder="КОД"
+                        maxlength="5">
+                    <button class="p2p-btn p2p-btn-info" id="btnConnect">⚡ Подключиться</button>
                 </div>
 
                 <div>
-                    <div class="queue-summary">
+                    <div
+                        style="display: flex; justify-content: space-between; font-size: 13px; font-weight: 800; color: var(--p2p-text-muted); padding: 0 4px;">
                         <span id="receiveQueueCount">Входящие: 0 файлов</span>
                         <span id="receiveQueueTotalSize">0 MB</span>
                     </div>
-                    <div class="file-queue" id="receiverQueueList">
-                        <div style="text-align: center; color: #8395a7; font-size: 13px; padding: 40px 0;">
+                    <div id="receiverQueueList"
+                        style="display: flex; flex-direction: column; gap: 8px; max-height: 290px; overflow-y: auto; margin: 8px 0; padding-right: 6px;">
+                        <div
+                            style="text-align: center; color: var(--p2p-text-muted); font-size: 13px; padding: 40px 0;">
                             Ожидание подключения к отправителю...
                         </div>
                     </div>
@@ -497,104 +105,54 @@
             </div>
         </div>
 
-        <!-- ЛОГ ДЛЯ ОТЛАДКИ (СКРЫТ ПО УМОЛЧАНИЮ) -->
-        <div class="log-console hidden" id="logConsole">LOG: Инициализация системы...</div>
+        <!-- LOG CONSOLE -->
+        <div class="p2p-card p2p-hidden" id="logConsole"
+            style="background: #222f3e; color: #1dd1a1; font-family: monospace; font-size: 11px; padding: 10px 14px; max-height: 120px; overflow-y: auto; user-select: text;">
+            LOG: Инициализация системы...
+        </div>
     </div>
 
     <script>
-        /* 1. ЛОГГЕР */
-        const logConsole = document.getElementById('logConsole');
-        const btnLogToggle = document.getElementById('btnLogToggle');
-
-        btnLogToggle.onclick = () => {
-            logConsole.classList.toggle('hidden');
-            btnLogToggle.style.background = logConsole.classList.contains('hidden') ? 'var(--light-gray)' : 'var(--yellow)';
-        };
-
-        function sysLog(text) {
-            console.log(text);
-            const time = new Date().toTimeString().split(' ')[0];
-            logConsole.innerHTML = `[${time}] ${text}<br>` + logConsole.innerHTML;
-        }
-
-        /* 2. AUDIO ENGINE */
+        /* 1. AUDIO ENGINE */
         const AudioFX = {
-            ctx: null,
-            muted: false,
-            init() {
-                if (!this.ctx) this.ctx = new (window.AudioContext || window.webkitAudioContext)();
-                if (this.ctx.state === 'suspended') this.ctx.resume();
-            },
+            ctx: null, muted: false,
+            init() { if (!this.ctx) this.ctx = new (window.AudioContext || window.webkitAudioContext)(); },
             playPop() {
                 if (this.muted || !this.ctx) return;
-                const osc = this.ctx.createOscillator();
-                const gain = this.ctx.createGain();
-                osc.type = 'sine';
-                osc.frequency.setValueAtTime(450, this.ctx.currentTime);
-                osc.frequency.exponentialRampToValueAtTime(150, this.ctx.currentTime + 0.08);
-                gain.gain.setValueAtTime(0.2, this.ctx.currentTime);
-                gain.gain.linearRampToValueAtTime(0.01, this.ctx.currentTime + 0.08);
-                osc.connect(gain); gain.connect(this.ctx.destination);
-                osc.start(); osc.stop(this.ctx.currentTime + 0.08);
+                const osc = this.ctx.createOscillator(), gain = this.ctx.createGain();
+                osc.type = 'sine'; osc.frequency.setValueAtTime(450, this.ctx.currentTime);
+                gain.gain.setValueAtTime(0.2, this.ctx.currentTime); gain.gain.linearRampToValueAtTime(0.01, this.ctx.currentTime + 0.08);
+                osc.connect(gain); gain.connect(this.ctx.destination); osc.start(); osc.stop(this.ctx.currentTime + 0.08);
             },
             playSuccess() {
                 if (this.muted || !this.ctx) return;
-                [523.25, 659.25, 783.99, 1046.50].forEach((f, i) => {
-                    setTimeout(() => {
-                        if (this.muted || !this.ctx) return;
-                        const osc = this.ctx.createOscillator();
-                        const gain = this.ctx.createGain();
-                        osc.type = 'triangle';
-                        osc.frequency.setValueAtTime(f, this.ctx.currentTime);
-                        gain.gain.setValueAtTime(0.2, this.ctx.currentTime);
-                        gain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + 0.3);
-                        osc.connect(gain); gain.connect(this.ctx.destination);
-                        osc.start(); osc.stop(this.ctx.currentTime + 0.3);
-                    }, i * 90);
-                });
+                [523.25, 659.25, 783.99, 1046.50].forEach((f, i) => setTimeout(() => {
+                    if (this.muted || !this.ctx) return;
+                    const osc = this.ctx.createOscillator(), gain = this.ctx.createGain();
+                    osc.type = 'triangle'; osc.frequency.setValueAtTime(f, this.ctx.currentTime);
+                    gain.gain.setValueAtTime(0.2, this.ctx.currentTime); gain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + 0.3);
+                    osc.connect(gain); gain.connect(this.ctx.destination); osc.start(); osc.stop(this.ctx.currentTime + 0.3);
+                }, i * 90));
             }
         };
         window.addEventListener('click', () => AudioFX.init(), { once: true });
 
-        /* 3. НАСТРОЙКИ PEERJS И TURN */
-        const CHUNK_SIZE = 16 * 1024; // 16 KB
-        const PEER_CONFIG = {
-            debug: 1,
-            config: {
-                iceServers: [
-                    { urls: 'stun:stun.l.google.com:19302' },
-                    { urls: 'stun:stun1.l.google.com:19302' },
-                    {
-                        urls: 'turn:openrelay.metered.ca:80',
-                        username: 'openrelayproject',
-                        credential: 'openrelayproject'
-                    },
-                    {
-                        urls: 'turn:openrelay.metered.ca:443',
-                        username: 'openrelayproject',
-                        credential: 'openrelayproject'
-                    },
-                    {
-                        urls: 'turn:openrelay.metered.ca:443?transport=tcp',
-                        username: 'openrelayproject',
-                        credential: 'openrelayproject'
-                    }
-                ]
-            }
-        };
+        /* 2. LOGGER */
+        const logConsole = document.getElementById('logConsole');
+        document.getElementById('btnLogToggle').onclick = () => logConsole.classList.toggle('p2p-hidden');
+        function sysLog(text) {
+            const time = new Date().toTimeString().split(' ')[0];
+            logConsole.innerHTML = `[${time}] ${text}<br>` + logConsole.innerHTML;
+        }
 
-        let peer = null;
-        let conn = null;
-        let myRoomId = "";
+        /* 3. STATE & NET */
+        const net = new P2PNet({ appPrefix: 'dropzone', mode: 'duo' });
 
-        let senderFiles = [];
-        let isSenderBusy = false;
+        let senderFiles = [], isSenderBusy = false;
         let receiverFiles = {};
 
-        // DOM элементы
         const toast = document.getElementById('toast');
         const netBadge = document.getElementById('netBadge');
-        const btnSoundToggle = document.getElementById('btnSoundToggle');
         const tabSend = document.getElementById('tabSend');
         const tabReceive = document.getElementById('tabReceive');
         const cardSend = document.getElementById('cardSend');
@@ -605,313 +163,118 @@
         const queueCount = document.getElementById('queueCount');
         const queueTotalSize = document.getElementById('queueTotalSize');
         const displayCode = document.getElementById('displayCode');
-        const btnCopyLink = document.getElementById('btnCopyLink');
         const inputRoomCode = document.getElementById('inputRoomCode');
         const btnConnect = document.getElementById('btnConnect');
         const receiverQueueList = document.getElementById('receiverQueueList');
         const receiveQueueCount = document.getElementById('receiveQueueCount');
         const receiveQueueTotalSize = document.getElementById('receiveQueueTotalSize');
 
-        function showToast(msg) {
-            toast.textContent = msg;
-            toast.classList.add('show');
-            setTimeout(() => toast.classList.remove('show'), 2200);
-        }
-
+        function showToast(msg) { toast.textContent = msg; toast.classList.add('show'); setTimeout(() => toast.classList.remove('show'), 2200); }
         function formatBytes(bytes) {
             if (!bytes || bytes === 0) return '0 Bytes';
-            const k = 1024;
-            const sizes = ['Bytes', 'KB', 'MB', 'GB'];
-            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            const k = 1024, sizes = ['Bytes', 'KB', 'MB', 'GB'], i = Math.floor(Math.log(bytes) / Math.log(k));
             return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
         }
 
-        function getFileIcon(type, name) {
-            type = type || ''; name = name || '';
-            if (type.includes('image')) return '🖼️';
-            if (type.includes('video')) return '🎬';
-            if (type.includes('audio')) return '🎵';
-            if (type.includes('pdf') || name.endsWith('.pdf')) return '📕';
-            if (type.includes('zip') || type.includes('rar') || name.endsWith('.zip')) return '📦';
-            return '📄';
-        }
-
-        btnSoundToggle.onclick = () => {
-            AudioFX.init();
-            AudioFX.muted = !AudioFX.muted;
-            btnSoundToggle.textContent = AudioFX.muted ? "🔇 Выкл" : "🔊 Вкл";
-        };
-
-        /* 4. TABS */
         tabSend.onclick = () => {
             AudioFX.playPop();
-            tabSend.classList.add('active');
-            tabReceive.classList.remove('active');
-            cardSend.classList.remove('hidden');
-            cardReceive.classList.add('hidden');
-            if (!peer || peer.destroyed) initSender();
+            tabSend.classList.add('active'); tabReceive.classList.remove('active');
+            cardSend.classList.remove('p2p-hidden'); cardReceive.classList.add('p2p-hidden');
+            if (!net.roomId) createSenderRoom();
         };
 
         tabReceive.onclick = () => {
             AudioFX.playPop();
-            tabReceive.classList.add('active');
-            tabSend.classList.remove('active');
-            cardReceive.classList.remove('hidden');
-            cardSend.classList.add('hidden');
-            if (peer && !peer.destroyed) {
-                peer.destroy();
-                peer = null;
-                conn = null;
-                netBadge.innerHTML = "⚪ ОЖИДАНИЕ";
-            }
+            tabReceive.classList.add('active'); tabSend.classList.remove('active');
+            cardReceive.classList.remove('p2p-hidden'); cardSend.classList.add('p2p-hidden');
+            net.destroy();
+            netBadge.innerHTML = "⚪ ОЖИДАНИЕ";
+            netBadge.className = "p2p-badge p2p-badge-waiting";
         };
 
-        /* 5. ОТПРАВИТЕЛЬ */
         function renderQRCode(url) {
-            const qrEl = document.getElementById('qrcode');
-            qrEl.innerHTML = "";
+            const qrEl = document.getElementById('qrcode'); qrEl.innerHTML = "";
+            try { new QRCode(qrEl, { text: url, width: 120, height: 120, colorDark: "#222f3e", colorLight: "#ffffff" }); } catch (e) { }
+        }
+
+        async function createSenderRoom() {
             try {
-                new QRCode(qrEl, {
-                    text: url,
-                    width: 120,
-                    height: 120,
-                    colorDark: "#222f3e",
-                    colorLight: "#ffffff"
-                });
-            } catch (e) {
-                sysLog("QR Code ожидание...");
-            }
-        }
-
-        function initSender() {
-            if (peer && !peer.destroyed) peer.destroy();
-            myRoomId = Math.random().toString(36).substring(2, 7).toUpperCase();
-            displayCode.textContent = myRoomId;
-            const shareUrl = window.location.href.split('#')[0] + "#" + myRoomId;
-            renderQRCode(shareUrl);
-
-            sysLog(`Создание комнаты: ${myRoomId}`);
-            peer = new Peer("dz-" + myRoomId, PEER_CONFIG);
-
-            peer.on('open', (id) => {
-                sysLog(`Сервер подключен: ${id}`);
+                sysLog("Создание комнаты отправителя...");
+                const code = await net.createRoom();
+                displayCode.textContent = code;
+                renderQRCode(net.getShareUrl());
                 netBadge.innerHTML = "🟡 ЖДЕМ ПИРА";
-                netBadge.style.color = "#d35400";
-            });
-
-            peer.on('connection', (c) => {
-                sysLog("Входящее подключение...");
-                conn = c;
-                setupConnectionHandlers();
-            });
-
-            peer.on('error', (err) => {
-                sysLog(`Ошибка Peer: ${err.type}`);
-                if (err.type === 'unavailable-id') initSender();
-            });
+                netBadge.className = "p2p-badge p2p-badge-waiting";
+            } catch (err) {
+                sysLog("Ошибка создания: " + err.message);
+            }
         }
 
-        btnCopyLink.onclick = () => {
+        document.getElementById('btnCopyLink').onclick = () => {
             AudioFX.playPop();
-            const url = window.location.href.split('#')[0] + "#" + myRoomId;
-            if (navigator.clipboard) {
-                navigator.clipboard.writeText(url).then(() => showToast("Ссылка скопирована!"));
-            }
+            navigator.clipboard.writeText(net.getShareUrl()).then(() => showToast("Ссылка скопирована!"));
         };
 
-        /* 6. ОЧЕРЕДЬ */
+        /* 4. QUEUE & SENDING */
         dropzone.onclick = () => fileInput.click();
         dropzone.ondragover = (e) => { e.preventDefault(); dropzone.classList.add('dragover'); };
         dropzone.ondragleave = () => dropzone.classList.remove('dragover');
-        dropzone.ondrop = (e) => {
-            e.preventDefault();
-            dropzone.classList.remove('dragover');
-            if (e.dataTransfer.files.length > 0) addFilesToQueue(Array.from(e.dataTransfer.files));
-        };
-
-        fileInput.onchange = () => {
-            if (fileInput.files.length > 0) {
-                addFilesToQueue(Array.from(fileInput.files));
-                fileInput.value = '';
-            }
-        };
+        dropzone.ondrop = (e) => { e.preventDefault(); dropzone.classList.remove('dragover'); if (e.dataTransfer.files.length > 0) addFilesToQueue(Array.from(e.dataTransfer.files)); };
+        fileInput.onchange = () => { if (fileInput.files.length > 0) { addFilesToQueue(Array.from(fileInput.files)); fileInput.value = ''; } };
 
         function addFilesToQueue(files) {
             AudioFX.playPop();
-            const newItems = [];
-
             files.forEach(f => {
-                const item = {
-                    id: 'f_' + Date.now() + '_' + Math.random().toString(36).substr(2, 6),
-                    file: f,
-                    name: f.name,
-                    size: f.size,
-                    type: f.type || 'application/octet-stream',
-                    status: 'queued'
-                };
-                senderFiles.push(item);
-                newItems.push({ id: item.id, name: item.name, size: item.size, type: item.type, status: 'queued' });
+                senderFiles.push({
+                    id: 'f_' + Date.now() + '_' + Math.random().toString(36).substr(2, 5),
+                    file: f, name: f.name, size: f.size, type: f.type || 'application/octet-stream', status: 'queued'
+                });
             });
-
             renderSenderQueue();
-
-            if (conn && conn.open) {
-                conn.send({ type: 'APPEND_FILES', files: newItems });
-                runSenderWorker();
-            }
+            runSenderWorker();
         }
 
         function renderSenderQueue() {
             if (senderFiles.length === 0) {
-                senderQueueList.innerHTML = `<div style="text-align: center; color: #8395a7; font-size: 13px; padding: 40px 0;">Очередь пуста.<br>Добавьте файлы слева!</div>`;
-                queueCount.textContent = `Всего: 0 файлов`;
-                queueTotalSize.textContent = `0 MB`;
-                return;
+                senderQueueList.innerHTML = `<div style="text-align: center; color: var(--p2p-text-muted); font-size: 13px; padding: 40px 0;">Очередь пуста.<br>Добавьте файлы слева!</div>`;
+                queueCount.textContent = `Всего: 0 файлов`; queueTotalSize.textContent = `0 MB`; return;
             }
-
             senderQueueList.innerHTML = "";
             let totalBytes = 0;
-
             senderFiles.forEach(f => {
                 totalBytes += f.size;
                 const itemEl = document.createElement('div');
-                itemEl.className = 'file-item';
-                itemEl.id = `senderItem-${f.id}`;
-
-                let badgeClass = 'badge-queued';
-                let badgeText = '⏳ В очереди';
-                if (f.status === 'sending') { badgeClass = 'badge-sending'; badgeText = '🚀 Отправка...'; }
-                if (f.status === 'sent') { badgeClass = 'badge-success'; badgeText = '✅ Отправлен'; }
+                itemEl.style.background = "var(--p2p-surface-muted)";
+                itemEl.style.border = "2px solid var(--p2p-border)";
+                itemEl.style.borderRadius = "var(--p2p-radius-sm)";
+                itemEl.style.padding = "8px 12px";
+                itemEl.style.display = "flex";
+                itemEl.style.flexDirection = "column";
+                itemEl.style.gap = "6px";
 
                 itemEl.innerHTML = `
-                    <div class="file-item-header">
-                        <div style="font-size: 22px; flex-shrink: 0;">${getFileIcon(f.type, f.name)}</div>
-                        <div class="file-item-info">
-                            <div class="file-item-name">${f.name}</div>
-                            <div class="file-item-size">${formatBytes(f.size)}</div>
+                    <div style="display: flex; align-items: center; gap: 10px; overflow: hidden;">
+                        <div style="font-size: 22px;">📄</div>
+                        <div style="flex: 1; min-width: 0;">
+                            <div style="font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${f.name}</div>
+                            <div style="font-size: 11px; color: var(--p2p-text-muted);">${formatBytes(f.size)}</div>
                         </div>
-                        <span class="mini-badge ${badgeClass}" id="senderBadge-${f.id}">${badgeText}</span>
+                        <span class="p2p-badge ${f.status === 'sent' ? 'p2p-badge-online' : 'p2p-badge-waiting'}" id="senderBadge-${f.id}">
+                            ${f.status === 'sent' ? '✅ Отправлен' : '⏳ В очереди'}
+                        </span>
                     </div>
-                    <div class="mini-progress-bg">
-                        <div class="mini-progress-fill" id="senderProgress-${f.id}" style="width: ${f.status === 'sent' ? '100%' : '0%'}"></div>
+                    <div class="p2p-progress-track">
+                        <div class="p2p-progress-fill" id="senderProgress-${f.id}" style="width: ${f.status === 'sent' ? '100%' : '0%'}"></div>
                     </div>
                 `;
                 senderQueueList.appendChild(itemEl);
             });
-
             queueCount.textContent = `Всего: ${senderFiles.length} файлов`;
             queueTotalSize.textContent = formatBytes(totalBytes);
         }
 
-        function updateSenderItemUI(id, badgeText, percent, stateClass) {
-            const badge = document.getElementById(`senderBadge-${id}`);
-            const progress = document.getElementById(`senderProgress-${id}`);
-            if (badge) {
-                badge.textContent = badgeText;
-                badge.className = `mini-badge ${stateClass}`;
-            }
-            if (progress) progress.style.width = percent + '%';
-        }
-
-        /* 7. ПЕРЕДАЧА ДАННЫХ */
-        function setupConnectionHandlers() {
-            const onOpen = () => {
-                AudioFX.playPop();
-                netBadge.innerHTML = "🟢 ПОДКЛЮЧЕНО";
-                netBadge.style.color = "#27ae60";
-                showToast("Связь установлена!");
-                sysLog("P2P Канал открыт!");
-
-                if (senderFiles.length > 0) {
-                    const manifest = senderFiles.map(f => ({
-                        id: f.id, name: f.name, size: f.size, type: f.type, status: f.status
-                    }));
-                    conn.send({ type: 'SYNC_MANIFEST', files: manifest });
-                    runSenderWorker();
-                }
-            };
-
-            if (conn.open) {
-                onOpen();
-            } else {
-                conn.on('open', onOpen);
-            }
-
-            conn.on('data', (packet) => {
-                if (!packet || typeof packet !== 'object') return;
-
-                if (packet.type === 'SYNC_MANIFEST' || packet.type === 'APPEND_FILES') {
-                    packet.files.forEach(f => {
-                        if (!receiverFiles[f.id]) {
-                            receiverFiles[f.id] = {
-                                id: f.id,
-                                name: f.name,
-                                size: f.size,
-                                type: f.type,
-                                status: f.status || 'queued',
-                                chunks: [],
-                                receivedBytes: 0,
-                                startTime: null,
-                                url: null
-                            };
-                        }
-                    });
-                    renderReceiverQueue();
-                }
-                else if (packet.type === 'FILE_START') {
-                    let item = receiverFiles[packet.id];
-                    if (!item) {
-                        item = {
-                            id: packet.id,
-                            name: packet.name,
-                            size: packet.size,
-                            type: packet.type,
-                            status: 'receiving',
-                            chunks: [],
-                            receivedBytes: 0,
-                            startTime: Date.now(),
-                            url: null
-                        };
-                        receiverFiles[packet.id] = item;
-                        renderReceiverQueue();
-                    }
-                    item.status = 'receiving';
-                    item.chunks = [];
-                    item.receivedBytes = 0;
-                    item.startTime = Date.now();
-                    updateReceiverItemUI(item.id, '🚀 0%', 0, 'badge-receiving');
-                }
-                else if (packet.type === 'CHUNK') {
-                    const item = receiverFiles[packet.id];
-                    if (item) {
-                        item.chunks.push(packet.data);
-                        item.receivedBytes += packet.data.byteLength || packet.data.size || 0;
-
-                        const percent = item.size === 0 ? 100 : Math.min(100, Math.round((item.receivedBytes / item.size) * 100));
-                        const elapsed = (Date.now() - item.startTime) / 1000;
-                        const speedMB = elapsed > 0 ? (item.receivedBytes / (1024 * 1024)) / elapsed : 0;
-                        updateReceiverItemUI(item.id, `${percent}% (${speedMB.toFixed(1)} МБ/с)`, percent, 'badge-receiving');
-                    }
-                }
-                else if (packet.type === 'FILE_END') {
-                    saveReceivedFile(packet.id);
-                }
-            });
-
-            conn.on('close', () => {
-                sysLog("Соединение закрыто!");
-                netBadge.innerHTML = "🔴 ОТКЛЮЧЕНО";
-                netBadge.style.color = "#c0392b";
-            });
-
-            conn.on('error', (err) => {
-                sysLog(`Ошибка канала: ${err}`);
-            });
-        }
-
-        /* 8. ОТПРАВКА */
         async function runSenderWorker() {
-            if (isSenderBusy || !conn || !conn.open) return;
+            if (isSenderBusy || net.peers.size === 0) return;
             isSenderBusy = true;
 
             while (true) {
@@ -919,53 +282,19 @@
                 if (!item) break;
 
                 item.status = 'sending';
-                updateSenderItemUI(item.id, '🚀 Отправка...', 0, 'badge-sending');
-                sysLog(`Отправка: ${item.name}`);
+                const badge = document.getElementById(`senderBadge-${item.id}`);
+                const progress = document.getElementById(`senderProgress-${item.id}`);
+                if (badge) { badge.className = 'p2p-badge p2p-badge-active'; badge.textContent = '🚀 Отправка...'; }
 
-                conn.send({
-                    type: 'FILE_START',
-                    id: item.id,
-                    name: item.name,
-                    size: item.size,
-                    type: item.type
+                sysLog(`Отправка: ${item.name}`);
+                await net.sendFile(item.file, null, ({ percent }) => {
+                    if (progress) progress.style.width = percent + '%';
                 });
 
-                let offset = 0;
-                const file = item.file;
-                const startTime = Date.now();
-
-                while (offset < file.size) {
-                    const slice = file.slice(offset, offset + CHUNK_SIZE);
-                    const buffer = await slice.arrayBuffer();
-
-                    const dc = conn._dc || conn.dataChannel;
-                    while (dc && dc.bufferedAmount > 256 * 1024) {
-                        await new Promise(r => setTimeout(r, 15));
-                    }
-
-                    conn.send({
-                        type: 'CHUNK',
-                        id: item.id,
-                        data: buffer
-                    });
-
-                    offset += buffer.byteLength;
-
-                    const percent = file.size === 0 ? 100 : Math.min(100, Math.round((offset / file.size) * 100));
-                    const elapsed = (Date.now() - startTime) / 1000;
-                    const speedMB = elapsed > 0 ? (offset / (1024 * 1024)) / elapsed : 0;
-                    updateSenderItemUI(item.id, `${percent}% (${speedMB.toFixed(1)} МБ/с)`, percent, 'badge-sending');
-                }
-
-                const dc = conn._dc || conn.dataChannel;
-                while (dc && dc.bufferedAmount > 0) {
-                    await new Promise(r => setTimeout(r, 10));
-                }
-
-                conn.send({ type: 'FILE_END', id: item.id });
                 item.status = 'sent';
-                updateSenderItemUI(item.id, '✅ Отправлен', 100, 'badge-success');
-                sysLog(`Передан: ${item.name}`);
+                if (badge) { badge.className = 'p2p-badge p2p-badge-online'; badge.textContent = '✅ Отправлен'; }
+                if (progress) progress.style.width = '100%';
+                sysLog(`Успешно отправлен: ${item.name}`);
             }
 
             isSenderBusy = false;
@@ -973,130 +302,112 @@
             showToast("Все файлы отправлены!");
         }
 
-        /* 9. ПРИЕМНИК */
-        btnConnect.onclick = () => {
-            const code = inputRoomCode.value.trim().toUpperCase();
-            if (code.length < 3) return showToast("Введите код комнаты!");
-            connectToHost(code);
-        };
+        /* 5. NET EVENTS */
+        net.on('status', ({ online }) => {
+            netBadge.innerHTML = online ? "🟢 ОНЛАЙН" : "🟡 СЕТЬ...";
+            netBadge.className = online ? "p2p-badge p2p-badge-online" : "p2p-badge p2p-badge-waiting";
+        });
 
-        function connectToHost(code) {
+        net.on('peer-connected', () => {
             AudioFX.playPop();
-            netBadge.innerHTML = "📡 СВЯЗЬ...";
-            if (peer && !peer.destroyed) peer.destroy();
+            netBadge.innerHTML = "🟢 ПОДКЛЮЧЕНО";
+            netBadge.className = "p2p-badge p2p-badge-online";
+            showToast("Связь установлена!");
+            sysLog("P2P Канал открыт!");
+            runSenderWorker();
+        });
 
-            sysLog(`Подключение к dz-${code}...`);
-            peer = new Peer(PEER_CONFIG);
+        net.on('peer-disconnected', () => {
+            netBadge.innerHTML = "🔴 ОТКЛЮЧЕНО";
+            netBadge.className = "p2p-badge p2p-badge-offline";
+            showToast("Пир отключился");
+        });
 
-            peer.on('open', (id) => {
-                sysLog(`Временный ID: ${id}`);
-                conn = peer.connect("dz-" + code, { reliable: true });
-                setupConnectionHandlers();
-            });
+        net.on('file-start', (packet) => {
+            receiverFiles[packet.id] = { id: packet.id, name: packet.name, size: packet.size, status: 'receiving' };
+            renderReceiverQueue();
+        });
 
-            peer.on('error', (err) => {
-                sysLog(`Ошибка: ${err.type}`);
-                netBadge.innerHTML = "🔴 ОШИБКА";
-                showToast("Не удалось подключиться!");
-            });
-        }
+        net.on('file-progress', ({ fileId, percent }) => {
+            const progress = document.getElementById(`receiverProgress-${fileId}`);
+            const badge = document.getElementById(`receiverBadge-${fileId}`);
+            if (progress) progress.style.width = percent + '%';
+            if (badge) badge.textContent = `🚀 ${percent}%`;
+        });
+
+        net.on('file-received', (fileItem) => {
+            AudioFX.playSuccess();
+            sysLog(`Получен файл: ${fileItem.name}`);
+            const slot = document.getElementById(`receiverBadgeSlot-${fileItem.id}`);
+            if (slot) {
+                slot.innerHTML = `<a href="${fileItem.url}" download="${fileItem.name}" class="p2p-badge p2p-badge-online" style="cursor:pointer;">💾 Скачать</a>`;
+            }
+            const progress = document.getElementById(`receiverProgress-${fileItem.id}`);
+            if (progress) progress.style.width = '100%';
+
+            // Авто-скачивание
+            const a = document.createElement('a');
+            a.href = fileItem.url; a.download = fileItem.name; document.body.appendChild(a); a.click();
+            setTimeout(() => document.body.removeChild(a), 500);
+        });
 
         function renderReceiverQueue() {
             const files = Object.values(receiverFiles);
             if (files.length === 0) {
-                receiverQueueList.innerHTML = `<div style="text-align: center; color: #8395a7; font-size: 13px; padding: 40px 0;">Ожидание файлов от отправителя...</div>`;
-                receiveQueueCount.textContent = `Входящие: 0 файлов`;
-                receiveQueueTotalSize.textContent = `0 MB`;
+                receiverQueueList.innerHTML = `<div style="text-align: center; color: var(--p2p-text-muted); font-size: 13px; padding: 40px 0;">Ожидание файлов от отправителя...</div>`;
                 return;
             }
-
             receiverQueueList.innerHTML = "";
             let totalBytes = 0;
-
             files.forEach(f => {
                 totalBytes += f.size;
                 const itemEl = document.createElement('div');
-                itemEl.className = 'file-item';
-                itemEl.id = `receiverItem-${f.id}`;
-
-                let badgeHtml = '';
-                if (f.url) {
-                    badgeHtml = `<a href="${f.url}" download="${f.name}" class="mini-badge badge-success" id="receiverBadge-${f.id}">💾 Скачать</a>`;
-                } else if (f.status === 'receiving') {
-                    badgeHtml = `<span class="mini-badge badge-receiving" id="receiverBadge-${f.id}">🚀 Получение...</span>`;
-                } else {
-                    badgeHtml = `<span class="mini-badge badge-queued" id="receiverBadge-${f.id}">⏳ В очереди</span>`;
-                }
+                itemEl.style.background = "var(--p2p-surface-muted)";
+                itemEl.style.border = "2px solid var(--p2p-border)";
+                itemEl.style.borderRadius = "var(--p2p-radius-sm)";
+                itemEl.style.padding = "8px 12px";
+                itemEl.style.display = "flex";
+                itemEl.style.flexDirection = "column";
+                itemEl.style.gap = "6px";
 
                 itemEl.innerHTML = `
-                    <div class="file-item-header">
-                        <div style="font-size: 22px; flex-shrink: 0;">${getFileIcon(f.type, f.name)}</div>
-                        <div class="file-item-info">
-                            <div class="file-item-name">${f.name}</div>
-                            <div class="file-item-size">${formatBytes(f.size)}</div>
+                    <div style="display: flex; align-items: center; gap: 10px; overflow: hidden;">
+                        <div style="font-size: 22px;">📄</div>
+                        <div style="flex: 1; min-width: 0;">
+                            <div style="font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${f.name}</div>
+                            <div style="font-size: 11px; color: var(--p2p-text-muted);">${formatBytes(f.size)}</div>
                         </div>
-                        <div id="receiverBadgeSlot-${f.id}">${badgeHtml}</div>
+                        <div id="receiverBadgeSlot-${f.id}">
+                            <span class="p2p-badge p2p-badge-active" id="receiverBadge-${f.id}">🚀 Получение...</span>
+                        </div>
                     </div>
-                    <div class="mini-progress-bg">
-                        <div class="mini-progress-fill" id="receiverProgress-${f.id}" style="width: ${f.status === 'received' ? '100%' : '0%'}"></div>
+                    <div class="p2p-progress-track">
+                        <div class="p2p-progress-fill" id="receiverProgress-${f.id}" style="width: 0%"></div>
                     </div>
                 `;
                 receiverQueueList.appendChild(itemEl);
             });
-
             receiveQueueCount.textContent = `Входящие: ${files.length} файлов`;
             receiveQueueTotalSize.textContent = formatBytes(totalBytes);
         }
 
-        function updateReceiverItemUI(id, text, percent, badgeClass) {
-            const slot = document.getElementById(`receiverBadgeSlot-${id}`);
-            const progress = document.getElementById(`receiverProgress-${id}`);
-            if (slot) {
-                slot.innerHTML = `<span class="mini-badge ${badgeClass}" id="receiverBadge-${id}">${text}</span>`;
-            }
-            if (progress) progress.style.width = percent + '%';
-        }
+        btnConnect.onclick = () => {
+            const code = inputRoomCode.value.trim();
+            if (code.length < 3) return showToast("Введите код!");
+            sysLog(`Подключение к комнате ${code}...`);
+            net.joinRoom(code).catch(err => {
+                sysLog("Ошибка: " + err.message);
+                showToast("Не удалось подключиться к отправителю");
+            });
+        };
 
-        function saveReceivedFile(fileId) {
-            const item = receiverFiles[fileId];
-            if (!item || item.status === 'received') return;
-
-            item.status = 'received';
-            AudioFX.playPop();
-            sysLog(`Сборка: ${item.name}`);
-
-            const blob = new Blob(item.chunks, { type: item.type || 'application/octet-stream' });
-            item.chunks = [];
-            item.url = URL.createObjectURL(blob);
-
-            // Чистая кнопка скачивания без вложенных тегов
-            const slot = document.getElementById(`receiverBadgeSlot-${item.id}`);
-            if (slot) {
-                slot.innerHTML = `<a href="${item.url}" download="${item.name}" class="mini-badge badge-success" id="receiverBadge-${item.id}">💾 Скачать</a>`;
-            }
-
-            const progress = document.getElementById(`receiverProgress-${item.id}`);
-            if (progress) progress.style.width = '100%';
-
-            // Авто-скачивание
-            const autoLink = document.createElement('a');
-            autoLink.href = item.url;
-            autoLink.download = item.name;
-            document.body.appendChild(autoLink);
-            autoLink.click();
-            setTimeout(() => document.body.removeChild(autoLink), 500);
-            sysLog(`Получен: ${item.name}`);
-        }
-
-        /* 10. АВТО-СТАРТ */
         window.addEventListener('load', () => {
             if (window.location.hash.length > 1) {
-                const code = window.location.hash.substring(1).toUpperCase();
                 tabReceive.click();
-                inputRoomCode.value = code;
-                connectToHost(code);
+                inputRoomCode.value = P2PNet.cleanCode(window.location.hash.substring(1));
+                btnConnect.click();
             } else {
-                initSender();
+                createSenderRoom();
             }
         });
     </script>

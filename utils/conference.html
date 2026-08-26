@@ -13,143 +13,229 @@
     <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
     <script src="../libs/code/p2p-net.js"></script>
+
+    <style>
+        /* Специфичные мобильные стили для видеоконференции */
+        html,
+        body {
+            height: 100%;
+            overflow: hidden;
+        }
+
+        .conf-container {
+            width: 100%;
+            max-width: 1100px;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            padding: 4px;
+        }
+
+        .conf-video-area {
+            flex: 1;
+            display: flex;
+            gap: 8px;
+            overflow: hidden;
+            position: relative;
+            min-height: 0;
+        }
+
+        .conf-grid {
+            flex: 1;
+            display: grid;
+            gap: 8px;
+            grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+            grid-auto-rows: 1fr;
+            overflow-y: auto;
+            align-content: center;
+        }
+
+        @media (max-width: 600px) {
+            .conf-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .conf-controls {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 8px;
+            flex-wrap: wrap;
+            padding: 6px;
+            background: var(--p2p-surface);
+            border: var(--p2p-border-width) solid var(--p2p-border);
+            border-radius: var(--p2p-radius-lg);
+            box-shadow: var(--p2p-shadow-sm);
+        }
+
+        .btn-ctrl {
+            width: 44px;
+            height: 44px;
+            font-size: 18px;
+            padding: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .btn-ctrl.off {
+            background: var(--p2p-color-danger) !important;
+            color: #fff !important;
+        }
+
+        .chat-drawer {
+            width: 300px;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            position: relative;
+            z-index: 50;
+        }
+
+        @media (max-width: 768px) {
+            .chat-drawer {
+                position: absolute;
+                inset: 0;
+                width: 100%;
+                background: var(--p2p-surface);
+            }
+        }
+    </style>
 </head>
 
 <body>
     <div class="p2p-toast" id="toast">Уведомление</div>
 
-    <div class="p2p-app wide" id="reactionContainer" style="height: calc(100vh - 32px); max-height: 860px;">
-        <header class="p2p-header">
-            <div class="p2p-logo">🎥 DROPCONF</div>
+    <div class="conf-container" id="reactionContainer">
+        <!-- Шапка -->
+        <header class="p2p-header" style="padding: 6px 12px;">
+            <div class="p2p-logo" style="font-size: 16px;">🎥 DROPCONF</div>
             <div class="p2p-header-actions">
-                <button class="p2p-btn p2p-btn-neutral p2p-btn-icon" id="btnLogToggle">📜 Лог</button>
-                <button class="p2p-btn p2p-btn-neutral p2p-btn-icon" id="btnSoundToggle">🔊 Вкл</button>
+                <button class="p2p-btn p2p-btn-neutral p2p-btn-icon" id="btnLogToggle">📜</button>
+                <button class="p2p-btn p2p-btn-neutral p2p-btn-icon" id="btnSoundToggle">🔊</button>
                 <div class="p2p-badge p2p-badge-waiting" id="netBadge">🟡 СЕТЬ...</div>
             </div>
         </header>
 
-        <!-- 1. LOBBY -->
-        <div class="p2p-card" id="lobbyScreen" style="height: 100%;">
-            <div class="p2p-grid-2col" style="height: 100%;">
-                <div style="display: flex; flex-direction: column; gap: 10px; align-items: center;">
-                    <div class="p2p-video-card mirrored" style="width: 100%; aspect-ratio: 4/3;">
-                        <video id="previewVideo" autoplay playsinline muted></video>
-                        <div id="previewAvatar" style="position: absolute; font-size: 64px; display: none;">😎</div>
+        <!-- 1. ЭКРАН ЛОББИ -->
+        <div class="p2p-card" id="lobbyScreen"
+            style="flex: 1; display: flex; flex-direction: column; justify-content: center; overflow-y: auto;">
+            <div class="p2p-grid-2col" style="align-items: center;">
+                <div style="display: flex; flex-direction: column; gap: 8px; align-items: center;">
+                    <div class="p2p-video-card mirrored" style="width: 100%; max-width: 320px; aspect-ratio: 4/3;">
+                        <video id="previewVideo" autoplay playsinline muted
+                            style="width: 100%; height: 100%; object-fit: cover;"></video>
+                        <div id="previewAvatar" style="position: absolute; font-size: 54px; display: none;">😎</div>
                     </div>
-                    <div style="display: flex; gap: 10px; width: 100%;">
-                        <button class="p2p-btn p2p-btn-warning" id="btnTogglePreviewMic">🎤 Микрофон</button>
-                        <button class="p2p-btn p2p-btn-warning" id="btnTogglePreviewCam">📷 Камера</button>
+                    <div style="display: flex; gap: 8px; width: 100%; max-width: 320px;">
+                        <button class="p2p-btn p2p-btn-warning" id="btnTogglePreviewMic" style="padding: 8px;">🎤
+                            Микрофон</button>
+                        <button class="p2p-btn p2p-btn-warning" id="btnTogglePreviewCam" style="padding: 8px;">📷
+                            Камера</button>
                     </div>
                 </div>
 
-                <div style="display: flex; flex-direction: column; gap: 12px; justify-content: center;">
+                <div
+                    style="display: flex; flex-direction: column; gap: 10px; justify-content: center; max-width: 360px; margin: 0 auto; width: 100%;">
                     <div>
                         <div
-                            style="font-size: 12px; font-weight: 700; color: var(--p2p-text-muted); margin-bottom: 4px;">
+                            style="font-size: 12px; font-weight: 700; color: var(--p2p-text-muted); margin-bottom: 2px;">
                             ТВОЁ ИМЯ:</div>
-                        <input type="text" class="p2p-input" id="inputUserName" placeholder="Например: Кот-Кодер"
+                        <input type="text" class="p2p-input" id="inputUserName" placeholder="Имя в звонке"
                             maxlength="15">
                     </div>
                     <div class="p2p-divider"></div>
-                    <button class="p2p-btn p2p-btn-success" id="btnCreateRoom">🚀 Создать новую комнату</button>
-                    <div style="text-align: center; font-weight: 800; font-size: 12px; color: var(--p2p-text-muted);">
-                        ИЛИ ПОДКЛЮЧИТЬСЯ</div>
-                    <div style="display: flex; gap: 8px;">
+                    <button class="p2p-btn p2p-btn-success" id="btnCreateRoom">🚀 Создать комнату</button>
+                    <div style="text-align: center; font-weight: 800; font-size: 11px; color: var(--p2p-text-muted);">
+                        ИЛИ ВОЙТИ ПО КОДУ</div>
+                    <div style="display: flex; gap: 6px;">
                         <input type="text" class="p2p-input p2p-input-code" id="inputRoomCode" placeholder="КОД"
                             maxlength="5">
                         <button class="p2p-btn p2p-btn-info" id="btnJoinRoom"
-                            style="width: auto; padding: 0 20px;">Войти</button>
+                            style="width: auto; padding: 0 16px;">Войти</button>
                     </div>
                 </div>
             </div>
         </div>
 
-        <!-- 2. CONFERENCE -->
+        <!-- 2. ЭКРАН ЗВОНКА -->
         <div id="conferenceScreen" class="p2p-hidden"
-            style="display: flex; flex-direction: column; gap: 10px; height: 100%; flex: 1; overflow: hidden; padding-bottom: 6px;">
-            <div style="display: flex; gap: 12px; flex: 1; overflow: hidden; position: relative; padding-bottom: 4px;">
-                <div class="p2p-video-grid" id="videoGrid" style="flex: 1; overflow-y: auto;">
+            style="flex: 1; display: flex; flex-direction: column; gap: 8px; overflow: hidden; min-height: 0;">
+            <div class="conf-video-area">
+                <!-- Сетка участников -->
+                <div class="conf-grid" id="videoGrid">
                     <div class="p2p-video-card mirrored" id="myVideoCard">
-                        <video id="localVideo" autoplay playsinline muted></video>
-                        <div id="myAvatar" style="position: absolute; font-size: 54px; display: none;">😎</div>
+                        <video id="localVideo" autoplay playsinline muted
+                            style="width: 100%; height: 100%; object-fit: cover;"></video>
+                        <div id="myAvatar" style="position: absolute; font-size: 48px; display: none;">😎</div>
                         <div
-                            style="position: absolute; bottom: 10px; left: 10px; background: rgba(34, 47, 62, 0.85); color: #fff; padding: 4px 10px; border-radius: 10px; font-size: 12px; font-weight: 800; border: 1.5px solid #fff; display: flex; align-items: center; gap: 6px; z-index: 10;">
+                            style="position: absolute; bottom: 6px; left: 6px; background: rgba(34,47,62,0.85); color: #fff; padding: 3px 8px; border-radius: 8px; font-size: 11px; font-weight: 800; display: flex; gap: 4px; z-index: 10;">
                             <span id="myTagMic">🎤</span>
                             <span id="myTagName">Вы</span>
                         </div>
                     </div>
                 </div>
 
-                <!-- Chat Panel -->
-                <div class="p2p-card p2p-hidden" id="chatPanel"
-                    style="width: 310px; padding: 0; display: flex; flex-direction: column; overflow: hidden; margin-bottom: 4px;">
+                <!-- Чат -->
+                <div class="p2p-card chat-drawer p2p-hidden" id="chatPanel" style="padding: 0;">
                     <div
-                        style="padding: 10px 14px; background: var(--p2p-surface-muted); font-weight: 800; font-size: 13px; border-bottom: 2px solid var(--p2p-border); display: flex; justify-content: space-between;">
-                        <span>💬 P2P ЧАТ</span>
+                        style="padding: 8px 12px; background: var(--p2p-surface-muted); font-weight: 800; font-size: 12px; border-bottom: 2px solid var(--p2p-border); display: flex; justify-content: space-between;">
+                        <span>💬 ЧАТ</span>
                         <span style="cursor: pointer;" id="btnCloseChat">✖</span>
                     </div>
                     <div id="chatMessages"
-                        style="flex: 1; padding: 12px; overflow-y: auto; display: flex; flex-direction: column; gap: 8px;">
+                        style="flex: 1; padding: 8px; overflow-y: auto; display: flex; flex-direction: column; gap: 6px;">
                     </div>
-                    <div
-                        style="padding: 8px 10px; border-top: 2.5px solid var(--p2p-border); display: flex; gap: 6px; background: #fff; align-items: center;">
+                    <div style="padding: 6px; border-top: 2px solid var(--p2p-border); display: flex; gap: 4px;">
                         <input type="text" id="inputChatMessage" class="p2p-input"
-                            style="padding: 8px 12px; font-size: 13px;" placeholder="Сообщение...">
+                            style="padding: 6px 8px; font-size: 12px;" placeholder="Сообщение...">
                         <button class="p2p-btn p2p-btn-success p2p-btn-icon" id="btnSendChat">➤</button>
                     </div>
                 </div>
             </div>
 
-            <!-- Controls bar & Reactions -->
-            <div
-                style="position: relative; display: flex; flex-direction: column; align-items: center; flex-shrink: 0;">
-                <div class="p2p-card p2p-hidden" id="reactionBar"
-                    style="position: absolute; bottom: 72px; padding: 8px 12px; display: flex; gap: 8px; z-index: 100;">
-                    <button class="p2p-btn p2p-btn-neutral p2p-btn-icon reaction-btn" data-emoji="👍">👍</button>
-                    <button class="p2p-btn p2p-btn-neutral p2p-btn-icon reaction-btn" data-emoji="❤️">❤️</button>
-                    <button class="p2p-btn p2p-btn-neutral p2p-btn-icon reaction-btn" data-emoji="😂">😂</button>
-                    <button class="p2p-btn p2p-btn-neutral p2p-btn-icon reaction-btn" data-emoji="🔥">🔥</button>
-                    <button class="p2p-btn p2p-btn-neutral p2p-btn-icon reaction-btn" data-emoji="🎉">🎉</button>
-                    <button class="p2p-btn p2p-btn-neutral p2p-btn-icon reaction-btn" data-emoji="👏">👏</button>
-                </div>
+            <!-- Реакции -->
+            <div class="p2p-card p2p-hidden" id="reactionBar"
+                style="position: absolute; bottom: 65px; left: 50%; transform: translateX(-50%); padding: 6px 10px; display: flex; gap: 6px; z-index: 100;">
+                <button class="p2p-btn p2p-btn-neutral p2p-btn-icon reaction-btn" data-emoji="👍">👍</button>
+                <button class="p2p-btn p2p-btn-neutral p2p-btn-icon reaction-btn" data-emoji="❤️">❤️</button>
+                <button class="p2p-btn p2p-btn-neutral p2p-btn-icon reaction-btn" data-emoji="😂">😂</button>
+                <button class="p2p-btn p2p-btn-neutral p2p-btn-icon reaction-btn" data-emoji="🔥">🔥</button>
+                <button class="p2p-btn p2p-btn-neutral p2p-btn-icon reaction-btn" data-emoji="🎉">🎉</button>
+            </div>
 
-                <div class="p2p-header" style="gap: 10px; margin-bottom: 6px;">
-                    <button class="p2p-btn p2p-btn-neutral p2p-btn-icon" id="btnMicToggle" title="Микрофон"
-                        style="font-size: 20px; width: 44px; height: 44px;">🎤</button>
-                    <button class="p2p-btn p2p-btn-neutral p2p-btn-icon" id="btnCamToggle" title="Камера"
-                        style="font-size: 20px; width: 44px; height: 44px;">📷</button>
-                    <button class="p2p-btn p2p-btn-neutral p2p-btn-icon" id="btnScreenShare" title="Экран"
-                        style="font-size: 20px; width: 44px; height: 44px;">🖥️</button>
-                    <button class="p2p-btn p2p-btn-neutral p2p-btn-icon" id="btnReactionToggle" title="Реакции"
-                        style="font-size: 20px; width: 44px; height: 44px;">🎉</button>
-                    <button class="p2p-btn p2p-btn-neutral p2p-btn-icon" id="btnChatToggle" title="Чат"
-                        style="font-size: 20px; width: 44px; height: 44px;">💬</button>
-                    <button class="p2p-btn p2p-btn-neutral p2p-btn-icon" id="btnInviteInfo" title="Пригласить"
-                        style="font-size: 20px; width: 44px; height: 44px;">🔗</button>
-                    <button class="p2p-btn p2p-btn-danger" id="btnLeaveCall" style="width: auto; padding: 0 16px;">🔴
-                        Выйти</button>
-                </div>
+            <!-- Нижняя панель управления -->
+            <div class="conf-controls">
+                <button class="p2p-btn p2p-btn-neutral btn-ctrl" id="btnMicToggle" title="Микрофон">🎤</button>
+                <button class="p2p-btn p2p-btn-neutral btn-ctrl" id="btnCamToggle" title="Камера">📷</button>
+                <button class="p2p-btn p2p-btn-neutral btn-ctrl" id="btnScreenShare" title="Экран">🖥️</button>
+                <button class="p2p-btn p2p-btn-neutral btn-ctrl" id="btnReactionToggle" title="Реакции">🎉</button>
+                <button class="p2p-btn p2p-btn-neutral btn-ctrl" id="btnChatToggle" title="Чат">💬</button>
+                <button class="p2p-btn p2p-btn-neutral btn-ctrl" id="btnInviteInfo" title="Пригласить">🔗</button>
+                <button class="p2p-btn p2p-btn-danger" id="btnLeaveCall"
+                    style="width: auto; padding: 0 12px; height: 44px;">🔴 Выйти</button>
             </div>
         </div>
 
-        <!-- Invite Modal -->
+        <!-- Модалка инвайта -->
         <div class="p2p-modal-backdrop p2p-hidden" id="inviteModal">
-            <div class="p2p-modal">
-                <div style="font-size: 18px; font-weight: 900; color: var(--p2p-color-primary);">ПРИГЛАСИТЬ В КОМНАТУ
-                </div>
-                <div style="font-size: 26px; font-weight: 900; letter-spacing: 3px; color: var(--p2p-color-info); margin: 6px 0;"
+            <div class="p2p-modal" style="max-width: 320px;">
+                <div style="font-size: 16px; font-weight: 900; color: var(--p2p-color-primary);">КОД КОМНАТЫ</div>
+                <div style="font-size: 24px; font-weight: 900; letter-spacing: 2px; color: var(--p2p-color-info); margin: 4px 0;"
                     id="modalRoomCode">...</div>
-                <div id="modalQrCode" style="display: flex; justify-content: center; margin-bottom: 8px;"></div>
-                <button class="p2p-btn p2p-btn-warning" id="btnCopyInviteLink" style="margin-bottom: 6px;">📋 Копировать
-                    ссылку</button>
+                <div id="modalQrCode" style="display: flex; justify-content: center; margin: 6px 0;"></div>
+                <button class="p2p-btn p2p-btn-warning" id="btnCopyInviteLink" style="margin-bottom: 6px;">📋
+                    Скопировать ссылку</button>
                 <button class="p2p-btn p2p-btn-info" id="btnCloseInviteModal">Закрыть</button>
             </div>
         </div>
 
-        <!-- LOG CONSOLE -->
+        <!-- Консоль логов -->
         <div class="p2p-card p2p-hidden" id="logConsole"
-            style="background: #222f3e; color: #1dd1a1; font-family: monospace; font-size: 11px; padding: 10px 14px; max-height: 100px; overflow-y: auto; user-select: text;">
-            LOG: DROPCONF готов к работе...
+            style="position: absolute; bottom: 65px; left: 10px; right: 10px; background: #222f3e; color: #1dd1a1; font-family: monospace; font-size: 10px; max-height: 100px; overflow-y: auto; z-index: 200;">
+            LOG: Инициализация...
         </div>
     </div>
 
@@ -173,13 +259,6 @@
                     gain.gain.setValueAtTime(0.15, this.ctx.currentTime); gain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + 0.2);
                     osc.connect(gain); gain.connect(this.ctx.destination); osc.start(); osc.stop(this.ctx.currentTime + 0.2);
                 }, i * 70));
-            },
-            playMsg() {
-                if (this.muted || !this.ctx) return;
-                const osc = this.ctx.createOscillator(), gain = this.ctx.createGain();
-                osc.type = 'sine'; osc.frequency.setValueAtTime(800, this.ctx.currentTime);
-                gain.gain.setValueAtTime(0.15, this.ctx.currentTime); gain.gain.linearRampToValueAtTime(0.01, this.ctx.currentTime + 0.1);
-                osc.connect(gain); gain.connect(this.ctx.destination); osc.start(); osc.stop(this.ctx.currentTime + 0.1);
             }
         };
         window.addEventListener('click', () => AudioFX.init(), { once: true });
@@ -187,11 +266,12 @@
         const logConsole = document.getElementById('logConsole');
         document.getElementById('btnLogToggle').onclick = () => logConsole.classList.toggle('p2p-hidden');
         function sysLog(text) {
+            console.log(text);
             const time = new Date().toTimeString().split(' ')[0];
             logConsole.innerHTML = `[${time}] ${text}<br>` + logConsole.innerHTML;
         }
 
-        const net = new P2PNet({ appPrefix: 'dropconf', mode: 'mesh' });
+        const net = new P2PNet({ appPrefix: 'dropconf', mode: 'mesh', debug: true });
 
         let myName = "Участник";
         let isCamOn = true, isMicOn = true;
@@ -231,23 +311,32 @@
             } catch (e) {
                 sysLog("Камера/микрофон недоступны: " + e.message);
                 isCamOn = false; isMicOn = false;
-                previewAvatar.style.display = 'block'; myAvatar.style.display = 'block';
+                previewAvatar.style.display = 'block';
+                myAvatar.style.display = 'block';
+                btnCamToggle.classList.add('off');
+                btnMicToggle.classList.add('off');
             }
         }
 
         document.getElementById('btnTogglePreviewCam').onclick = () => {
             if (!net.localStream) return;
-            isCamOn = !isCamOn;
-            net.localStream.getVideoTracks().forEach(t => t.enabled = isCamOn);
-            previewVideo.style.display = isCamOn ? 'block' : 'none';
-            previewAvatar.style.display = isCamOn ? 'none' : 'block';
+            const track = net.localStream.getVideoTracks()[0];
+            if (track) {
+                isCamOn = !isCamOn;
+                track.enabled = isCamOn;
+                previewVideo.style.display = isCamOn ? 'block' : 'none';
+                previewAvatar.style.display = isCamOn ? 'none' : 'block';
+            }
         };
 
         document.getElementById('btnTogglePreviewMic').onclick = () => {
             if (!net.localStream) return;
-            isMicOn = !isMicOn;
-            net.localStream.getAudioTracks().forEach(t => t.enabled = isMicOn);
-            myTagMic.textContent = isMicOn ? '🎤' : '🔇';
+            const track = net.localStream.getAudioTracks()[0];
+            if (track) {
+                isMicOn = !isMicOn;
+                track.enabled = isMicOn;
+                document.getElementById('btnTogglePreviewMic').textContent = isMicOn ? '🎤 Микрофон' : '🔇 Выкл';
+            }
         };
 
         document.getElementById('btnCreateRoom').onclick = async () => {
@@ -256,7 +345,7 @@
             try {
                 const code = await net.createRoom();
                 sysLog(`Хост онлайн: ${code}`);
-                netBadge.innerHTML = `🟢 КОМНАТА: ${code}`;
+                netBadge.innerHTML = `🟢 ${code}`;
                 netBadge.className = "p2p-badge p2p-badge-online";
                 showToast("Комната создана!");
             } catch (err) {
@@ -280,69 +369,101 @@
             myTagName.textContent = myName + " (Вы)";
             lobbyScreen.classList.add('p2p-hidden');
             conferenceScreen.classList.remove('p2p-hidden');
+
+            // Синхронизируем состояние кнопок камеры и микрофона
+            localVideo.style.display = isCamOn ? 'block' : 'none';
+            myAvatar.style.display = isCamOn ? 'none' : 'block';
+            myTagMic.textContent = isMicOn ? '🎤' : '🔇';
+            btnCamToggle.classList.toggle('off', !isCamOn);
+            btnMicToggle.classList.toggle('off', !isMicOn);
         }
 
-        /* 4. NET EVENTS */
+        /* СОБЫТИЯ СЕТИ */
         net.on('status', ({ online }) => {
-            netBadge.innerHTML = online ? `🟢 В СЕТИ` : "🟡 СЕТЬ...";
+            netBadge.innerHTML = online ? (net.roomId ? `🟢 ${net.roomId}` : `🟢 ОНЛАЙН`) : "🟡 СЕТЬ...";
             netBadge.className = online ? "p2p-badge p2p-badge-online" : "p2p-badge p2p-badge-waiting";
         });
 
         net.on('remote-stream', ({ peerId, stream }) => {
+            sysLog(`Отображаем видео участника: ${peerId}`);
             let card = document.getElementById(`videoCard-${peerId}`);
             if (!card) {
                 card = document.createElement('div');
                 card.className = 'p2p-video-card';
                 card.id = `videoCard-${peerId}`;
                 card.innerHTML = `
-                    <video id="video-${peerId}" autoplay playsinline></video>
-                    <div style="position: absolute; bottom: 10px; left: 10px; background: rgba(34, 47, 62, 0.85); color: #fff; padding: 4px 10px; border-radius: 10px; font-size: 12px; font-weight: 800; border: 1.5px solid #fff; display: flex; align-items: center; gap: 6px; z-index: 10;">
-                        <span id="tagMic-${peerId}">🎤</span><span>Участник</span>
+                    <video id="video-${peerId}" autoplay playsinline style="width: 100%; height: 100%; object-fit: cover;"></video>
+                    <div id="avatar-${peerId}" style="position: absolute; font-size: 48px; display: none;">😺</div>
+                    <div style="position: absolute; bottom: 6px; left: 6px; background: rgba(34,47,62,0.85); color: #fff; padding: 3px 8px; border-radius: 8px; font-size: 11px; font-weight: 800; display: flex; gap: 4px; z-index: 10;">
+                        <span id="tagMic-${peerId}">🎤</span><span id="tagName-${peerId}">Участник</span>
                     </div>
                 `;
                 videoGrid.appendChild(card);
                 AudioFX.playJoin();
             }
-            document.getElementById(`video-${peerId}`).srcObject = stream;
+            const remoteVideo = document.getElementById(`video-${peerId}`);
+            if (remoteVideo) {
+                remoteVideo.srcObject = stream;
+                remoteVideo.play().catch(e => sysLog("Autoplay audio/video blocked: " + e));
+            }
         });
 
         net.on('peer-disconnected', ({ peerId }) => {
+            sysLog(`Удаляем видео карточку ${peerId}`);
             const card = document.getElementById(`videoCard-${peerId}`);
             if (card) card.remove();
         });
 
-        net.on('data', (data) => {
+        net.on('data', (data, senderPeerId) => {
             if (data.type === 'CHAT_MSG') {
-                AudioFX.playMsg();
+                AudioFX.playPop();
                 appendChatMessage(data.name, data.text, false);
             } else if (data.type === 'REACTION') {
                 spawnFloatingReaction(data.emoji);
             } else if (data.type === 'MIC_STATUS') {
-                const tagMic = document.getElementById(`tagMic-${data.peerId}`);
+                const tagMic = document.getElementById(`tagMic-${senderPeerId}`);
                 if (tagMic) tagMic.textContent = data.isMicOn ? '🎤' : '🔇';
+            } else if (data.type === 'CAM_STATUS') {
+                const remoteVid = document.getElementById(`video-${senderPeerId}`);
+                const remoteAvt = document.getElementById(`avatar-${senderPeerId}`);
+                if (remoteVid && remoteAvt) {
+                    remoteVid.style.display = data.isCamOn ? 'block' : 'none';
+                    remoteAvt.style.display = data.isCamOn ? 'none' : 'block';
+                }
             }
         });
 
-        /* 5. MEDIA CONTROLS */
+        /* УПРАВЛЕНИЕ МЕДИА В ЗВОНКЕ */
         btnMicToggle.onclick = () => {
             if (!net.localStream) return;
-            isMicOn = !isMicOn;
-            net.localStream.getAudioTracks().forEach(t => t.enabled = isMicOn);
-            btnMicToggle.style.background = isMicOn ? 'var(--p2p-surface-muted)' : 'var(--p2p-color-danger)';
-            myTagMic.textContent = isMicOn ? '🎤' : '🔇';
-            net.broadcast({ type: 'MIC_STATUS', peerId: net.peer.id, isMicOn });
+            const track = net.localStream.getAudioTracks()[0];
+            if (track) {
+                isMicOn = !isMicOn;
+                track.enabled = isMicOn;
+                btnMicToggle.classList.toggle('off', !isMicOn);
+                myTagMic.textContent = isMicOn ? '🎤' : '🔇';
+                net.broadcast({ type: 'MIC_STATUS', isMicOn });
+            }
         };
 
         btnCamToggle.onclick = () => {
             if (!net.localStream) return;
-            isCamOn = !isCamOn;
-            net.localStream.getVideoTracks().forEach(t => t.enabled = isCamOn);
-            localVideo.style.display = isCamOn ? 'block' : 'none';
-            myAvatar.style.display = isCamOn ? 'none' : 'block';
-            btnCamToggle.style.background = isCamOn ? 'var(--p2p-surface-muted)' : 'var(--p2p-color-danger)';
+            const track = net.localStream.getVideoTracks()[0];
+            if (track) {
+                isCamOn = !isCamOn;
+                track.enabled = isCamOn;
+                localVideo.style.display = isCamOn ? 'block' : 'none';
+                myAvatar.style.display = isCamOn ? 'none' : 'block';
+                btnCamToggle.classList.toggle('off', !isCamOn);
+                net.broadcast({ type: 'CAM_STATUS', isCamOn });
+            }
         };
 
         btnScreenShare.onclick = async () => {
+            if (!navigator.mediaDevices || !navigator.mediaDevices.getDisplayMedia) {
+                return showToast("Экран не поддерживается на смартфонах");
+            }
+
             if (!screenStream) {
                 try {
                     screenStream = await navigator.mediaDevices.getDisplayMedia({ video: true });
@@ -350,21 +471,27 @@
                     net.replaceTrack(track, 'video');
                     localVideo.srcObject = screenStream;
                     myVideoCard.classList.remove('mirrored');
-                    btnScreenShare.classList.add('p2p-btn-warning');
+                    btnScreenShare.classList.add('off');
                     track.onended = stopScreenShare;
-                } catch (e) { }
-            } else stopScreenShare();
+                } catch (e) {
+                    sysLog("Демонстрация отменена.");
+                }
+            } else {
+                stopScreenShare();
+            }
         };
 
         function stopScreenShare() {
             if (!screenStream) return;
             screenStream.getTracks().forEach(t => t.stop());
             screenStream = null;
-            const camTrack = net.localStream.getVideoTracks()[0];
-            net.replaceTrack(camTrack, 'video');
-            localVideo.srcObject = net.localStream;
+            const camTrack = net.localStream ? net.localStream.getVideoTracks()[0] : null;
+            if (camTrack) {
+                net.replaceTrack(camTrack, 'video');
+                localVideo.srcObject = net.localStream;
+            }
             myVideoCard.classList.add('mirrored');
-            btnScreenShare.classList.remove('p2p-btn-warning');
+            btnScreenShare.classList.remove('off');
         }
 
         btnReactionToggle.onclick = () => reactionBar.classList.toggle('p2p-hidden');
@@ -379,10 +506,11 @@
 
         function spawnFloatingReaction(emoji) {
             const el = document.createElement('div');
-            el.className = 'p2p-float-item'; el.textContent = emoji;
+            el.className = 'p2p-float-item';
+            el.textContent = emoji;
             el.style.left = (Math.random() * 60 + 20) + '%';
             document.getElementById('reactionContainer').appendChild(el);
-            setTimeout(() => el.remove(), 2200);
+            setTimeout(() => el.remove(), 1800);
         }
 
         btnChatToggle.onclick = () => chatPanel.classList.toggle('p2p-hidden');
@@ -401,11 +529,12 @@
 
         function appendChatMessage(sender, text, isMe) {
             const el = document.createElement('div');
-            el.style.background = isMe ? '#e8f0fe' : 'var(--p2p-surface-muted)';
+            el.style.background = isMe ? 'var(--p2p-color-info)' : 'var(--p2p-surface-muted)';
+            el.style.color = isMe ? '#fff' : 'var(--p2p-text)';
             el.style.border = '2px solid var(--p2p-border)';
-            el.style.borderRadius = '12px';
-            el.style.padding = '6px 10px';
-            el.style.fontSize = '12px';
+            el.style.borderRadius = '8px';
+            el.style.padding = '4px 8px';
+            el.style.fontSize = '11px';
             el.style.alignSelf = isMe ? 'flex-end' : 'flex-start';
             el.innerHTML = `<strong>${sender}:</strong> ${text}`;
             chatMessages.appendChild(el);
@@ -415,7 +544,7 @@
         document.getElementById('btnInviteInfo').onclick = () => {
             document.getElementById('modalRoomCode').textContent = net.roomId;
             const qrEl = document.getElementById('modalQrCode'); qrEl.innerHTML = "";
-            new QRCode(qrEl, { text: net.getShareUrl(), width: 140, height: 140, colorDark: "#222f3e", colorLight: "#ffffff" });
+            new QRCode(qrEl, { text: net.getShareUrl(), width: 120, height: 120, colorDark: "#222f3e", colorLight: "#ffffff" });
             document.getElementById('inviteModal').classList.remove('p2p-hidden');
         };
         document.getElementById('btnCloseInviteModal').onclick = () => document.getElementById('inviteModal').classList.add('p2p-hidden');

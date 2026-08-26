@@ -1,10 +1,9 @@
 /**
- * P2PNet - Универсальная библиотека надежного WebRTC взаимодействия на базе PeerJS
- * Поддерживает: 1v1 (Duo), Multi-Peer (Mesh), потоковую передачу файлов и медиа (Аудио/Видео/Экран).
+ * P2PNet v2.1 - Исправлена работа с MediaStream в Mesh
  */
 class P2PNet {
-    static ALPHABET = "23456789ABCDEFGHJKMNPQRSTUVWXYZ"; // Исключены 0, O, 1, I, L для удобства ввода
-    static CHUNK_SIZE = 16 * 1024; // 16 KB для стабильной передачи бинарных данных
+    static ALPHABET = "23456789ABCDEFGHJKMNPQRSTUVWXYZ";
+    static CHUNK_SIZE = 16 * 1024;
 
     static DEFAULT_ICE_SERVERS = [
         { urls: 'stun:stun.l.google.com:19302' },
@@ -16,7 +15,7 @@ class P2PNet {
 
     constructor(options = {}) {
         this.appPrefix = options.appPrefix || 'p2papp';
-        this.mode = options.mode || 'duo'; // 'duo' (1v1) или 'mesh' (конференции / мультиплеер)
+        this.mode = options.mode || 'duo';
         this.debug = options.debug || false;
         this.iceServers = options.iceServers || P2PNet.DEFAULT_ICE_SERVERS;
 
@@ -25,18 +24,12 @@ class P2PNet {
         this.isHost = false;
         this.isDestroyed = false;
 
-        // Хранилище соединений: { [peerId]: { conn, call, queue: [], name: '' } }
         this.peers = new Map();
         this.localStream = null;
-
-        // Внутренний Event Emitter
+        this._incomingFiles = {};
         this._events = {};
-
-        // Регистрация на смену hash в URL
-        this._initUrlSync();
     }
 
-    /* ================= 1. EVENT EMITTER ================= */
     on(event, handler) {
         if (!this._events[event]) this._events[event] = [];
         this._events[event].push(handler);
@@ -51,7 +44,7 @@ class P2PNet {
     emit(event, ...args) {
         if (this._events[event]) {
             this._events[event].forEach(h => {
-                try { h(...args); } catch (e) { console.error(`[P2PNet] Event error '${event}':`, e); }
+                try { h(...args); } catch (e) { console.error(`[P2PNet] Error in '${event}':`, e); }
             });
         }
     }
@@ -60,7 +53,6 @@ class P2PNet {
         if (this.debug) console.log(`[P2PNet:${this.appPrefix}]`, ...args);
     }
 
-    /* ================= 2. КОМНАТЫ И ПОДКЛЮЧЕНИЕ ================= */
     static generateCode(len = 5) {
         let res = "";
         for (let i = 0; i < len; i++) {
@@ -74,7 +66,6 @@ class P2PNet {
         return str.trim().toUpperCase().replace(/O/g, '0').replace(/[IL]/g, '1');
     }
 
-    // Создать комнату (Хост)
     async createRoom(customCode = null, maxRetries = 3) {
         this.isHost = true;
         let attempts = 0;
@@ -92,36 +83,34 @@ class P2PNet {
                 return this.roomId;
             } catch (err) {
                 if (err.type === 'unavailable-id' && !customCode) {
-                    this._log(`ID ${code} занят, пробуем другой...`);
+                    this._log(`ID ${code} занят, подбираем другой...`);
                     continue;
                 }
                 throw err;
             }
         }
-        throw new Error("Не удалось занять ID комнаты после нескольких попыток.");
+        throw new Error("Не удалось создать уникальную комнату.");
     }
 
-    // Подключиться к комнате (Клиент)
     async joinRoom(code, myData = {}) {
         this.isHost = false;
         this.roomId = P2PNet.cleanCode(code);
         const hostPeerId = `${this.appPrefix}-${this.roomId}`;
 
-        await this._initPeer(); // Клиент получает динамический peerId от сервера
+        await this._initPeer();
         this._log(`Подключение к хосту: ${hostPeerId}`);
 
         return new Promise((resolve, reject) => {
-            const timer = setTimeout(() => reject(new Error("Таймаут подключения к комнате")), 10000);
+            const timer = setTimeout(() => reject(new Error("Таймаут подключения к комнате")), 12000);
 
             this._connectToPeer(hostPeerId, {
                 onOpen: (conn) => {
                     clearTimeout(timer);
                     this.emit('joined-room', { roomId: this.roomId, isHost: false });
-                    // Если Mesh, отправляем запрос хосту со своими данными
                     if (this.mode === 'mesh') {
                         conn.send({ __sys: 'JOIN_REQ', peerId: this.peer.id, ...myData });
                     }
-                    resolve();
+                    resolve(conn);
                 },
                 onError: (err) => {
                     clearTimeout(timer);
@@ -133,7 +122,8 @@ class P2PNet {
 
     _initPeer(fixedId = null) {
         return new Promise((resolve, reject) => {
-            this.destroy();
+            // ВАЖНО: сохраняем localStream при инициализации пира
+            this.destroy(true);
             this.isDestroyed = false;
 
             const config = {
@@ -146,7 +136,7 @@ class P2PNet {
             let opened = false;
             this.peer.on('open', (id) => {
                 opened = true;
-                this._log(`PeerJS онлайн. Мой ID: ${id}`);
+                this._log(`PeerJS подключен: ${id}`);
                 this.emit('status', { online: true, id });
                 resolve(id);
             });
@@ -155,7 +145,7 @@ class P2PNet {
             this.peer.on('call', (call) => this._handleIncomingCall(call));
 
             this.peer.on('disconnected', () => {
-                this._log("Потеряно соединение с сигнальным сервером. Авто-реконнект...");
+                this._log("Потерян сигнал сервера. Реконнект...");
                 this.emit('status', { online: false, reconnecting: true });
                 if (!this.isDestroyed && this.peer) {
                     try { this.peer.reconnect(); } catch (e) { }
@@ -170,7 +160,6 @@ class P2PNet {
         });
     }
 
-    /* ================= 3. ОБРАБОТКА ДАННЫХ И СООБЩЕНИЙ ================= */
     _connectToPeer(remotePeerId, callbacks = {}) {
         if (this.peers.has(remotePeerId)) return this.peers.get(remotePeerId).conn;
 
@@ -180,11 +169,9 @@ class P2PNet {
 
         conn.on('open', () => {
             peerRecord.isReady = true;
-            this._log(`Канал данных открыт c: ${remotePeerId}`);
-            // Сброс очереди сообщений, если отправляли до коннекта
+            this._log(`Канал открыт c: ${remotePeerId}`);
             while (peerRecord.queue.length > 0) {
-                const queuedData = peerRecord.queue.shift();
-                conn.send(queuedData);
+                conn.send(peerRecord.queue.shift());
             }
             if (callbacks.onOpen) callbacks.onOpen(conn);
             this.emit('peer-connected', { peerId: remotePeerId, totalPeers: this.peers.size });
@@ -195,8 +182,9 @@ class P2PNet {
     }
 
     _handleIncomingConnection(conn) {
-        this._log(`Входящее P2P соединение от: ${conn.peer}`);
-        const peerRecord = { conn, call: null, queue: [], isReady: false, name: '' };
+        this._log(`Входящий пир: ${conn.peer}`);
+        const peerRecord = this.peers.get(conn.peer) || { conn, call: null, queue: [], isReady: false, name: '' };
+        peerRecord.conn = conn;
         this.peers.set(conn.peer, peerRecord);
 
         conn.on('open', () => {
@@ -211,24 +199,21 @@ class P2PNet {
         conn.on('data', (packet) => {
             if (!packet || typeof packet !== 'object') return;
 
-            // Обработка системных управляющих пакетов
             if (packet.__sys) {
                 this._handleSystemPacket(conn.peer, packet);
                 return;
             }
 
-            // Обработка передачи файлов
             if (packet.__fileChunk) {
                 this._handleFileChunk(conn.peer, packet);
                 return;
             }
 
-            // Обычные прикладные данные
             this.emit('data', packet, conn.peer);
         });
 
         conn.on('close', () => {
-            this._log(`Соединение закрыто с ${conn.peer}`);
+            this._log(`Пир отключился: ${conn.peer}`);
             this.peers.delete(conn.peer);
             this.emit('peer-disconnected', { peerId: conn.peer, totalPeers: this.peers.size });
         });
@@ -240,56 +225,49 @@ class P2PNet {
 
     _handleSystemPacket(senderPeerId, packet) {
         if (packet.__sys === 'JOIN_REQ' && this.isHost) {
-            // Хост отправляет новому пиру список всех текущих участников Mesh
-            const members = Array.from(this.peers.keys()).map(id => ({ peerId: id, name: this.peers.get(id).name }));
+            const members = Array.from(this.peers.keys()).map(id => ({ peerId: id, name: this.peers.get(id)?.name || '' }));
             this.send({ __sys: 'ROOM_MEMBERS', members, hostId: this.peer.id }, senderPeerId);
-
-            // Оповещаем остальных участников о новичке
             this.broadcast({ __sys: 'NEW_PEER', peerId: senderPeerId, name: packet.name || '' }, [senderPeerId]);
-            if (packet.name) this.peers.get(senderPeerId).name = packet.name;
 
-            // Если включено видео - звоним новичку
-            if (this.localStream) this.call(senderPeerId, this.localStream);
+            if (this.peers.has(senderPeerId)) this.peers.get(senderPeerId).name = packet.name;
+
+            // Звоним подключившемуся участнику
+            if (this.localStream) {
+                setTimeout(() => this.call(senderPeerId, this.localStream), 300);
+            }
         }
         else if (packet.__sys === 'ROOM_MEMBERS') {
-            // Клиент получил список участников и подключается ко всем для Full Mesh
             packet.members.forEach(m => {
                 if (m.peerId !== this.peer.id && !this.peers.has(m.peerId)) {
                     this._connectToPeer(m.peerId);
-                    if (this.localStream) this.call(m.peerId, this.localStream);
                 }
             });
         }
         else if (packet.__sys === 'NEW_PEER') {
-            // К Mesh подключился новый пир
             if (packet.peerId !== this.peer.id && !this.peers.has(packet.peerId)) {
                 this._connectToPeer(packet.peerId);
-                if (this.localStream) this.call(packet.peerId, this.localStream);
+                if (this.localStream) {
+                    setTimeout(() => this.call(packet.peerId, this.localStream), 300);
+                }
             }
         }
     }
 
-    // Безопасная отправка данных конкретному пиру (или хосту в режиме 1v1)
     send(data, targetPeerId = null) {
         const peerId = targetPeerId || (this.peers.keys().next().value);
-        if (!peerId) {
-            this._log("Предупреждение: нет подключенных пиров для отправки.");
-            return false;
-        }
+        if (!peerId) return false;
 
         const peerRecord = this.peers.get(peerId);
         if (!peerRecord) return false;
 
-        if (peerRecord.isReady && peerRecord.conn.open) {
+        if (peerRecord.isReady && peerRecord.conn?.open) {
             peerRecord.conn.send(data);
         } else {
-            // Очередь до момента открытия сокета
             peerRecord.queue.push(data);
         }
         return true;
     }
 
-    // Отправка всем подключенным (Mesh или комната)
     broadcast(data, excludePeerIds = []) {
         this.peers.forEach((peerRecord, peerId) => {
             if (!excludePeerIds.includes(peerId)) {
@@ -298,117 +276,57 @@ class P2PNet {
         });
     }
 
-    /* ================= 4. ПОТОКОВАЯ ПЕРЕДАЧА ФАЙЛОВ ================= */
-    // Отправка файла с контролем Backpressure (не переполняет память)
-    async sendFile(file, targetPeerId = null, onProgress = null) {
-        const peerId = targetPeerId || (this.peers.keys().next().value);
-        const peerRecord = this.peers.get(peerId);
-        if (!peerRecord || !peerRecord.conn || !peerRecord.conn.open) {
-            throw new Error("Канал передачи недоступен.");
-        }
-
-        const fileId = 'file_' + Date.now() + '_' + Math.random().toString(36).substr(2, 5);
-        const totalSize = file.size;
-
-        // Оповещаем о начале файла
-        this.send({
-            __sys: 'FILE_START',
-            id: fileId,
-            name: file.name,
-            size: totalSize,
-            type: file.type || 'application/octet-stream'
-        }, peerId);
-
-        let offset = 0;
-        const dc = peerRecord.conn._dc || peerRecord.conn.dataChannel;
-
-        while (offset < totalSize) {
-            // Защита от переполнения буфера WebRTC (Backpressure)
-            while (dc && dc.bufferedAmount > 256 * 1024) {
-                await new Promise(r => setTimeout(r, 20));
-            }
-
-            const slice = file.slice(offset, offset + P2PNet.CHUNK_SIZE);
-            const buffer = await slice.arrayBuffer();
-
-            this.send({
-                __fileChunk: true,
-                id: fileId,
-                data: buffer
-            }, peerId);
-
-            offset += buffer.byteLength;
-            if (onProgress) {
-                const percent = totalSize === 0 ? 100 : Math.round((offset / totalSize) * 100);
-                onProgress({ fileId, offset, total: totalSize, percent });
-            }
-        }
-
-        // Ждем окончательного сброса буфера сокета
-        while (dc && dc.bufferedAmount > 0) {
-            await new Promise(r => setTimeout(r, 20));
-        }
-
-        this.send({ __sys: 'FILE_END', id: fileId }, peerId);
-        return fileId;
-    }
-
-    _handleFileChunk(senderPeerId, packet) {
-        if (!this._incomingFiles) this._incomingFiles = {};
-        const item = this._incomingFiles[packet.id];
-        if (!item) return;
-
-        item.chunks.push(packet.data);
-        item.receivedBytes += packet.data.byteLength || 0;
-
-        const percent = item.size === 0 ? 100 : Math.round((item.receivedBytes / item.size) * 100);
-        this.emit('file-progress', {
-            fileId: packet.id,
-            name: item.name,
-            percent,
-            receivedBytes: item.receivedBytes,
-            totalBytes: item.size
-        }, senderPeerId);
-    }
-
-    /* ================= 5. АУДИО / ВИДЕО / МЕДИА ================= */
+    /* МЕДИАПОТОКИ */
     async startMedia(constraints = { video: true, audio: true }) {
+        if (this.localStream && this.localStream.active) {
+            return this.localStream;
+        }
         this.localStream = await navigator.mediaDevices.getUserMedia(constraints);
         this.emit('local-stream', this.localStream);
-
-        // Если уже есть участники — звоним всем
-        this.peers.forEach((peerRecord, peerId) => {
-            this.call(peerId, this.localStream);
-        });
         return this.localStream;
     }
 
     call(remotePeerId, stream) {
         if (!this.peer || this.peer.destroyed) return;
-        const call = this.peer.call(remotePeerId, stream);
-        if (this.peers.has(remotePeerId)) {
-            this.peers.get(remotePeerId).call = call;
+        const mediaStream = stream || this.localStream;
+        if (!mediaStream) return;
+
+        this._log(`Исходящий медиазвонок к: ${remotePeerId}`);
+        const call = this.peer.call(remotePeerId, mediaStream);
+        if (!call) return;
+
+        let peerRecord = this.peers.get(remotePeerId);
+        if (!peerRecord) {
+            peerRecord = { conn: null, call, queue: [], isReady: false, name: '' };
+            this.peers.set(remotePeerId, peerRecord);
+        } else {
+            peerRecord.call = call;
         }
 
         call.on('stream', (remoteStream) => {
+            this._log(`Получен remote-stream от ${remotePeerId}`);
             this.emit('remote-stream', { peerId: remotePeerId, stream: remoteStream });
         });
     }
 
     _handleIncomingCall(call) {
-        this._log(`Входящий медиазвонок от ${call.peer}`);
+        this._log(`Входящий видеозвонок от: ${call.peer}`);
         call.answer(this.localStream);
 
-        if (this.peers.has(call.peer)) {
-            this.peers.get(call.peer).call = call;
+        let peerRecord = this.peers.get(call.peer);
+        if (!peerRecord) {
+            peerRecord = { conn: null, call, queue: [], isReady: false, name: '' };
+            this.peers.set(call.peer, peerRecord);
+        } else {
+            peerRecord.call = call;
         }
 
         call.on('stream', (remoteStream) => {
+            this._log(`Получен remote-stream от входящего: ${call.peer}`);
             this.emit('remote-stream', { peerId: call.peer, stream: remoteStream });
         });
     }
 
-    // Замена видеотрека (для переключения Камера <-> Демонстрация экрана)
     replaceTrack(newTrack, kind = 'video') {
         this.peers.forEach(peerRecord => {
             if (peerRecord.call && peerRecord.call.peerConnection) {
@@ -418,24 +336,12 @@ class P2PNet {
         });
     }
 
-    /* ================= 6. УТИЛИТЫ И ОЧИСТКА ================= */
-    _initUrlSync() {
-        if (typeof window !== 'undefined' && window.location) {
-            window.addEventListener('load', () => {
-                if (window.location.hash.length > 1) {
-                    const code = P2PNet.cleanCode(window.location.hash.substring(1));
-                    this.emit('url-code-detected', code);
-                }
-            });
-        }
-    }
-
     getShareUrl() {
         if (!this.roomId) return window.location.href;
         return window.location.href.split('#')[0] + "#" + this.roomId;
     }
 
-    destroy() {
+    destroy(keepStream = false) {
         this.isDestroyed = true;
         this.peers.forEach(p => {
             if (p.conn) try { p.conn.close(); } catch (e) { }
@@ -443,7 +349,7 @@ class P2PNet {
         });
         this.peers.clear();
 
-        if (this.localStream) {
+        if (!keepStream && this.localStream) {
             this.localStream.getTracks().forEach(t => t.stop());
             this.localStream = null;
         }

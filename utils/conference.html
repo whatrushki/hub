@@ -5,7 +5,7 @@
     <meta charset="UTF-8">
     <meta name="viewport"
         content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>DROPCONF // Google AI Studio Edition</title>
+    <title>DROPCONF // Studio Mesh Edition</title>
 
     <!-- Google Fonts & Material Symbols -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -35,7 +35,7 @@
 
             --google-blue: #a8c7fa;
             --google-blue-hover: #8ab4f8;
-            --google-blue-container: rgba(168, 199, 250, 0.12);
+            --google-blue-container: rgba(168, 199, 250, 0.14);
             --google-green: #81c995;
             --google-green-container: rgba(129, 201, 149, 0.14);
             --google-red: #f28b82;
@@ -44,7 +44,7 @@
 
             --gemini-gradient: linear-gradient(135deg, #7cacf8 0%, #a8c7fa 50%, #d3e3fd 100%);
 
-            --radius-xs: 4px;
+            --radius-xs: 6px;
             --radius-sm: 8px;
             --radius-md: 12px;
             --radius-lg: 16px;
@@ -72,7 +72,6 @@
             color: var(--text-primary);
         }
 
-        /* Material Symbols */
         .material-symbols-outlined {
             font-size: 20px;
             font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
@@ -90,7 +89,7 @@
             position: relative;
         }
 
-        /* 1. ХЕДЕР GOOGLE AI STUDIO */
+        /* 1. ХЕДЕР */
         .studio-header {
             height: 48px;
             background: var(--bg-base);
@@ -100,7 +99,7 @@
             justify-content: space-between;
             padding: 0 16px;
             flex-shrink: 0;
-            z-index: 20;
+            z-index: 30;
         }
 
         .studio-logo-area {
@@ -118,18 +117,12 @@
         }
 
         .studio-title {
-            font-size: 14px;
+            font-size: 13px;
             font-weight: 600;
             color: var(--text-primary);
             display: flex;
             align-items: center;
             gap: 8px;
-        }
-
-        .studio-breadcrumb {
-            color: var(--text-muted);
-            font-size: 13px;
-            font-weight: 400;
         }
 
         .studio-badge {
@@ -150,7 +143,12 @@
             color: var(--google-green);
         }
 
-        .studio-badge .status-dot {
+        .studio-badge.reconnecting {
+            border-color: rgba(253, 214, 99, 0.4);
+            color: var(--google-yellow);
+        }
+
+        .status-dot {
             width: 6px;
             height: 6px;
             border-radius: 50%;
@@ -160,6 +158,25 @@
         .studio-badge.online .status-dot {
             background: var(--google-green);
             box-shadow: 0 0 6px var(--google-green);
+        }
+
+        .studio-badge.reconnecting .status-dot {
+            background: var(--google-yellow);
+            animation: pulse 1s infinite;
+        }
+
+        @keyframes pulse {
+            0% {
+                opacity: 0.3;
+            }
+
+            50% {
+                opacity: 1;
+            }
+
+            100% {
+                opacity: 0.3;
+            }
         }
 
         /* 2. РАБОЧАЯ ОБЛАСТЬ */
@@ -175,44 +192,103 @@
             flex: 1;
             display: flex;
             flex-direction: column;
-            padding: 10px;
-            gap: 10px;
+            padding: 8px;
+            gap: 8px;
             min-height: 0;
             overflow: hidden;
             position: relative;
         }
 
-        /* 3. СЕТКА ВИДЕОКАРТОЧЕК */
+        /* 3. УМНЫЙ АДАПТИВНЫЙ ГРИД */
         .conf-grid {
             flex: 1;
             display: grid;
-            gap: 10px;
-            grid-template-columns: repeat(auto-fit, minmax(min(100%, 240px), 1fr));
+            gap: 8px;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
             grid-auto-rows: 1fr;
             align-content: stretch;
             overflow-y: auto;
             min-height: 0;
+            width: 100%;
+            height: 100%;
         }
 
-        .conf-grid:has(> .video-tile:only-child) {
-            grid-template-columns: 1fr;
+        /* При 1 участнике */
+        .conf-grid.count-1 {
+            grid-template-columns: 1fr !important;
+            grid-template-rows: 1fr !important;
+        }
+
+        /* При 2 участниках на десктопе */
+        .conf-grid.count-2 {
+            grid-template-columns: 1fr 1fr;
             grid-template-rows: 1fr;
         }
 
-        /* Лента миниатюр для Spotlight */
+        /* При 3-4 участниках */
+        .conf-grid.count-3,
+        .conf-grid.count-4 {
+            grid-template-columns: 1fr 1fr;
+            grid-template-rows: 1fr 1fr;
+        }
+
+        /* МОБИЛЬНАЯ АДАПТАЦИЯ (В СТОЛБИК) */
+        @media (max-width: 768px) {
+            .conf-video-container {
+                padding: 4px;
+            }
+
+            .conf-grid {
+                display: flex;
+                flex-direction: column;
+                gap: 6px;
+                overflow-y: auto;
+            }
+
+            /* 1 видео на телефоне */
+            .conf-grid.count-1 .video-tile {
+                flex: 1;
+                height: 100%;
+                min-height: 0;
+            }
+
+            /* 2 видео на телефоне -> строго в столбик 50/50 */
+            .conf-grid.count-2 .video-tile {
+                flex: 1;
+                height: calc(50% - 3px);
+                min-height: 0;
+            }
+
+            /* 3 и 4 видео на телефоне -> сетка 2х2 */
+            .conf-grid.count-3,
+            .conf-grid.count-4 {
+                display: grid !important;
+                grid-template-columns: 1fr 1fr !important;
+                grid-template-rows: 1fr 1fr !important;
+                gap: 6px;
+            }
+
+            /* 5+ видео на телефоне -> скролл-колонка */
+            .conf-grid.count-many .video-tile {
+                flex: 0 0 calc(33.3% - 4px);
+                min-height: 140px;
+            }
+        }
+
+        /* SPOTLIGHT РЕЖИМ */
         .spotlight-strip {
             display: flex;
             gap: 8px;
             overflow-x: auto;
             overflow-y: hidden;
-            padding: 6px 0;
-            height: 120px;
+            padding: 4px 0;
+            height: 110px;
             flex-shrink: 0;
             border-top: 1px solid var(--border-subtle);
         }
 
         .spotlight-strip .video-tile {
-            width: 160px;
+            width: 150px;
             height: 100%;
             flex-shrink: 0;
         }
@@ -228,26 +304,26 @@
         .spotlight-main-slot .video-tile {
             width: 100%;
             height: 100%;
-            border-color: var(--border-subtle);
         }
 
-        /* Карточка видео */
+        /* 4. КАРТОЧКА ВИДЕО И ПОДСВЕТКА ГОВОРЯЩЕГО */
         .video-tile {
             background: var(--bg-surface);
-            border: 1px solid var(--border-subtle);
+            border: 2px solid var(--border-subtle);
             border-radius: var(--radius-md);
             overflow: hidden;
             position: relative;
             display: flex;
             align-items: center;
             justify-content: center;
-            aspect-ratio: 16/9;
             min-height: 0;
-            transition: border-color 0.15s ease;
+            transition: border-color 0.2s ease, box-shadow 0.2s ease;
         }
 
-        .video-tile:hover {
-            border-color: rgba(255, 255, 255, 0.25);
+        /* Активный говорящий (зелено-голубое свечение) */
+        .video-tile.speaking:not(.screen-tile) {
+            border-color: var(--google-blue) !important;
+            box-shadow: 0 0 14px rgba(168, 199, 250, 0.45) !important;
         }
 
         .video-tile video {
@@ -261,8 +337,9 @@
             transform: scaleX(-1);
         }
 
+        /* Демонстрация экрана — не подсвечивается при речи */
         .video-tile.screen-tile {
-            border-color: var(--google-blue);
+            border-color: var(--google-blue) !important;
         }
 
         .video-tile.screen-tile video {
@@ -270,6 +347,7 @@
             object-fit: contain;
         }
 
+        /* Полноэкранный fallback для iOS / Android */
         .video-tile.pseudo-fullscreen {
             position: fixed !important;
             inset: 0 !important;
@@ -285,7 +363,7 @@
             object-fit: contain !important;
         }
 
-        /* Оверлеи и плашки в карточке */
+        /* Оверлеи карточки */
         .tile-overlay {
             position: absolute;
             inset: 0;
@@ -305,12 +383,12 @@
         }
 
         .tile-action-btn {
-            background: rgba(19, 19, 20, 0.75);
+            background: rgba(19, 19, 20, 0.8);
             color: var(--text-secondary);
             border: 1px solid rgba(255, 255, 255, 0.15);
             border-radius: var(--radius-xs);
-            width: 28px;
-            height: 28px;
+            width: 30px;
+            height: 30px;
             display: flex;
             align-items: center;
             justify-content: center;
@@ -329,7 +407,7 @@
             align-self: flex-start;
             background: rgba(19, 19, 20, 0.85);
             color: var(--text-primary);
-            padding: 4px 8px;
+            padding: 3px 8px;
             border-radius: var(--radius-xs);
             font-size: 11px;
             font-weight: 500;
@@ -342,10 +420,33 @@
             max-width: 85%;
         }
 
+        .hand-badge {
+            background: var(--google-yellow);
+            color: #000;
+            border-radius: var(--radius-full);
+            padding: 2px 6px;
+            font-size: 11px;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 2px;
+            animation: bounce 0.6s ease infinite alternate;
+        }
+
+        @keyframes bounce {
+            from {
+                transform: translateY(0);
+            }
+
+            to {
+                transform: translateY(-4px);
+            }
+        }
+
         .tile-avatar {
             position: absolute;
-            width: 64px;
-            height: 64px;
+            width: 60px;
+            height: 60px;
             border-radius: 50%;
             background: var(--bg-surface-elevated);
             border: 1px solid var(--border-subtle);
@@ -357,17 +458,19 @@
             z-index: 2;
         }
 
-        /* 4. НИЖНИЙ DOCK УПРАВЛЕНИЯ */
+        /* 5. НИЖНЯЯ ПАНЕЛЬ (DOCK) */
         .conf-controls-bar {
             display: flex;
             justify-content: center;
             align-items: center;
             gap: 8px;
-            padding: 8px 16px;
+            padding: 8px 12px;
+            padding-bottom: calc(8px + env(safe-area-inset-bottom));
             background: var(--bg-surface);
             border-top: 1px solid var(--border-subtle);
             flex-shrink: 0;
-            z-index: 20;
+            z-index: 25;
+            overflow-x: auto;
         }
 
         .studio-btn-dock {
@@ -375,8 +478,8 @@
             color: var(--text-primary);
             border: 1px solid var(--border-subtle);
             border-radius: var(--radius-sm);
-            height: 38px;
-            min-width: 38px;
+            height: 40px;
+            min-width: 40px;
             padding: 0 10px;
             font-size: 13px;
             font-weight: 500;
@@ -386,6 +489,7 @@
             gap: 6px;
             cursor: pointer;
             transition: all 0.15s ease;
+            flex-shrink: 0;
         }
 
         .studio-btn-dock:hover {
@@ -405,6 +509,12 @@
             border-color: rgba(168, 199, 250, 0.4);
         }
 
+        .studio-btn-dock.active-yellow {
+            background: rgba(253, 214, 99, 0.16);
+            color: var(--google-yellow);
+            border-color: rgba(253, 214, 99, 0.4);
+        }
+
         .studio-btn-danger {
             background: var(--google-red-container);
             color: var(--google-red);
@@ -416,7 +526,7 @@
             color: #000;
         }
 
-        /* 5. БОКОВАЯ ПАНЕЛЬ ЧАТА (В СТИЛЕ GEMINI INSPECTOR) */
+        /* 6. БОКОВАЯ ШТОРКА ЧАТА */
         .chat-drawer {
             width: 340px;
             height: 100%;
@@ -424,7 +534,7 @@
             border-left: 1px solid var(--border-subtle);
             display: flex;
             flex-direction: column;
-            z-index: 30;
+            z-index: 40;
         }
 
         .chat-header {
@@ -511,7 +621,7 @@
             border-color: var(--border-focus);
         }
 
-        /* 6. ЭКРАН ЛОББИ (STUDIO PARAMS PANEL) */
+        /* 7. ЭКРАН ЛОББИ */
         .lobby-container {
             flex: 1;
             display: flex;
@@ -579,13 +689,17 @@
             font-size: 13px;
             font-weight: 500;
             cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
         }
 
         .studio-btn-secondary:hover {
             background: var(--bg-surface-hover);
         }
 
-        /* 7. МОДАЛКИ И ТОСТЫ */
+        /* 8. МОДАЛКИ И РЕАКЦИИ */
         .p2p-toast {
             position: fixed;
             top: 20px;
@@ -603,6 +717,9 @@
             pointer-events: none;
             transition: opacity 0.2s ease;
             box-shadow: 0 4px 16px rgba(0, 0, 0, 0.5);
+            display: flex;
+            align-items: center;
+            gap: 6px;
         }
 
         .p2p-toast.show {
@@ -626,7 +743,7 @@
             border: 1px solid var(--border-subtle);
             border-radius: var(--radius-lg);
             padding: 24px;
-            max-width: 340px;
+            max-width: 380px;
             width: 100%;
             text-align: center;
             display: flex;
@@ -634,7 +751,17 @@
             gap: 12px;
         }
 
-        /* Реакции */
+        .studio-select {
+            background: var(--bg-base);
+            border: 1px solid var(--border-subtle);
+            border-radius: var(--radius-sm);
+            color: var(--text-primary);
+            padding: 8px 10px;
+            font-size: 12px;
+            outline: none;
+            width: 100%;
+        }
+
         .reactions-bar {
             position: absolute;
             bottom: 60px;
@@ -716,15 +843,9 @@
                 width: 100%;
             }
 
-            .conf-grid {
-                grid-template-columns: repeat(auto-fit, minmax(min(100%, 140px), 1fr));
-                gap: 6px;
-            }
-
             .conf-controls-bar {
-                padding: 6px 8px;
+                padding: 6px;
                 gap: 4px;
-                overflow-x: auto;
             }
 
             .studio-btn-dock {
@@ -737,7 +858,10 @@
 </head>
 
 <body>
-    <div class="p2p-toast" id="toast">Уведомление</div>
+    <div class="p2p-toast" id="toast">
+        <span class="material-symbols-outlined" id="toastIcon">info</span>
+        <span id="toastText">Уведомление</span>
+    </div>
 
     <div class="conf-app" id="reactionContainer">
         <!-- 1. STUDIO HEADER -->
@@ -745,10 +869,14 @@
             <div class="studio-logo-area">
                 <span class="gemini-sparkle">✦</span>
                 <div class="studio-title">
-                    DROPCONF <span class="studio-breadcrumb">/ WebRTC Mesh</span>
+                    DROPCONF <span style="color: var(--text-muted); font-size: 12px;">Mesh v2.5</span>
                 </div>
             </div>
             <div style="display: flex; gap: 8px; align-items: center;">
+                <button class="studio-btn-dock" id="btnSettingsOpen" title="Настройки устройств"
+                    style="height: 28px; padding: 0 8px;">
+                    <span class="material-symbols-outlined" style="font-size: 16px;">settings</span>
+                </button>
                 <button class="studio-btn-dock" id="btnLogToggle" title="Логи системы"
                     style="height: 28px; padding: 0 8px; font-size: 11px;">
                     <span class="material-symbols-outlined" style="font-size: 16px;">terminal</span> Logs
@@ -770,12 +898,18 @@
                             <span class="material-symbols-outlined" style="font-size: 32px;">person</span>
                         </div>
                     </div>
-                    <div style="display: flex; gap: 8px; width: 100%; max-width: 280px;">
-                        <button class="studio-btn-secondary" id="btnTogglePreviewMic" style="flex: 1; padding: 6px;">
-                            <span class="material-symbols-outlined">mic</span> Mic
+                    <div style="display: flex; gap: 6px; width: 100%; max-width: 280px;">
+                        <button class="studio-btn-secondary" id="btnTogglePreviewMic"
+                            style="flex: 1; padding: 6px; font-size: 12px;">
+                            <span class="material-symbols-outlined" style="font-size: 16px;">mic</span> Mic
                         </button>
-                        <button class="studio-btn-secondary" id="btnTogglePreviewCam" style="flex: 1; padding: 6px;">
-                            <span class="material-symbols-outlined">videocam</span> Cam
+                        <button class="studio-btn-secondary" id="btnTogglePreviewCam"
+                            style="flex: 1; padding: 6px; font-size: 12px;">
+                            <span class="material-symbols-outlined" style="font-size: 16px;">videocam</span> Cam
+                        </button>
+                        <button class="studio-btn-secondary" id="btnFlipCamPreview" title="Сменить камеру"
+                            style="padding: 6px 10px;">
+                            <span class="material-symbols-outlined" style="font-size: 16px;">flip_camera_ios</span>
                         </button>
                     </div>
                 </div>
@@ -783,28 +917,28 @@
                 <div class="lobby-settings-pane">
                     <div>
                         <div
-                            style="font-size: 11px; font-family: var(--font-mono); color: var(--text-muted); margin-bottom: 6px; text-transform: uppercase;">
-                            USER IDENTITY
+                            style="font-size: 11px; font-family: var(--font-mono); color: var(--text-muted); margin-bottom: 6px;">
+                            IDENTIFICATION
                         </div>
                         <input type="text" class="studio-input" id="inputUserName" placeholder="Ваше имя..."
                             style="width: 100%;" maxlength="15">
                     </div>
 
                     <button class="studio-btn-primary" id="btnCreateRoom">
-                        <span class="material-symbols-outlined">add</span> Создать новую сессию
+                        <span class="material-symbols-outlined">add</span> Создать конференцию
                     </button>
 
-                    <div style="display: flex; align-items: center; gap: 10px; margin: 4px 0;">
+                    <div style="display: flex; align-items: center; gap: 10px; margin: 2px 0;">
                         <div style="flex: 1; height: 1px; background: var(--border-subtle);"></div>
-                        <span style="font-size: 11px; font-family: var(--font-mono); color: var(--text-muted);">OR
-                            JOIN</span>
+                        <span style="font-size: 10px; font-family: var(--font-mono); color: var(--text-muted);">ИЛИ ВХОД
+                            ПО КОДУ</span>
                         <div style="flex: 1; height: 1px; background: var(--border-subtle);"></div>
                     </div>
 
                     <div style="display: flex; gap: 6px;">
-                        <input type="text" class="studio-input" id="inputRoomCode" placeholder="ROOM CODE" maxlength="5"
+                        <input type="text" class="studio-input" id="inputRoomCode" placeholder="КОД" maxlength="5"
                             style="font-family: var(--font-mono); font-weight: 700; letter-spacing: 2px; text-align: center;">
-                        <button class="studio-btn-secondary" id="btnJoinRoom">Присоединиться</button>
+                        <button class="studio-btn-secondary" id="btnJoinRoom">Войти</button>
                     </div>
                 </div>
             </div>
@@ -815,11 +949,11 @@
             style="flex: 1; display: flex; flex-direction: column; overflow: hidden; min-height: 0;">
             <div class="conf-main-area">
                 <div class="conf-video-container" id="videoWrapper">
-                    <!-- Главный слот Spotlight -->
+                    <!-- Слот Spotlight -->
                     <div class="spotlight-main-slot p2p-hidden" id="spotlightSlot"></div>
 
-                    <!-- Основная сетка карточек -->
-                    <div class="conf-grid" id="videoGrid">
+                    <!-- Сетка потоков -->
+                    <div class="conf-grid count-1" id="videoGrid">
                         <!-- Локальная камера -->
                         <div class="video-tile mirrored" id="tile-cam-local">
                             <video id="localVideo" autoplay playsinline webkit-playsinline muted></video>
@@ -828,11 +962,12 @@
                             </div>
                             <div class="tile-overlay">
                                 <div class="tile-top-actions">
-                                    <button class="tile-action-btn" title="Pin stream"
+                                    <div class="hand-badge p2p-hidden" id="myHandBadge">✋ Рука</div>
+                                    <button class="tile-action-btn" title="Закрепить"
                                         onclick="toggleSpotlight('tile-cam-local')">
                                         <span class="material-symbols-outlined">keep</span>
                                     </button>
-                                    <button class="tile-action-btn" title="Fullscreen"
+                                    <button class="tile-action-btn" title="На весь экран"
                                         onclick="toggleNativeFullscreen('tile-cam-local')">
                                         <span class="material-symbols-outlined">fullscreen</span>
                                     </button>
@@ -850,11 +985,11 @@
                     <div class="spotlight-strip p2p-hidden" id="spotlightStrip"></div>
                 </div>
 
-                <!-- ЧАТ В СТИЛЕ INSPECTOR -->
+                <!-- ЧАТ -->
                 <div class="chat-drawer p2p-hidden" id="chatPanel">
                     <div class="chat-header">
                         <span style="display: flex; align-items: center; gap: 6px;">
-                            <span class="material-symbols-outlined">chat_bubble</span> Session Chat
+                            <span class="material-symbols-outlined">chat_bubble</span> Чат сессии
                         </span>
                         <button class="tile-action-btn" id="btnCloseChat">
                             <span class="material-symbols-outlined">close</span>
@@ -862,7 +997,8 @@
                     </div>
                     <div class="chat-messages" id="chatMessages"></div>
                     <div class="chat-input-box">
-                        <input type="text" id="inputChatMessage" class="studio-input" placeholder="Type a message...">
+                        <input type="text" id="inputChatMessage" class="studio-input"
+                            placeholder="Написать сообщение... (Enter)">
                         <button class="studio-btn-primary" id="btnSendChat" style="padding: 0 12px;">
                             <span class="material-symbols-outlined">send</span>
                         </button>
@@ -882,34 +1018,59 @@
 
             <!-- 4. CONTROLS DOCK -->
             <div class="conf-controls-bar">
-                <button class="studio-btn-dock" id="btnMicToggle" title="Microphone">
+                <button class="studio-btn-dock" id="btnMicToggle" title="Микрофон [M] / Пробел (Push-to-Talk)">
                     <span class="material-symbols-outlined">mic</span>
                 </button>
-                <button class="studio-btn-dock" id="btnCamToggle" title="Camera">
+                <button class="studio-btn-dock" id="btnCamToggle" title="Камера [V]">
                     <span class="material-symbols-outlined">videocam</span>
                 </button>
-                <button class="studio-btn-dock" id="btnScreenShare" title="Share Screen">
+                <button class="studio-btn-dock" id="btnFlipCam" title="Переключить камеру">
+                    <span class="material-symbols-outlined">flip_camera_ios</span>
+                </button>
+                <button class="studio-btn-dock" id="btnScreenShare" title="Демонстрация экрана [S]">
                     <span class="material-symbols-outlined">present_to_all</span>
                 </button>
-                <button class="studio-btn-dock" id="btnReactionToggle" title="Reactions">
+                <button class="studio-btn-dock" id="btnHandRaise" title="Поднять руку [H]">
+                    <span class="material-symbols-outlined">back_hand</span>
+                </button>
+                <button class="studio-btn-dock" id="btnReactionToggle" title="Реакции">
                     <span class="material-symbols-outlined">add_reaction</span>
                 </button>
-                <button class="studio-btn-dock" id="btnChatToggle" title="Chat">
+                <button class="studio-btn-dock" id="btnChatToggle" title="Чат [C]">
                     <span class="material-symbols-outlined">chat</span>
                 </button>
-                <button class="studio-btn-dock" id="btnInviteInfo" title="Session Info">
+                <button class="studio-btn-dock" id="btnInviteInfo" title="Код и ссылка">
                     <span class="material-symbols-outlined">link</span>
                 </button>
-                <button class="studio-btn-dock studio-btn-danger" id="btnLeaveCall" title="Leave">
-                    <span class="material-symbols-outlined">call_end</span> End Call
+                <button class="studio-btn-dock studio-btn-danger" id="btnLeaveCall" title="Покинуть звонок">
+                    <span class="material-symbols-outlined">call_end</span> Выход
                 </button>
             </div>
         </div>
 
-        <!-- 5. МОДАЛЬНОЕ ОКНО ССЫЛКИ -->
+        <!-- 5. МОДАЛЬНОЕ ОКНО НАСТРОЕК УСТРОЙСТВ -->
+        <div class="p2p-modal-backdrop p2p-hidden" id="settingsModal">
+            <div class="studio-modal">
+                <div style="font-size: 13px; font-weight: 600; text-align: left;">Настройки оборудования</div>
+                <div style="display: flex; flex-direction: column; gap: 8px; text-align: left;">
+                    <label style="font-size: 11px; color: var(--text-muted);">Камера</label>
+                    <select class="studio-select" id="selectVideoInput"></select>
+
+                    <label style="font-size: 11px; color: var(--text-muted);">Микрофон</label>
+                    <select class="studio-select" id="selectAudioInput"></select>
+
+                    <label style="font-size: 11px; color: var(--text-muted);">Динамики</label>
+                    <select class="studio-select" id="selectAudioOutput"></select>
+                </div>
+                <button class="studio-btn-primary" id="btnSaveSettings" style="margin-top: 6px;">Применить</button>
+                <button class="studio-btn-secondary" id="btnCloseSettings">Отмена</button>
+            </div>
+        </div>
+
+        <!-- 6. МОДАЛКА ПРИГЛАШЕНИЯ -->
         <div class="p2p-modal-backdrop p2p-hidden" id="inviteModal">
             <div class="studio-modal">
-                <div style="font-size: 12px; font-family: var(--font-mono); color: var(--text-muted);">SESSION
+                <div style="font-size: 11px; font-family: var(--font-mono); color: var(--text-muted);">SESSION
                     INVITATION</div>
                 <div style="font-size: 26px; font-family: var(--font-mono); font-weight: 700; letter-spacing: 2px; color: var(--google-blue);"
                     id="modalRoomCode">...</div>
@@ -923,25 +1084,145 @@
             </div>
         </div>
 
-        <!-- КОНСОЛЬ ЛОГОВ -->
+        <!-- ЛОГИ -->
         <div class="p2p-card p2p-hidden" id="logConsole"
             style="position: absolute; bottom: 65px; left: 16px; right: 16px; background: #0e0e10; border: 1px solid var(--border-subtle); color: var(--google-green); font-family: var(--font-mono); font-size: 11px; max-height: 120px; overflow-y: auto; z-index: 2000; border-radius: var(--radius-sm); padding: 8px;">
-            > System initialized...
+            > System ready...
         </div>
     </div>
 
     <script>
-        /* 1. STATE & NET */
+        /* ==========================================================================
+           1. АУДИОСИНТЕЗАТОР И VAD (VOICE ACTIVITY DETECTION)
+           ========================================================================== */
+        const SoundFX = {
+            ctx: null,
+            init() { if (!this.ctx) this.ctx = new (window.AudioContext || window.webkitAudioContext)(); },
+            playChime(type = 'join') {
+                if (!this.ctx) return;
+                const now = this.ctx.currentTime;
+                const osc = this.ctx.createOscillator(), gain = this.ctx.createGain();
+                osc.connect(gain); gain.connect(this.ctx.destination);
+
+                if (type === 'join') {
+                    osc.frequency.setValueAtTime(440, now);
+                    osc.frequency.exponentialRampToValueAtTime(880, now + 0.15);
+                    gain.gain.setValueAtTime(0.1, now);
+                    gain.gain.exponentialRampToValueAtTime(0.01, now + 0.2);
+                    osc.start(now); osc.stop(now + 0.2);
+                } else if (type === 'leave') {
+                    osc.frequency.setValueAtTime(660, now);
+                    osc.frequency.exponentialRampToValueAtTime(330, now + 0.18);
+                    gain.gain.setValueAtTime(0.1, now);
+                    gain.gain.exponentialRampToValueAtTime(0.01, now + 0.2);
+                    osc.start(now); osc.stop(now + 0.2);
+                } else if (type === 'hand') {
+                    osc.type = 'triangle';
+                    osc.frequency.setValueAtTime(523.25, now);
+                    osc.frequency.setValueAtTime(659.25, now + 0.08);
+                    gain.gain.setValueAtTime(0.12, now);
+                    gain.gain.exponentialRampToValueAtTime(0.01, now + 0.25);
+                    osc.start(now); osc.stop(now + 0.25);
+                }
+            }
+        };
+        window.addEventListener('click', () => SoundFX.init(), { once: true });
+        window.addEventListener('keydown', () => SoundFX.init(), { once: true });
+
+        // Анализатор голоса для подсветки активного спикера
+        class AudioActivityMonitor {
+            constructor() {
+                this.ctx = null;
+                this.monitors = new Map();
+            }
+
+            init() {
+                if (!this.ctx) this.ctx = new (window.AudioContext || window.webkitAudioContext)();
+            }
+
+            watch(peerId, stream, isLocal = false) {
+                this.init();
+                this.unwatch(peerId);
+                if (!stream || stream.getAudioTracks().length === 0) return;
+
+                try {
+                    const source = this.ctx.createMediaStreamSource(stream);
+                    const analyser = this.ctx.createAnalyser();
+                    analyser.fftSize = 256;
+                    analyser.smoothingTimeConstant = 0.4;
+                    source.connect(analyser);
+
+                    const data = new Uint8Array(analyser.frequencyBinCount);
+                    let isSpeaking = false;
+                    let silenceTimer = null;
+                    let animFrame = null;
+
+                    const loop = () => {
+                        analyser.getByteFrequencyData(data);
+                        let sum = 0;
+                        for (let i = 0; i < data.length; i++) sum += data[i];
+                        let avg = sum / data.length;
+
+                        const threshold = isLocal ? 14 : 16;
+                        if (avg > threshold) {
+                            if (!isSpeaking) {
+                                isSpeaking = true;
+                                this.updateSpeakerUI(peerId, true);
+                            }
+                            if (silenceTimer) clearTimeout(silenceTimer);
+                            silenceTimer = setTimeout(() => {
+                                isSpeaking = false;
+                                this.updateSpeakerUI(peerId, false);
+                            }, 350);
+                        }
+                        animFrame = requestAnimationFrame(loop);
+                    };
+                    loop();
+
+                    this.monitors.set(peerId, { source, analyser, cancel: () => cancelAnimationFrame(animFrame) });
+                } catch (e) {
+                    console.warn("VAD init warning:", e);
+                }
+            }
+
+            unwatch(peerId) {
+                if (this.monitors.has(peerId)) {
+                    const m = this.monitors.get(peerId);
+                    m.cancel();
+                    try { m.source.disconnect(); } catch (e) { }
+                    this.monitors.delete(peerId);
+                    this.updateSpeakerUI(peerId, false);
+                }
+            }
+
+            updateSpeakerUI(peerId, isSpeaking) {
+                const tile = document.getElementById(`tile-cam-${peerId}`);
+                // Окно демонстрации экрана не подсвечиваем
+                if (tile && !tile.classList.contains('screen-tile')) {
+                    tile.classList.toggle('speaking', isSpeaking);
+                }
+            }
+        }
+        const audioVAD = new AudioActivityMonitor();
+
+        /* ==========================================================================
+           2. STATE & NET
+           ========================================================================== */
         const net = new P2PNet({ appPrefix: 'dropconf', mode: 'mesh', debug: true });
 
         let myName = "User";
         let isCamOn = true;
         let isMicOn = true;
         let isScreenSharing = false;
+        let isHandRaised = false;
+        let currentFacingMode = 'user';
         let screenStream = null;
         let activeSpotlightId = null;
 
+        // Элементы UI
         const toast = document.getElementById('toast');
+        const toastText = document.getElementById('toastText');
+        const toastIcon = document.getElementById('toastIcon');
         const netBadge = document.getElementById('netBadge');
         const netBadgeText = document.getElementById('netBadgeText');
         const lobbyScreen = document.getElementById('lobbyScreen');
@@ -954,13 +1235,16 @@
         const myAvatar = document.getElementById('myAvatar');
         const myTagName = document.getElementById('myTagName');
         const myTagMic = document.getElementById('myTagMic');
+        const myHandBadge = document.getElementById('myHandBadge');
         const videoGrid = document.getElementById('videoGrid');
         const spotlightSlot = document.getElementById('spotlightSlot');
         const spotlightStrip = document.getElementById('spotlightStrip');
 
         const btnMicToggle = document.getElementById('btnMicToggle');
         const btnCamToggle = document.getElementById('btnCamToggle');
+        const btnFlipCam = document.getElementById('btnFlipCam');
         const btnScreenShare = document.getElementById('btnScreenShare');
+        const btnHandRaise = document.getElementById('btnHandRaise');
         const btnReactionToggle = document.getElementById('btnReactionToggle');
         const reactionBar = document.getElementById('reactionBar');
         const btnChatToggle = document.getElementById('btnChatToggle');
@@ -976,40 +1260,62 @@
             logConsole.innerHTML = `> [${time}] ${text}<br>` + logConsole.innerHTML;
         }
 
-        function showToast(msg) {
-            toast.textContent = msg;
+        function showToast(msg, icon = 'info') {
+            toastText.textContent = msg;
+            toastIcon.textContent = icon;
             toast.classList.add('show');
-            setTimeout(() => toast.classList.remove('show'), 2200);
+            setTimeout(() => toast.classList.remove('show'), 2400);
         }
 
-        /* 2. ADAPTIVE MEDIA INITIALIZATION */
-        async function getSafeUserMedia(constraints) {
+        /* ==========================================================================
+           3. ДИНАМИЧЕСКИЙ РАСЧЕТ СЕТКИ
+           ========================================================================== */
+        function updateGridCount() {
+            const count = videoGrid.children.length;
+            videoGrid.classList.remove('count-1', 'count-2', 'count-3', 'count-4', 'count-many');
+
+            if (count <= 1) videoGrid.classList.add('count-1');
+            else if (count === 2) videoGrid.classList.add('count-2');
+            else if (count === 3) videoGrid.classList.add('count-3');
+            else if (count === 4) videoGrid.classList.add('count-4');
+            else videoGrid.classList.add('count-many');
+        }
+
+        /* ==========================================================================
+           4. УПРАВЛЕНИЕ МЕДИА И КАМЕРАМИ
+           ========================================================================== */
+        async function getSafeUserMedia(facingMode = 'user', audioSourceId = null, videoSourceId = null) {
+            const videoConstraints = videoSourceId
+                ? { deviceId: { exact: videoSourceId } }
+                : { facingMode, width: { ideal: 1280 }, height: { ideal: 720 } };
+
+            const audioConstraints = audioSourceId
+                ? { deviceId: { exact: audioSourceId }, echoCancellation: true, noiseSuppression: true }
+                : { echoCancellation: true, noiseSuppression: true };
+
             try {
-                return await navigator.mediaDevices.getUserMedia(constraints);
+                return await navigator.mediaDevices.getUserMedia({ video: videoConstraints, audio: audioConstraints });
             } catch (err) {
-                sysLog("Fallback media constraints: " + err.message);
+                sysLog("Fallback userMedia: " + err.message);
                 return await navigator.mediaDevices.getUserMedia({
-                    video: constraints.video ? { facingMode: 'user' } : false,
-                    audio: constraints.audio ? true : false
+                    video: { facingMode },
+                    audio: true
                 });
             }
         }
 
         async function initPreview() {
             try {
-                const stream = await getSafeUserMedia({
-                    video: { width: { ideal: 1280 }, height: { ideal: 720 }, facingMode: 'user' },
-                    audio: true
-                });
+                const stream = await getSafeUserMedia(currentFacingMode);
                 net.localStream = stream;
                 previewVideo.srcObject = stream;
                 localVideo.srcObject = stream;
                 previewVideo.play().catch(() => { });
                 localVideo.play().catch(() => { });
+                audioVAD.watch('local', stream, true);
             } catch (e) {
-                sysLog("Devices unavailable: " + e.message);
-                isCamOn = false;
-                isMicOn = false;
+                sysLog("Media unavailable: " + e.message);
+                isCamOn = false; isMicOn = false;
                 previewAvatar.style.display = 'flex';
                 myAvatar.style.display = 'flex';
                 btnCamToggle.classList.add('off');
@@ -1017,44 +1323,55 @@
             }
         }
 
-        /* 3. DEVICE HARDWARE TOGGLE */
+        async function flipCamera() {
+            currentFacingMode = (currentFacingMode === 'user') ? 'environment' : 'user';
+            try {
+                const freshStream = await getSafeUserMedia(currentFacingMode);
+                const newVideoTrack = freshStream.getVideoTracks()[0];
+
+                if (net.localStream) {
+                    const oldTrack = net.localStream.getVideoTracks()[0];
+                    if (oldTrack) { oldTrack.stop(); net.localStream.removeTrack(oldTrack); }
+                    net.localStream.addTrack(newVideoTrack);
+                } else {
+                    net.localStream = freshStream;
+                }
+
+                localVideo.srcObject = net.localStream;
+                previewVideo.srcObject = net.localStream;
+                net.replaceTrack(newVideoTrack, 'video');
+                showToast("Камера переключена", 'flip_camera_ios');
+            } catch (err) {
+                showToast("Ошибка смены камеры: " + err.message, 'error');
+            }
+        }
+
+        btnFlipCam.onclick = flipCamera;
+        document.getElementById('btnFlipCamPreview').onclick = flipCamera;
+
         async function toggleCamera() {
             if (isCamOn) {
                 if (net.localStream) {
-                    net.localStream.getVideoTracks().forEach(t => {
-                        t.stop();
-                        net.localStream.removeTrack(t);
-                    });
+                    net.localStream.getVideoTracks().forEach(t => { t.stop(); net.localStream.removeTrack(t); });
                 }
                 isCamOn = false;
-                localVideo.srcObject = null;
-                previewVideo.srcObject = null;
-                myAvatar.style.display = 'flex';
-                previewAvatar.style.display = 'flex';
+                localVideo.srcObject = null; previewVideo.srcObject = null;
+                myAvatar.style.display = 'flex'; previewAvatar.style.display = 'flex';
                 btnCamToggle.classList.add('off');
                 btnCamToggle.innerHTML = '<span class="material-symbols-outlined">videocam_off</span>';
                 net.broadcast({ type: 'CAM_STATUS', isCamOn: false });
             } else {
                 try {
-                    const freshStream = await getSafeUserMedia({
-                        video: { width: { ideal: 1280 }, height: { ideal: 720 }, facingMode: 'user' },
-                        audio: false
-                    });
+                    const freshStream = await getSafeUserMedia(currentFacingMode);
                     const newVideoTrack = freshStream.getVideoTracks()[0];
 
-                    if (!net.localStream) {
-                        net.localStream = freshStream;
-                    } else {
-                        net.localStream.addTrack(newVideoTrack);
-                    }
+                    if (!net.localStream) net.localStream = freshStream;
+                    else net.localStream.addTrack(newVideoTrack);
 
-                    localVideo.srcObject = net.localStream;
-                    previewVideo.srcObject = net.localStream;
-                    localVideo.play().catch(() => { });
-                    previewVideo.play().catch(() => { });
+                    localVideo.srcObject = net.localStream; previewVideo.srcObject = net.localStream;
+                    localVideo.play().catch(() => { }); previewVideo.play().catch(() => { });
 
-                    myAvatar.style.display = 'none';
-                    previewAvatar.style.display = 'none';
+                    myAvatar.style.display = 'none'; previewAvatar.style.display = 'none';
                     isCamOn = true;
                     btnCamToggle.classList.remove('off');
                     btnCamToggle.innerHTML = '<span class="material-symbols-outlined">videocam</span>';
@@ -1062,7 +1379,7 @@
                     net.replaceTrack(newVideoTrack, 'video');
                     net.broadcast({ type: 'CAM_STATUS', isCamOn: true });
                 } catch (err) {
-                    showToast("Camera error: " + err.message);
+                    showToast("Не удалось включить камеру", 'error');
                 }
             }
         }
@@ -1070,10 +1387,7 @@
         async function toggleMicrophone() {
             if (isMicOn) {
                 if (net.localStream) {
-                    net.localStream.getAudioTracks().forEach(t => {
-                        t.stop();
-                        net.localStream.removeTrack(t);
-                    });
+                    net.localStream.getAudioTracks().forEach(t => { t.stop(); net.localStream.removeTrack(t); });
                 }
                 isMicOn = false;
                 myTagMic.textContent = 'mic_off';
@@ -1081,20 +1395,15 @@
                 btnMicToggle.classList.add('off');
                 btnMicToggle.innerHTML = '<span class="material-symbols-outlined">mic_off</span>';
                 document.getElementById('btnTogglePreviewMic').innerHTML = '<span class="material-symbols-outlined">mic_off</span> Off';
+                audioVAD.unwatch('local');
                 net.broadcast({ type: 'MIC_STATUS', isMicOn: false });
             } else {
                 try {
-                    const freshStream = await getSafeUserMedia({
-                        video: false,
-                        audio: { echoCancellation: true, noiseSuppression: true }
-                    });
+                    const freshStream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true } });
                     const newAudioTrack = freshStream.getAudioTracks()[0];
 
-                    if (!net.localStream) {
-                        net.localStream = freshStream;
-                    } else {
-                        net.localStream.addTrack(newAudioTrack);
-                    }
+                    if (!net.localStream) net.localStream = freshStream;
+                    else net.localStream.addTrack(newAudioTrack);
 
                     isMicOn = true;
                     myTagMic.textContent = 'mic';
@@ -1103,10 +1412,11 @@
                     btnMicToggle.innerHTML = '<span class="material-symbols-outlined">mic</span>';
                     document.getElementById('btnTogglePreviewMic').innerHTML = '<span class="material-symbols-outlined">mic</span> Mic';
 
+                    audioVAD.watch('local', net.localStream, true);
                     net.replaceTrack(newAudioTrack, 'audio');
                     net.broadcast({ type: 'MIC_STATUS', isMicOn: true });
                 } catch (err) {
-                    showToast("Microphone error: " + err.message);
+                    showToast("Не удалось включить микрофон", 'error');
                 }
             }
         }
@@ -1116,13 +1426,56 @@
         document.getElementById('btnTogglePreviewCam').onclick = toggleCamera;
         document.getElementById('btnTogglePreviewMic').onclick = toggleMicrophone;
 
-        /* 4. SCREEN SHARING */
+        /* ==========================================================================
+           5. PUSH-TO-TALK И ГОРЯЧИЕ КЛАВИШИ
+           ========================================================================== */
+        let spacePressed = false;
+        window.addEventListener('keydown', (e) => {
+            if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+
+            if (e.code === 'Space' && !spacePressed) {
+                spacePressed = true;
+                if (!isMicOn) toggleMicrophone();
+            } else if (e.key.toLowerCase() === 'm') {
+                toggleMicrophone();
+            } else if (e.key.toLowerCase() === 'v') {
+                toggleCamera();
+            } else if (e.key.toLowerCase() === 'h') {
+                toggleHandRaise();
+            } else if (e.key.toLowerCase() === 'c') {
+                chatPanel.classList.toggle('p2p-hidden');
+            }
+        });
+
+        window.addEventListener('keyup', (e) => {
+            if (e.code === 'Space' && spacePressed) {
+                spacePressed = false;
+                if (isMicOn) toggleMicrophone();
+            }
+        });
+
+        /* ==========================================================================
+           6. ПОДНЯТИЕ РУКИ (HAND RAISE)
+           ========================================================================== */
+        function toggleHandRaise() {
+            isHandRaised = !isHandRaised;
+            btnHandRaise.classList.toggle('active-yellow', isHandRaised);
+            myHandBadge.classList.toggle('p2p-hidden', !isHandRaised);
+
+            if (isHandRaised) SoundFX.playChime('hand');
+            net.broadcast({ type: 'HAND_RAISE', isRaised: isHandRaised, name: myName });
+        }
+        btnHandRaise.onclick = toggleHandRaise;
+
+        /* ==========================================================================
+           7. ДЕМОНСТРАЦИЯ ЭКРАНА
+           ========================================================================== */
         async function toggleScreenShare() {
             if (isScreenSharing) {
                 stopScreenShare();
             } else {
                 if (!navigator.mediaDevices || !navigator.mediaDevices.getDisplayMedia) {
-                    return showToast("Screen sharing not supported on this device");
+                    return showToast("Экран не поддерживается", 'error');
                 }
 
                 try {
@@ -1135,12 +1488,12 @@
                     btnScreenShare.classList.add('active');
                     btnScreenShare.innerHTML = '<span class="material-symbols-outlined">stop_screen_share</span>';
 
-                    addOrUpdateScreenTile('local', screenStream, `${myName} (Screen)`, true);
+                    addOrUpdateScreenTile('local', screenStream, `${myName} (Экран)`, true);
                     net.startScreenShare(screenStream, myName);
 
                     screenStream.getVideoTracks()[0].onended = () => stopScreenShare();
                 } catch (err) {
-                    if (err.name !== 'NotAllowedError') showToast("Screen share error: " + err.message);
+                    if (err.name !== 'NotAllowedError') showToast("Ошибка экрана: " + err.message, 'error');
                 }
             }
         }
@@ -1157,10 +1510,11 @@
             removeTile('tile-screen-local');
             net.stopScreenShare();
         }
-
         btnScreenShare.onclick = toggleScreenShare;
 
-        /* 5. TILE MANAGEMENT, SPOTLIGHT & FULLSCREEN */
+        /* ==========================================================================
+           8. КАРТОЧКИ УЧАСТНИКОВ, SPOTLIGHT И FULLSCREEN
+           ========================================================================== */
         function addOrUpdateCamTile(peerId, stream, participantName) {
             const tileId = `tile-cam-${peerId}`;
             let tile = document.getElementById(tileId);
@@ -1176,27 +1530,31 @@
                     </div>
                     <div class="tile-overlay">
                         <div class="tile-top-actions">
-                            <button class="tile-action-btn" title="Pin stream" onclick="toggleSpotlight('${tileId}')">
+                            <div class="hand-badge p2p-hidden" id="hand-${peerId}">✋ Рука</div>
+                            <button class="tile-action-btn" title="Закрепить" onclick="toggleSpotlight('${tileId}')">
                                 <span class="material-symbols-outlined">keep</span>
                             </button>
-                            <button class="tile-action-btn" title="Fullscreen" onclick="toggleNativeFullscreen('${tileId}')">
+                            <button class="tile-action-btn" title="На весь экран" onclick="toggleNativeFullscreen('${tileId}')">
                                 <span class="material-symbols-outlined">fullscreen</span>
                             </button>
                         </div>
                         <div class="tile-tag">
                             <span id="mic-cam-${peerId}" class="material-symbols-outlined" style="font-size:14px; color:var(--google-green);">mic</span>
-                            <span>${participantName || 'Participant'}</span>
+                            <span>${participantName || 'Участник'}</span>
                         </div>
                     </div>
                 `;
                 appendTileProperly(tile);
+                SoundFX.playChime('join');
             }
 
             const videoEl = document.getElementById(`video-cam-${peerId}`);
             if (videoEl && stream) {
                 videoEl.srcObject = stream;
                 videoEl.play().catch(() => { });
+                audioVAD.watch(peerId, stream, false);
             }
+            updateGridCount();
         }
 
         function addOrUpdateScreenTile(peerId, stream, titleName, isLocal = false) {
@@ -1211,16 +1569,16 @@
                     <video id="video-screen-${peerId}" autoplay playsinline webkit-playsinline ${isLocal ? 'muted' : ''}></video>
                     <div class="tile-overlay">
                         <div class="tile-top-actions">
-                            <button class="tile-action-btn" title="Pin stream" onclick="toggleSpotlight('${tileId}')">
+                            <button class="tile-action-btn" title="Закрепить" onclick="toggleSpotlight('${tileId}')">
                                 <span class="material-symbols-outlined">keep</span>
                             </button>
-                            <button class="tile-action-btn" title="Fullscreen" onclick="toggleNativeFullscreen('${tileId}')">
+                            <button class="tile-action-btn" title="На весь экран" onclick="toggleNativeFullscreen('${tileId}')">
                                 <span class="material-symbols-outlined">fullscreen</span>
                             </button>
                         </div>
                         <div class="tile-tag" style="border-color: rgba(168, 199, 250, 0.4);">
                             <span class="material-symbols-outlined" style="font-size:14px; color:var(--google-blue);">screen_share</span>
-                            <span>${titleName || 'Screen'}</span>
+                            <span>${titleName || 'Экран'}</span>
                         </div>
                     </div>
                 `;
@@ -1230,12 +1588,10 @@
             const videoEl = document.getElementById(`video-screen-${peerId}`);
             if (videoEl && stream) {
                 videoEl.srcObject = stream;
-                if (!isLocal) {
-                    videoEl.muted = false;
-                    videoEl.volume = 1.0;
-                }
+                if (!isLocal) { videoEl.muted = false; videoEl.volume = 1.0; }
                 videoEl.play().catch(() => { });
             }
+            updateGridCount();
         }
 
         function appendTileProperly(tile) {
@@ -1250,7 +1606,13 @@
             const tile = document.getElementById(tileId);
             if (!tile) return;
             if (activeSpotlightId === tileId) toggleSpotlight(tileId);
+
+            const pId = tileId.replace('tile-cam-', '').replace('tile-screen-', '');
+            audioVAD.unwatch(pId);
+
             tile.remove();
+            updateGridCount();
+            SoundFX.playChime('leave');
         }
 
         window.toggleSpotlight = function (tileId) {
@@ -1287,6 +1649,7 @@
                 spotlightStrip.classList.remove('p2p-hidden');
                 activeSpotlightId = tileId;
             }
+            updateGridCount();
         };
 
         window.toggleNativeFullscreen = function (tileId) {
@@ -1312,13 +1675,64 @@
             }
         };
 
-        /* 6. JOIN / LEAVE LIFECYCLE */
+        /* ==========================================================================
+           9. НАСТРОЙКИ ОБОРУДОВАНИЯ (SETTINGS MODAL)
+           ========================================================================== */
+        const settingsModal = document.getElementById('settingsModal');
+        const selectVideoInput = document.getElementById('selectVideoInput');
+        const selectAudioInput = document.getElementById('selectAudioInput');
+        const selectAudioOutput = document.getElementById('selectAudioOutput');
+
+        document.getElementById('btnSettingsOpen').onclick = async () => {
+            const devices = await navigator.mediaDevices.enumerateDevices();
+            selectVideoInput.innerHTML = '';
+            selectAudioInput.innerHTML = '';
+            selectAudioOutput.innerHTML = '';
+
+            devices.forEach(d => {
+                const opt = document.createElement('option');
+                opt.value = d.deviceId;
+                opt.text = d.label || `${d.kind} (${d.deviceId.slice(0, 5)}...)`;
+                if (d.kind === 'videoinput') selectVideoInput.appendChild(opt);
+                else if (d.kind === 'audioinput') selectAudioInput.appendChild(opt);
+                else if (d.kind === 'audiooutput') selectAudioOutput.appendChild(opt);
+            });
+
+            settingsModal.classList.remove('p2p-hidden');
+        };
+
+        document.getElementById('btnCloseSettings').onclick = () => settingsModal.classList.add('p2p-hidden');
+        document.getElementById('btnSaveSettings').onclick = async () => {
+            const audioId = selectAudioInput.value;
+            const videoId = selectVideoInput.value;
+            settingsModal.classList.add('p2p-hidden');
+
+            try {
+                const stream = await getSafeUserMedia(currentFacingMode, audioId, videoId);
+                net.localStream = stream;
+                localVideo.srcObject = stream;
+                previewVideo.srcObject = stream;
+
+                const vTrack = stream.getVideoTracks()[0];
+                const aTrack = stream.getAudioTracks()[0];
+                if (vTrack) net.replaceTrack(vTrack, 'video');
+                if (aTrack) net.replaceTrack(aTrack, 'audio');
+
+                showToast("Устройства обновлены", 'check_circle');
+            } catch (e) {
+                showToast("Ошибка переключения устройств", 'error');
+            }
+        };
+
+        /* ==========================================================================
+           10. ПОДКЛЮЧЕНИЕ / ВЫХОД / СЕССИЯ
+           ========================================================================== */
         document.getElementById('btnCreateRoom').onclick = async () => {
             prepareJoin();
             try {
                 const code = await net.createRoom();
                 setRoomStatus(code);
-                showToast("Сессия успешно создана");
+                showToast("Сессия создана", 'check_circle');
             } catch (err) {
                 alert("Ошибка: " + err.message);
                 leaveConference();
@@ -1327,7 +1741,7 @@
 
         document.getElementById('btnJoinRoom').onclick = () => {
             const code = inputRoomCode.value.trim();
-            if (code.length < 3) return showToast("Введите код сессии");
+            if (code.length < 3) return showToast("Введите код сессии", 'warning');
             prepareJoin();
             net.joinRoom(code, { name: myName }).then(() => {
                 setRoomStatus(code);
@@ -1342,6 +1756,7 @@
             myTagName.textContent = myName + " (Вы)";
             lobbyScreen.classList.add('p2p-hidden');
             conferenceScreen.classList.remove('p2p-hidden');
+            updateGridCount();
         }
 
         function setRoomStatus(code) {
@@ -1362,13 +1777,19 @@
             lobbyScreen.classList.remove('p2p-hidden');
             netBadge.className = "studio-badge";
             netBadgeText.textContent = "STANDBY";
+            updateGridCount();
         }
-
         document.getElementById('btnLeaveCall').onclick = leaveConference;
 
-        /* 7. P2P EVENTS */
-        net.on('status', ({ online }) => {
-            if (online) {
+        /* ==========================================================================
+           11. СОБЫТИЯ P2PNET (СЕТЬ И ВОССТАНОВЛЕНИЕ)
+           ========================================================================== */
+        net.on('status', ({ online, reconnecting }) => {
+            if (reconnecting) {
+                netBadge.className = "studio-badge reconnecting";
+                netBadgeText.textContent = "RECONNECTING";
+                showToast("Переподключение к сети...", 'sync');
+            } else if (online) {
                 if (net.roomId) setRoomStatus(net.roomId);
                 else {
                     netBadge.className = "studio-badge online";
@@ -1382,7 +1803,7 @@
 
         net.on('remote-stream', ({ peerId, stream, metadata }) => {
             if (metadata?.type === 'screen') {
-                addOrUpdateScreenTile(peerId, stream, `${metadata.name || 'Participant'} (Screen)`);
+                addOrUpdateScreenTile(peerId, stream, `${metadata.name || 'Участник'} (Экран)`);
             } else {
                 addOrUpdateCamTile(peerId, stream, metadata?.name);
             }
@@ -1398,6 +1819,13 @@
                 appendChatMessage(data.name, data.text, false);
             } else if (data.type === 'REACTION') {
                 spawnFloatingReaction(data.emoji);
+            } else if (data.type === 'HAND_RAISE') {
+                const handEl = document.getElementById(`hand-${senderPeerId}`);
+                if (handEl) handEl.classList.toggle('p2p-hidden', !data.isRaised);
+                if (data.isRaised) {
+                    SoundFX.playChime('hand');
+                    showToast(`${data.name || 'Участник'} поднял(а) руку ✋`, 'back_hand');
+                }
             } else if (data.type === 'MIC_STATUS') {
                 const micEl = document.getElementById(`mic-cam-${senderPeerId}`);
                 if (micEl) {
@@ -1416,7 +1844,9 @@
             }
         });
 
-        /* 8. CHAT & REACTIONS */
+        /* ==========================================================================
+           12. ЧАТ И РЕАКЦИИ
+           ========================================================================== */
         btnReactionToggle.onclick = () => reactionBar.classList.toggle('p2p-hidden');
         document.querySelectorAll('.reaction-item-btn').forEach(btn => {
             btn.onclick = () => {
@@ -1464,6 +1894,7 @@
             return str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
         }
 
+        // Инвайт модалка
         document.getElementById('btnInviteInfo').onclick = () => {
             document.getElementById('modalRoomCode').textContent = net.roomId;
             const qrEl = document.getElementById('modalQrCode'); qrEl.innerHTML = "";
@@ -1472,7 +1903,7 @@
         };
         document.getElementById('btnCloseInviteModal').onclick = () => document.getElementById('inviteModal').classList.add('p2p-hidden');
         document.getElementById('btnCopyInviteLink').onclick = () => {
-            navigator.clipboard.writeText(net.getShareUrl()).then(() => showToast("Ссылка скопирована"));
+            navigator.clipboard.writeText(net.getShareUrl()).then(() => showToast("Ссылка скопирована", 'content_copy'));
         };
 
         window.addEventListener('load', () => {

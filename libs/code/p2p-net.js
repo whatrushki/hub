@@ -1,13 +1,15 @@
 /**
- * P2PNet v2.3 - Чистая синхронизация независимых потоков и защита от дубликатов
+ * P2PNet v2.5 - Автоматическое переподключение, Heartbeat и защита соединений
  */
 class P2PNet {
     static ALPHABET = "23456789ABCDEFGHJKMNPQRSTUVWXYZ";
     static CHUNK_SIZE = 16 * 1024;
+    static HEARTBEAT_INTERVAL = 4000;
 
     static DEFAULT_ICE_SERVERS = [
         { urls: 'stun:stun.l.google.com:19302' },
         { urls: 'stun:stun1.l.google.com:19302' },
+        { urls: 'stun:stun2.l.google.com:19302' },
         { urls: 'turn:openrelay.metered.ca:80', username: 'openrelayproject', credential: 'openrelayproject' },
         { urls: 'turn:openrelay.metered.ca:443', username: 'openrelayproject', credential: 'openrelayproject' },
         { urls: 'turn:openrelay.metered.ca:443?transport=tcp', username: 'openrelayproject', credential: 'openrelayproject' }
@@ -15,7 +17,7 @@ class P2PNet {
 
     constructor(options = {}) {
         this.appPrefix = options.appPrefix || 'p2papp';
-        this.mode = options.mode || 'duo';
+        this.mode = options.mode || 'mesh';
         this.debug = options.debug || false;
         this.iceServers = options.iceServers || P2PNet.DEFAULT_ICE_SERVERS;
 
@@ -29,6 +31,9 @@ class P2PNet {
         this.screenStream = null;
         this.screenCalls = new Map();
         this._events = {};
+
+        this._heartbeatTimer = null;
+        this._reconnectAttempts = 0;
     }
 
     on(event, handler) {
@@ -79,17 +84,16 @@ class P2PNet {
             try {
                 await this._initPeer(fullPeerId);
                 this.roomId = code;
+                this._startHeartbeat();
                 this._log(`Комната создана: ${this.roomId}`);
                 this.emit('room-created', { roomId: this.roomId, isHost: true });
                 return this.roomId;
             } catch (err) {
-                if (err.type === 'unavailable-id' && !customCode) {
-                    continue;
-                }
+                if (err.type === 'unavailable-id' && !customCode) continue;
                 throw err;
             }
         }
-        throw new Error("Не удалось создать комнату.");
+        throw new Error("Не удалось создать уникальную комнату.");
     }
 
     async joinRoom(code, myData = {}) {
@@ -98,18 +102,17 @@ class P2PNet {
         const hostPeerId = `${this.appPrefix}-${this.roomId}`;
 
         await this._initPeer();
+        this._startHeartbeat();
         this._log(`Подключение к хосту: ${hostPeerId}`);
 
         return new Promise((resolve, reject) => {
-            const timer = setTimeout(() => reject(new Error("Таймаут подключения к комнате")), 12000);
+            const timer = setTimeout(() => reject(new Error("Таймаут подключения к сессии")), 14000);
 
             this._connectToPeer(hostPeerId, {
                 onOpen: (conn) => {
                     clearTimeout(timer);
                     this.emit('joined-room', { roomId: this.roomId, isHost: false });
-                    if (this.mode === 'mesh') {
-                        conn.send({ __sys: 'JOIN_REQ', peerId: this.peer.id, ...myData });
-                    }
+                    conn.send({ __sys: 'JOIN_REQ', peerId: this.peer.id, ...myData });
                     resolve(conn);
                 },
                 onError: (err) => {
@@ -127,7 +130,7 @@ class P2PNet {
 
             const config = {
                 debug: this.debug ? 1 : 0,
-                config: { iceServers: this.iceServers }
+                config: { iceServers: this.iceServers, iceTransportPolicy: 'all' }
             };
 
             this.peer = fixedId ? new Peer(fixedId, config) : new Peer(config);
@@ -135,6 +138,7 @@ class P2PNet {
             let opened = false;
             this.peer.on('open', (id) => {
                 opened = true;
+                this._reconnectAttempts = 0;
                 this._log(`PeerJS подключен: ${id}`);
                 this.emit('status', { online: true, id });
                 resolve(id);
@@ -144,29 +148,69 @@ class P2PNet {
             this.peer.on('call', (call) => this._handleIncomingCall(call));
 
             this.peer.on('disconnected', () => {
+                this._log("Потерян сигнальный сервер. Авто-реконнект...");
                 this.emit('status', { online: false, reconnecting: true });
-                if (!this.isDestroyed && this.peer) {
-                    try { this.peer.reconnect(); } catch (e) { }
-                }
+                this._tryReconnect();
             });
 
             this.peer.on('error', (err) => {
                 this._log("Peer error:", err.type, err);
+                if (err.type === 'peer-unavailable') {
+                    // Пир отключился
+                }
                 this.emit('error', err);
                 if (!opened) reject(err);
             });
         });
     }
 
+    _tryReconnect() {
+        if (this.isDestroyed || !this.peer) return;
+        this._reconnectAttempts++;
+        const delay = Math.min(1000 * Math.pow(1.5, this._reconnectAttempts), 10000);
+
+        setTimeout(() => {
+            if (!this.isDestroyed && this.peer && this.peer.disconnected) {
+                try {
+                    this.peer.reconnect();
+                } catch (e) {
+                    this._log("Ошибка reconnect:", e);
+                }
+            }
+        }, delay);
+    }
+
+    _startHeartbeat() {
+        if (this._heartbeatTimer) clearInterval(this._heartbeatTimer);
+        this._heartbeatTimer = setInterval(() => {
+            const now = Date.now();
+            this.peers.forEach((record, peerId) => {
+                if (record.conn && record.conn.open) {
+                    record.conn.send({ __sys: 'PING', ts: now });
+                }
+                // Проверка жизнеспособности (если не было ответа > 12 сек)
+                if (record.lastSeen && now - record.lastSeen > 12000) {
+                    this._log(`Пир ${peerId} не отвечает (таймаут). Очистка...`);
+                    this._cleanupPeer(peerId);
+                }
+            });
+        }, P2PNet.HEARTBEAT_INTERVAL);
+    }
+
     _connectToPeer(remotePeerId, callbacks = {}) {
-        if (this.peers.has(remotePeerId)) return this.peers.get(remotePeerId).conn;
+        if (this.peers.has(remotePeerId)) {
+            const existing = this.peers.get(remotePeerId);
+            if (existing.conn && existing.conn.open) return existing.conn;
+        }
 
         const conn = this.peer.connect(remotePeerId, { reliable: true });
-        const peerRecord = { conn, call: null, queue: [], isReady: false, name: '' };
+        const peerRecord = this.peers.get(remotePeerId) || { conn, call: null, queue: [], isReady: false, name: '', lastSeen: Date.now() };
+        peerRecord.conn = conn;
         this.peers.set(remotePeerId, peerRecord);
 
         conn.on('open', () => {
             peerRecord.isReady = true;
+            peerRecord.lastSeen = Date.now();
             while (peerRecord.queue.length > 0) {
                 conn.send(peerRecord.queue.shift());
             }
@@ -179,12 +223,13 @@ class P2PNet {
     }
 
     _handleIncomingConnection(conn) {
-        const peerRecord = this.peers.get(conn.peer) || { conn, call: null, queue: [], isReady: false, name: '' };
+        const peerRecord = this.peers.get(conn.peer) || { conn, call: null, queue: [], isReady: false, name: '', lastSeen: Date.now() };
         peerRecord.conn = conn;
         this.peers.set(conn.peer, peerRecord);
 
         conn.on('open', () => {
             peerRecord.isReady = true;
+            peerRecord.lastSeen = Date.now();
             this.emit('peer-connected', { peerId: conn.peer, totalPeers: this.peers.size });
         });
 
@@ -194,6 +239,7 @@ class P2PNet {
     _bindDataEvents(conn, peerRecord) {
         conn.on('data', (packet) => {
             if (!packet || typeof packet !== 'object') return;
+            peerRecord.lastSeen = Date.now();
 
             if (packet.__sys) {
                 this._handleSystemPacket(conn.peer, packet);
@@ -202,13 +248,8 @@ class P2PNet {
             this.emit('data', packet, conn.peer);
         });
 
-        conn.on('close', () => {
-            this._cleanupPeer(conn.peer);
-        });
-
-        conn.on('error', () => {
-            this._cleanupPeer(conn.peer);
-        });
+        conn.on('close', () => this._cleanupPeer(conn.peer));
+        conn.on('error', () => this._cleanupPeer(conn.peer));
     }
 
     _cleanupPeer(peerId) {
@@ -227,7 +268,11 @@ class P2PNet {
     }
 
     _handleSystemPacket(senderPeerId, packet) {
-        if (packet.__sys === 'JOIN_REQ' && this.isHost) {
+        if (packet.__sys === 'PING') {
+            this.send({ __sys: 'PONG', ts: packet.ts }, senderPeerId);
+        } else if (packet.__sys === 'PONG') {
+            // Heartbeat подтвержден
+        } else if (packet.__sys === 'JOIN_REQ' && this.isHost) {
             const members = Array.from(this.peers.keys()).map(id => ({ peerId: id, name: this.peers.get(id)?.name || '' }));
             this.send({ __sys: 'ROOM_MEMBERS', members, hostId: this.peer.id }, senderPeerId);
             this.broadcast({ __sys: 'NEW_PEER', peerId: senderPeerId, name: packet.name || '' }, [senderPeerId]);
@@ -240,15 +285,13 @@ class P2PNet {
             if (this.screenStream) {
                 setTimeout(() => this.callScreen(senderPeerId, this.screenStream), 500);
             }
-        }
-        else if (packet.__sys === 'ROOM_MEMBERS') {
+        } else if (packet.__sys === 'ROOM_MEMBERS') {
             packet.members.forEach(m => {
                 if (m.peerId !== this.peer.id && !this.peers.has(m.peerId)) {
                     this._connectToPeer(m.peerId);
                 }
             });
-        }
-        else if (packet.__sys === 'NEW_PEER') {
+        } else if (packet.__sys === 'NEW_PEER') {
             if (packet.peerId !== this.peer.id && !this.peers.has(packet.peerId)) {
                 this._connectToPeer(packet.peerId);
                 if (this.localStream) {
@@ -277,7 +320,7 @@ class P2PNet {
     }
 
     broadcast(data, excludePeerIds = []) {
-        this.peers.forEach((peerRecord, peerId) => {
+        this.peers.forEach((_, peerId) => {
             if (!excludePeerIds.includes(peerId)) {
                 this.send(data, peerId);
             }
@@ -294,15 +337,13 @@ class P2PNet {
 
         let peerRecord = this.peers.get(remotePeerId);
         if (!peerRecord) {
-            peerRecord = { conn: null, call, queue: [], isReady: false, name: '' };
+            peerRecord = { conn: null, call, queue: [], isReady: false, name: '', lastSeen: Date.now() };
             this.peers.set(remotePeerId, peerRecord);
         } else {
             peerRecord.call = call;
         }
 
-        call.on('stream', (remoteStream) => {
-            this.emit('remote-stream', { peerId: remotePeerId, stream: remoteStream, metadata });
-        });
+        this._setupCallEvents(call, remotePeerId, metadata);
     }
 
     callScreen(remotePeerId, stream, senderName = '') {
@@ -310,21 +351,37 @@ class P2PNet {
         const call = this.peer.call(remotePeerId, stream, { metadata: { type: 'screen', name: senderName } });
         if (call) {
             this.screenCalls.set(remotePeerId, call);
+            this._setupCallEvents(call, remotePeerId, { type: 'screen', name: senderName });
         }
     }
 
     _handleIncomingCall(call) {
         const meta = call.metadata || { type: 'camera' };
-
         if (meta.type === 'screen') {
-            call.answer(); // Отвечаем для получения стрима экрана со звуком
+            call.answer(); // Экран принимаем без отправки локального стрима
         } else {
             call.answer(this.localStream);
         }
+        this._setupCallEvents(call, call.peer, meta);
+    }
 
+    _setupCallEvents(call, peerId, meta) {
         call.on('stream', (remoteStream) => {
-            this.emit('remote-stream', { peerId: call.peer, stream: remoteStream, metadata: meta });
+            this.emit('remote-stream', { peerId, stream: remoteStream, metadata: meta });
         });
+
+        // Мониторинг качества ICE-соединения
+        if (call.peerConnection) {
+            call.peerConnection.oniceconnectionstatechange = () => {
+                const state = call.peerConnection.iceConnectionState;
+                if (state === 'failed' || state === 'disconnected') {
+                    this._log(`ICE state [${state}] с пиром ${peerId}. Попытка рестарта...`);
+                    try {
+                        call.peerConnection.restartIce();
+                    } catch (e) { }
+                }
+            };
+        }
     }
 
     replaceTrack(newTrack, kind = 'video') {
@@ -365,6 +422,7 @@ class P2PNet {
 
     destroy(keepStream = false) {
         this.isDestroyed = true;
+        if (this._heartbeatTimer) { clearInterval(this._heartbeatTimer); this._heartbeatTimer = null; }
         this.stopScreenShare();
 
         this.peers.forEach(p => {

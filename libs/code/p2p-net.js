@@ -1,5 +1,5 @@
 /**
- * P2PNet v2.2 - Поддержка независимых потоков Камеры и Экрана
+ * P2PNet v2.3 - Чистая синхронизация независимых потоков и защита от дубликатов
  */
 class P2PNet {
     static ALPHABET = "23456789ABCDEFGHJKMNPQRSTUVWXYZ";
@@ -84,13 +84,12 @@ class P2PNet {
                 return this.roomId;
             } catch (err) {
                 if (err.type === 'unavailable-id' && !customCode) {
-                    this._log(`ID ${code} занят, пробуем другой...`);
                     continue;
                 }
                 throw err;
             }
         }
-        throw new Error("Не удалось создать уникальную комнату.");
+        throw new Error("Не удалось создать комнату.");
     }
 
     async joinRoom(code, myData = {}) {
@@ -145,7 +144,6 @@ class P2PNet {
             this.peer.on('call', (call) => this._handleIncomingCall(call));
 
             this.peer.on('disconnected', () => {
-                this._log("Потерян сигнал сервера. Реконнект...");
                 this.emit('status', { online: false, reconnecting: true });
                 if (!this.isDestroyed && this.peer) {
                     try { this.peer.reconnect(); } catch (e) { }
@@ -169,7 +167,6 @@ class P2PNet {
 
         conn.on('open', () => {
             peerRecord.isReady = true;
-            this._log(`Канал открыт c: ${remotePeerId}`);
             while (peerRecord.queue.length > 0) {
                 conn.send(peerRecord.queue.shift());
             }
@@ -182,7 +179,6 @@ class P2PNet {
     }
 
     _handleIncomingConnection(conn) {
-        this._log(`Входящий пир: ${conn.peer}`);
         const peerRecord = this.peers.get(conn.peer) || { conn, call: null, queue: [], isReady: false, name: '' };
         peerRecord.conn = conn;
         this.peers.set(conn.peer, peerRecord);
@@ -207,15 +203,27 @@ class P2PNet {
         });
 
         conn.on('close', () => {
-            this._log(`Пир отключился: ${conn.peer}`);
-            this.peers.delete(conn.peer);
-            this.screenCalls.delete(conn.peer);
-            this.emit('peer-disconnected', { peerId: conn.peer, totalPeers: this.peers.size });
+            this._cleanupPeer(conn.peer);
         });
 
-        conn.on('error', (err) => {
-            this._log(`Ошибка канала ${conn.peer}:`, err);
+        conn.on('error', () => {
+            this._cleanupPeer(conn.peer);
         });
+    }
+
+    _cleanupPeer(peerId) {
+        if (this.peers.has(peerId)) {
+            const p = this.peers.get(peerId);
+            if (p.conn) try { p.conn.close(); } catch (e) { }
+            if (p.call) try { p.call.close(); } catch (e) { }
+            this.peers.delete(peerId);
+        }
+        if (this.screenCalls.has(peerId)) {
+            const sc = this.screenCalls.get(peerId);
+            try { sc.close(); } catch (e) { }
+            this.screenCalls.delete(peerId);
+        }
+        this.emit('peer-disconnected', { peerId, totalPeers: this.peers.size });
     }
 
     _handleSystemPacket(senderPeerId, packet) {
@@ -276,22 +284,11 @@ class P2PNet {
         });
     }
 
-    /* МЕДИА-ЗВОНКИ (КАМЕРА И ЭКРАН) */
-    async startMedia(constraints = { video: true, audio: true }) {
-        if (this.localStream && this.localStream.active) {
-            return this.localStream;
-        }
-        this.localStream = await navigator.mediaDevices.getUserMedia(constraints);
-        this.emit('local-stream', this.localStream);
-        return this.localStream;
-    }
-
     call(remotePeerId, stream, metadata = { type: 'camera' }) {
         if (!this.peer || this.peer.destroyed) return;
         const mediaStream = stream || this.localStream;
         if (!mediaStream) return;
 
-        this._log(`Исходящий звонок [${metadata.type}] к: ${remotePeerId}`);
         const call = this.peer.call(remotePeerId, mediaStream, { metadata });
         if (!call) return;
 
@@ -304,14 +301,12 @@ class P2PNet {
         }
 
         call.on('stream', (remoteStream) => {
-            this._log(`Получен stream [${metadata.type}] от ${remotePeerId}`);
             this.emit('remote-stream', { peerId: remotePeerId, stream: remoteStream, metadata });
         });
     }
 
     callScreen(remotePeerId, stream, senderName = '') {
         if (!this.peer || this.peer.destroyed || !stream) return;
-        this._log(`Исходящий звонок ЭКРАНА к: ${remotePeerId}`);
         const call = this.peer.call(remotePeerId, stream, { metadata: { type: 'screen', name: senderName } });
         if (call) {
             this.screenCalls.set(remotePeerId, call);
@@ -320,23 +315,18 @@ class P2PNet {
 
     _handleIncomingCall(call) {
         const meta = call.metadata || { type: 'camera' };
-        this._log(`Входящий звонок [${meta.type}] от: ${call.peer}`);
 
         if (meta.type === 'screen') {
-            // Для входящего экрана отвечаем пустым потоком
-            call.answer();
+            call.answer(); // Отвечаем для получения стрима экрана со звуком
         } else {
-            // Для камеры отвечаем своим локальным стримом
             call.answer(this.localStream);
         }
 
         call.on('stream', (remoteStream) => {
-            this._log(`Получен remote-stream [${meta.type}] от: ${call.peer}`);
             this.emit('remote-stream', { peerId: call.peer, stream: remoteStream, metadata: meta });
         });
     }
 
-    // Замена трека в активных соединениях камеры
     replaceTrack(newTrack, kind = 'video') {
         this.peers.forEach(peerRecord => {
             if (peerRecord.call && peerRecord.call.peerConnection) {
@@ -349,7 +339,6 @@ class P2PNet {
         });
     }
 
-    // Запуск демонстрации экрана как второго независимого потока
     startScreenShare(stream, myName = '') {
         this.screenStream = stream;
         this.peers.forEach((_, peerId) => {

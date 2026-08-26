@@ -3,106 +3,257 @@
 
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>DROPCONF // P2P Видеоконференции</title>
+    <meta name="viewport"
+        content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>DROPCONF // Google AI Studio Edition</title>
+
+    <!-- Google Fonts & Material Symbols -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@600;700&family=Nunito:wght@800;900&display=swap"
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap"
         rel="stylesheet">
-    <link rel="stylesheet" href="../libs/css/p2p-ui.css">
-    <link rel="stylesheet" href="../libs/css/theme-cartoon.css" id="themeStylesheet">
+    <link rel="stylesheet"
+        href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" />
+
     <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
     <script src="../libs/code/p2p-net.js"></script>
 
     <style>
+        :root {
+            --bg-base: #131314;
+            --bg-surface: #1e1f20;
+            --bg-surface-elevated: #282a2c;
+            --bg-surface-hover: #333537;
+            --border-subtle: #37393b;
+            --border-focus: #a8c7fa;
+
+            --text-primary: #e3e3e3;
+            --text-secondary: #c4c7c5;
+            --text-muted: #8e918f;
+
+            --google-blue: #a8c7fa;
+            --google-blue-hover: #8ab4f8;
+            --google-blue-container: rgba(168, 199, 250, 0.12);
+            --google-green: #81c995;
+            --google-green-container: rgba(129, 201, 149, 0.14);
+            --google-red: #f28b82;
+            --google-red-container: rgba(242, 139, 130, 0.16);
+            --google-yellow: #fdd663;
+
+            --gemini-gradient: linear-gradient(135deg, #7cacf8 0%, #a8c7fa 50%, #d3e3fd 100%);
+
+            --radius-xs: 4px;
+            --radius-sm: 8px;
+            --radius-md: 12px;
+            --radius-lg: 16px;
+            --radius-full: 999px;
+
+            --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            --font-mono: 'JetBrains Mono', monospace;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            user-select: none;
+            font-family: var(--font-sans);
+            -webkit-tap-highlight-color: transparent;
+        }
+
         html,
         body {
             height: 100%;
             height: 100dvh;
             overflow: hidden;
-            margin: 0;
-            padding: 0;
+            background-color: var(--bg-base);
+            color: var(--text-primary);
+        }
+
+        /* Material Symbols */
+        .material-symbols-outlined {
+            font-size: 20px;
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+            display: inline-block;
+            vertical-align: middle;
         }
 
         .conf-app {
             width: 100%;
             height: 100%;
-            max-width: 1300px;
+            height: 100dvh;
             display: flex;
             flex-direction: column;
-            gap: 6px;
-            padding: 6px;
-            box-sizing: border-box;
+            background-color: var(--bg-base);
+            position: relative;
         }
 
-        /* Область видео и чата */
+        /* 1. ХЕДЕР GOOGLE AI STUDIO */
+        .studio-header {
+            height: 48px;
+            background: var(--bg-base);
+            border-bottom: 1px solid var(--border-subtle);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 16px;
+            flex-shrink: 0;
+            z-index: 20;
+        }
+
+        .studio-logo-area {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .gemini-sparkle {
+            background: var(--gemini-gradient);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            font-weight: 700;
+            font-size: 18px;
+        }
+
+        .studio-title {
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--text-primary);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .studio-breadcrumb {
+            color: var(--text-muted);
+            font-size: 13px;
+            font-weight: 400;
+        }
+
+        .studio-badge {
+            font-family: var(--font-mono);
+            font-size: 11px;
+            padding: 2px 8px;
+            border-radius: var(--radius-full);
+            background: var(--bg-surface-elevated);
+            border: 1px solid var(--border-subtle);
+            color: var(--text-secondary);
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .studio-badge.online {
+            border-color: rgba(129, 201, 149, 0.4);
+            color: var(--google-green);
+        }
+
+        .studio-badge .status-dot {
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background: var(--google-yellow);
+        }
+
+        .studio-badge.online .status-dot {
+            background: var(--google-green);
+            box-shadow: 0 0 6px var(--google-green);
+        }
+
+        /* 2. РАБОЧАЯ ОБЛАСТЬ */
         .conf-main-area {
             flex: 1;
             display: flex;
-            gap: 6px;
             overflow: hidden;
             position: relative;
             min-height: 0;
         }
 
-        /* Сетка видеопотоков */
+        .conf-video-container {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            padding: 10px;
+            gap: 10px;
+            min-height: 0;
+            overflow: hidden;
+            position: relative;
+        }
+
+        /* 3. СЕТКА ВИДЕОКАРТОЧЕК */
         .conf-grid {
             flex: 1;
             display: grid;
-            gap: 8px;
-            grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
-            grid-auto-rows: minmax(180px, 1fr);
+            gap: 10px;
+            grid-template-columns: repeat(auto-fit, minmax(min(100%, 240px), 1fr));
+            grid-auto-rows: 1fr;
+            align-content: stretch;
             overflow-y: auto;
-            align-content: start;
-            padding: 2px;
-            transition: all 0.2s ease;
-        }
-
-        /* Режим Spotlight (один поток во весь экран, остальные снизу полоской) */
-        .conf-grid.has-spotlight {
-            display: flex;
-            flex-direction: column;
-        }
-
-        .conf-grid.has-spotlight .video-tile.spotlight {
-            flex: 1;
             min-height: 0;
-            width: 100%;
-            max-height: 80vh;
         }
 
-        .conf-grid.has-spotlight .video-tile:not(.spotlight) {
-            height: 110px;
-            width: 180px;
-            flex-shrink: 0;
+        .conf-grid:has(> .video-tile:only-child) {
+            grid-template-columns: 1fr;
+            grid-template-rows: 1fr;
         }
 
-        .conf-grid-strip {
+        /* Лента миниатюр для Spotlight */
+        .spotlight-strip {
             display: flex;
             gap: 8px;
             overflow-x: auto;
-            padding: 4px 0;
+            overflow-y: hidden;
+            padding: 6px 0;
+            height: 120px;
+            flex-shrink: 0;
+            border-top: 1px solid var(--border-subtle);
         }
 
-        /* Карточка видеопотока */
+        .spotlight-strip .video-tile {
+            width: 160px;
+            height: 100%;
+            flex-shrink: 0;
+        }
+
+        .spotlight-main-slot {
+            flex: 1;
+            min-height: 0;
+            display: flex;
+            width: 100%;
+            height: 100%;
+        }
+
+        .spotlight-main-slot .video-tile {
+            width: 100%;
+            height: 100%;
+            border-color: var(--border-subtle);
+        }
+
+        /* Карточка видео */
         .video-tile {
-            background: #1e272e;
-            border: var(--p2p-border-width) solid var(--p2p-border);
-            border-radius: var(--p2p-radius-md);
+            background: var(--bg-surface);
+            border: 1px solid var(--border-subtle);
+            border-radius: var(--radius-md);
             overflow: hidden;
             position: relative;
-            box-shadow: var(--p2p-shadow-sm);
             display: flex;
             align-items: center;
             justify-content: center;
             aspect-ratio: 16/9;
-            min-height: 140px;
+            min-height: 0;
+            transition: border-color 0.15s ease;
+        }
+
+        .video-tile:hover {
+            border-color: rgba(255, 255, 255, 0.25);
         }
 
         .video-tile video {
             width: 100%;
             height: 100%;
-            object-fit: contain;
+            object-fit: cover;
             background: #000;
         }
 
@@ -111,7 +262,7 @@
         }
 
         .video-tile.screen-tile {
-            border-color: var(--p2p-color-info);
+            border-color: var(--google-blue);
         }
 
         .video-tile.screen-tile video {
@@ -119,7 +270,22 @@
             object-fit: contain;
         }
 
-        /* Плашка имени и оверлей кнопок на карточке */
+        .video-tile.pseudo-fullscreen {
+            position: fixed !important;
+            inset: 0 !important;
+            width: 100vw !important;
+            height: 100dvh !important;
+            z-index: 99999 !important;
+            border-radius: 0 !important;
+            border: none !important;
+            background: #000 !important;
+        }
+
+        .video-tile.pseudo-fullscreen video {
+            object-fit: contain !important;
+        }
+
+        /* Оверлеи и плашки в карточке */
         .tile-overlay {
             position: absolute;
             inset: 0;
@@ -127,112 +293,444 @@
             display: flex;
             flex-direction: column;
             justify-content: space-between;
-            padding: 6px;
+            padding: 8px;
             z-index: 10;
         }
 
         .tile-top-actions {
             display: flex;
             justify-content: flex-end;
-            gap: 4px;
+            gap: 6px;
             pointer-events: auto;
-            opacity: 0.85;
-            transition: opacity 0.15s;
-        }
-
-        .tile-top-actions:hover {
-            opacity: 1;
         }
 
         .tile-action-btn {
-            background: rgba(34, 47, 62, 0.85);
-            color: #fff;
-            border: 1.5px solid #fff;
-            border-radius: 8px;
-            width: 30px;
-            height: 30px;
-            font-size: 14px;
+            background: rgba(19, 19, 20, 0.75);
+            color: var(--text-secondary);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            border-radius: var(--radius-xs);
+            width: 28px;
+            height: 28px;
             display: flex;
             align-items: center;
             justify-content: center;
             cursor: pointer;
-            backdrop-filter: blur(4px);
+            backdrop-filter: blur(8px);
+            transition: all 0.15s ease;
+        }
+
+        .tile-action-btn:hover {
+            background: var(--bg-surface-elevated);
+            color: var(--text-primary);
+            border-color: var(--border-focus);
         }
 
         .tile-tag {
             align-self: flex-start;
-            background: rgba(34, 47, 62, 0.88);
-            color: #fff;
-            padding: 3px 8px;
-            border-radius: 8px;
+            background: rgba(19, 19, 20, 0.85);
+            color: var(--text-primary);
+            padding: 4px 8px;
+            border-radius: var(--radius-xs);
             font-size: 11px;
-            font-weight: 800;
+            font-weight: 500;
             display: flex;
             align-items: center;
-            gap: 4px;
-            border: 1px solid rgba(255, 255, 255, 0.3);
+            gap: 6px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(8px);
             pointer-events: auto;
+            max-width: 85%;
         }
 
         .tile-avatar {
             position: absolute;
-            font-size: 54px;
+            width: 64px;
+            height: 64px;
+            border-radius: 50%;
+            background: var(--bg-surface-elevated);
+            border: 1px solid var(--border-subtle);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            color: var(--google-blue);
             z-index: 2;
         }
 
-        /* Нижняя панель управления */
+        /* 4. НИЖНИЙ DOCK УПРАВЛЕНИЯ */
         .conf-controls-bar {
             display: flex;
             justify-content: center;
             align-items: center;
-            gap: 6px;
-            flex-wrap: wrap;
-            padding: 6px 10px;
-            background: var(--p2p-surface);
-            border: var(--p2p-border-width) solid var(--p2p-border);
-            border-radius: var(--p2p-radius-lg);
-            box-shadow: var(--p2p-shadow-sm);
+            gap: 8px;
+            padding: 8px 16px;
+            background: var(--bg-surface);
+            border-top: 1px solid var(--border-subtle);
+            flex-shrink: 0;
+            z-index: 20;
         }
 
-        .ctrl-btn {
-            width: 44px;
-            height: 44px;
-            font-size: 18px;
-            padding: 0;
+        .studio-btn-dock {
+            background: transparent;
+            color: var(--text-primary);
+            border: 1px solid var(--border-subtle);
+            border-radius: var(--radius-sm);
+            height: 38px;
+            min-width: 38px;
+            padding: 0 10px;
+            font-size: 13px;
+            font-weight: 500;
             display: inline-flex;
             align-items: center;
             justify-content: center;
-            position: relative;
+            gap: 6px;
+            cursor: pointer;
+            transition: all 0.15s ease;
         }
 
-        .ctrl-btn.off {
-            background: var(--p2p-color-danger) !important;
-            color: #fff !important;
+        .studio-btn-dock:hover {
+            background: var(--bg-surface-hover);
+            border-color: rgba(255, 255, 255, 0.2);
         }
 
-        .ctrl-btn.active-screen {
-            background: var(--p2p-color-info) !important;
-            color: #fff !important;
-            box-shadow: 0 0 10px var(--p2p-color-info);
+        .studio-btn-dock.off {
+            background: var(--google-red-container);
+            color: var(--google-red);
+            border-color: rgba(242, 139, 130, 0.4);
         }
 
-        /* Выезжающая шторка чата */
+        .studio-btn-dock.active {
+            background: var(--google-blue-container);
+            color: var(--google-blue);
+            border-color: rgba(168, 199, 250, 0.4);
+        }
+
+        .studio-btn-danger {
+            background: var(--google-red-container);
+            color: var(--google-red);
+            border-color: rgba(242, 139, 130, 0.3);
+        }
+
+        .studio-btn-danger:hover {
+            background: var(--google-red);
+            color: #000;
+        }
+
+        /* 5. БОКОВАЯ ПАНЕЛЬ ЧАТА (В СТИЛЕ GEMINI INSPECTOR) */
         .chat-drawer {
-            width: 320px;
+            width: 340px;
             height: 100%;
+            background: var(--bg-surface);
+            border-left: 1px solid var(--border-subtle);
             display: flex;
             flex-direction: column;
-            position: relative;
-            z-index: 40;
-            padding: 0;
+            z-index: 30;
+        }
+
+        .chat-header {
+            padding: 12px 16px;
+            border-bottom: 1px solid var(--border-subtle);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 13px;
+            font-weight: 600;
+        }
+
+        .chat-messages {
+            flex: 1;
+            padding: 12px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .chat-msg {
+            display: flex;
+            flex-direction: column;
+            gap: 3px;
+            max-width: 85%;
+            font-size: 13px;
+            line-height: 1.4;
+        }
+
+        .chat-msg.me {
+            align-self: flex-end;
+        }
+
+        .chat-msg.other {
+            align-self: flex-start;
+        }
+
+        .chat-msg-sender {
+            font-size: 11px;
+            color: var(--text-muted);
+            font-family: var(--font-mono);
+        }
+
+        .chat-msg-bubble {
+            padding: 8px 12px;
+            border-radius: var(--radius-sm);
+            word-break: break-word;
+        }
+
+        .chat-msg.me .chat-msg-bubble {
+            background: var(--google-blue-container);
+            border: 1px solid rgba(168, 199, 250, 0.3);
+            color: var(--text-primary);
+        }
+
+        .chat-msg.other .chat-msg-bubble {
+            background: var(--bg-surface-elevated);
+            border: 1px solid var(--border-subtle);
+            color: var(--text-primary);
+        }
+
+        .chat-input-box {
+            padding: 10px;
+            border-top: 1px solid var(--border-subtle);
+            display: flex;
+            gap: 6px;
+            background: var(--bg-base);
+        }
+
+        .studio-input {
+            flex: 1;
+            background: var(--bg-surface);
+            border: 1px solid var(--border-subtle);
+            border-radius: var(--radius-sm);
+            color: var(--text-primary);
+            padding: 8px 12px;
+            font-size: 13px;
+            outline: none;
+            transition: border-color 0.15s ease;
+        }
+
+        .studio-input:focus {
+            border-color: var(--border-focus);
+        }
+
+        /* 6. ЭКРАН ЛОББИ (STUDIO PARAMS PANEL) */
+        .lobby-container {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 16px;
+        }
+
+        .lobby-card {
+            background: var(--bg-surface);
+            border: 1px solid var(--border-subtle);
+            border-radius: var(--radius-lg);
+            width: 100%;
+            max-width: 760px;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            overflow: hidden;
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+        }
+
+        .lobby-preview-pane {
+            padding: 24px;
+            border-right: 1px solid var(--border-subtle);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 12px;
+            background: var(--bg-base);
+        }
+
+        .lobby-settings-pane {
+            padding: 24px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            gap: 14px;
+        }
+
+        .studio-btn-primary {
+            background: var(--gemini-gradient);
+            color: #000;
+            font-weight: 600;
+            border: none;
+            border-radius: var(--radius-sm);
+            padding: 10px 16px;
+            font-size: 13px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            transition: opacity 0.15s;
+        }
+
+        .studio-btn-primary:hover {
+            opacity: 0.9;
+        }
+
+        .studio-btn-secondary {
+            background: var(--bg-surface-elevated);
+            color: var(--text-primary);
+            border: 1px solid var(--border-subtle);
+            border-radius: var(--radius-sm);
+            padding: 10px 16px;
+            font-size: 13px;
+            font-weight: 500;
+            cursor: pointer;
+        }
+
+        .studio-btn-secondary:hover {
+            background: var(--bg-surface-hover);
+        }
+
+        /* 7. МОДАЛКИ И ТОСТЫ */
+        .p2p-toast {
+            position: fixed;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: var(--bg-surface-elevated);
+            border: 1px solid var(--border-subtle);
+            color: var(--text-primary);
+            padding: 8px 16px;
+            border-radius: var(--radius-full);
+            font-size: 12px;
+            font-weight: 500;
+            z-index: 5000;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.2s ease;
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.5);
+        }
+
+        .p2p-toast.show {
+            opacity: 1;
+        }
+
+        .p2p-modal-backdrop {
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.7);
+            backdrop-filter: blur(4px);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 16px;
+            z-index: 4000;
+        }
+
+        .studio-modal {
+            background: var(--bg-surface);
+            border: 1px solid var(--border-subtle);
+            border-radius: var(--radius-lg);
+            padding: 24px;
+            max-width: 340px;
+            width: 100%;
+            text-align: center;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        /* Реакции */
+        .reactions-bar {
+            position: absolute;
+            bottom: 60px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: var(--bg-surface-elevated);
+            border: 1px solid var(--border-subtle);
+            border-radius: var(--radius-full);
+            padding: 4px 8px;
+            display: flex;
+            gap: 4px;
+            z-index: 100;
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
+        }
+
+        .reaction-item-btn {
+            background: transparent;
+            border: none;
+            font-size: 18px;
+            padding: 6px 8px;
+            cursor: pointer;
+            border-radius: var(--radius-full);
+            transition: transform 0.1s ease;
+        }
+
+        .reaction-item-btn:hover {
+            background: var(--bg-surface-hover);
+            transform: scale(1.15);
+        }
+
+        .p2p-float-item {
+            position: absolute;
+            font-size: 32px;
+            pointer-events: none;
+            z-index: 300;
+            animation: floatUp 1.8s cubic-bezier(0.2, 0.8, 0.3, 1) forwards;
+        }
+
+        @keyframes floatUp {
+            0% {
+                opacity: 0;
+                transform: translateY(20px) scale(0.5);
+            }
+
+            20% {
+                opacity: 1;
+                transform: translateY(0) scale(1.1);
+            }
+
+            80% {
+                opacity: 1;
+                transform: translateY(-70px) scale(1);
+            }
+
+            100% {
+                opacity: 0;
+                transform: translateY(-120px) scale(0.8);
+            }
+        }
+
+        .p2p-hidden {
+            display: none !important;
         }
 
         @media (max-width: 768px) {
+            .lobby-card {
+                grid-template-columns: 1fr;
+            }
+
+            .lobby-preview-pane {
+                border-right: none;
+                border-bottom: 1px solid var(--border-subtle);
+                padding: 16px;
+            }
+
             .chat-drawer {
                 position: absolute;
                 inset: 0;
                 width: 100%;
-                background: var(--p2p-surface);
+            }
+
+            .conf-grid {
+                grid-template-columns: repeat(auto-fit, minmax(min(100%, 140px), 1fr));
+                gap: 6px;
+            }
+
+            .conf-controls-bar {
+                padding: 6px 8px;
+                gap: 4px;
+                overflow-x: auto;
+            }
+
+            .studio-btn-dock {
+                min-width: 36px;
+                height: 36px;
+                padding: 0 6px;
             }
         }
     </style>
@@ -242,180 +740,201 @@
     <div class="p2p-toast" id="toast">Уведомление</div>
 
     <div class="conf-app" id="reactionContainer">
-        <!-- Шапка -->
-        <header class="p2p-header" style="padding: 6px 12px;">
-            <div class="p2p-logo" style="font-size: 16px;">🎥 DROPCONF</div>
-            <div class="p2p-header-actions">
-                <button class="p2p-btn p2p-btn-neutral p2p-btn-icon" id="btnLogToggle" title="Логи">📜</button>
-                <button class="p2p-btn p2p-btn-neutral p2p-btn-icon" id="btnSoundToggle" title="Звук UI">🔊</button>
-                <div class="p2p-badge p2p-badge-waiting" id="netBadge">🟡 СЕТЬ...</div>
+        <!-- 1. STUDIO HEADER -->
+        <header class="studio-header">
+            <div class="studio-logo-area">
+                <span class="gemini-sparkle">✦</span>
+                <div class="studio-title">
+                    DROPCONF <span class="studio-breadcrumb">/ WebRTC Mesh</span>
+                </div>
+            </div>
+            <div style="display: flex; gap: 8px; align-items: center;">
+                <button class="studio-btn-dock" id="btnLogToggle" title="Логи системы"
+                    style="height: 28px; padding: 0 8px; font-size: 11px;">
+                    <span class="material-symbols-outlined" style="font-size: 16px;">terminal</span> Logs
+                </button>
+                <div class="studio-badge" id="netBadge">
+                    <span class="status-dot"></span>
+                    <span id="netBadgeText">CONNECTING</span>
+                </div>
             </div>
         </header>
 
-        <!-- 1. ЭКРАН ЛОББИ -->
-        <div class="p2p-card" id="lobbyScreen"
-            style="flex: 1; display: flex; flex-direction: column; justify-content: center; overflow-y: auto;">
-            <div class="p2p-grid-2col" style="align-items: center; max-width: 750px; margin: 0 auto; width: 100%;">
-                <div style="display: flex; flex-direction: column; gap: 8px; align-items: center;">
-                    <div class="video-tile mirrored" style="width: 100%; max-width: 320px; aspect-ratio: 4/3;">
-                        <video id="previewVideo" autoplay playsinline muted></video>
-                        <div id="previewAvatar" class="tile-avatar" style="display: none;">😎</div>
+        <!-- 2. LOBBY SCREEN -->
+        <div class="lobby-container" id="lobbyScreen">
+            <div class="lobby-card">
+                <div class="lobby-preview-pane">
+                    <div class="video-tile mirrored" style="width: 100%; max-width: 280px; aspect-ratio: 4/3;">
+                        <video id="previewVideo" autoplay playsinline webkit-playsinline muted></video>
+                        <div id="previewAvatar" class="tile-avatar" style="display: none;">
+                            <span class="material-symbols-outlined" style="font-size: 32px;">person</span>
+                        </div>
                     </div>
-                    <div style="display: flex; gap: 8px; width: 100%; max-width: 320px;">
-                        <button class="p2p-btn p2p-btn-warning" id="btnTogglePreviewMic" style="padding: 8px;">🎤
-                            Микрофон</button>
-                        <button class="p2p-btn p2p-btn-warning" id="btnTogglePreviewCam" style="padding: 8px;">📷
-                            Камера</button>
+                    <div style="display: flex; gap: 8px; width: 100%; max-width: 280px;">
+                        <button class="studio-btn-secondary" id="btnTogglePreviewMic" style="flex: 1; padding: 6px;">
+                            <span class="material-symbols-outlined">mic</span> Mic
+                        </button>
+                        <button class="studio-btn-secondary" id="btnTogglePreviewCam" style="flex: 1; padding: 6px;">
+                            <span class="material-symbols-outlined">videocam</span> Cam
+                        </button>
                     </div>
                 </div>
 
-                <div style="display: flex; flex-direction: column; gap: 10px; justify-content: center; width: 100%;">
+                <div class="lobby-settings-pane">
                     <div>
                         <div
-                            style="font-size: 12px; font-weight: 700; color: var(--p2p-text-muted); margin-bottom: 2px;">
-                            ТВОЁ ИМЯ:</div>
-                        <input type="text" class="p2p-input" id="inputUserName" placeholder="Введите имя..."
-                            maxlength="15">
+                            style="font-size: 11px; font-family: var(--font-mono); color: var(--text-muted); margin-bottom: 6px; text-transform: uppercase;">
+                            USER IDENTITY
+                        </div>
+                        <input type="text" class="studio-input" id="inputUserName" placeholder="Ваше имя..."
+                            style="width: 100%;" maxlength="15">
                     </div>
-                    <div class="p2p-divider"></div>
-                    <button class="p2p-btn p2p-btn-success" id="btnCreateRoom">🚀 Создать комнату</button>
-                    <div style="text-align: center; font-weight: 800; font-size: 11px; color: var(--p2p-text-muted);">
-                        ИЛИ ВОЙТИ ПО КОДУ</div>
+
+                    <button class="studio-btn-primary" id="btnCreateRoom">
+                        <span class="material-symbols-outlined">add</span> Создать новую сессию
+                    </button>
+
+                    <div style="display: flex; align-items: center; gap: 10px; margin: 4px 0;">
+                        <div style="flex: 1; height: 1px; background: var(--border-subtle);"></div>
+                        <span style="font-size: 11px; font-family: var(--font-mono); color: var(--text-muted);">OR
+                            JOIN</span>
+                        <div style="flex: 1; height: 1px; background: var(--border-subtle);"></div>
+                    </div>
+
                     <div style="display: flex; gap: 6px;">
-                        <input type="text" class="p2p-input p2p-input-code" id="inputRoomCode" placeholder="КОД"
-                            maxlength="5">
-                        <button class="p2p-btn p2p-btn-info" id="btnJoinRoom"
-                            style="width: auto; padding: 0 16px;">Войти</button>
+                        <input type="text" class="studio-input" id="inputRoomCode" placeholder="ROOM CODE" maxlength="5"
+                            style="font-family: var(--font-mono); font-weight: 700; letter-spacing: 2px; text-align: center;">
+                        <button class="studio-btn-secondary" id="btnJoinRoom">Присоединиться</button>
                     </div>
                 </div>
             </div>
         </div>
 
-        <!-- 2. ЭКРАН ЗВОНКА -->
+        <!-- 3. CONFERENCE SCREEN -->
         <div id="conferenceScreen" class="p2p-hidden"
-            style="flex: 1; display: flex; flex-direction: column; gap: 6px; overflow: hidden; min-height: 0;">
+            style="flex: 1; display: flex; flex-direction: column; overflow: hidden; min-height: 0;">
             <div class="conf-main-area">
-                <!-- Сетка стримов (Камеры и Экраны) -->
-                <div class="conf-grid" id="videoGrid">
-                    <!-- Локальная камера -->
-                    <div class="video-tile mirrored" id="localCamTile">
-                        <video id="localVideo" autoplay playsinline muted></video>
-                        <div id="myAvatar" class="tile-avatar" style="display: none;">😎</div>
-                        <div class="tile-overlay">
-                            <div class="tile-top-actions">
-                                <button class="tile-action-btn btn-spotlight" title="Закрепить поток"
-                                    onclick="toggleSpotlight('localCamTile')">📌</button>
-                                <button class="tile-action-btn btn-fullscreen" title="На весь экран"
-                                    onclick="toggleNativeFullscreen('localCamTile')">⛶</button>
+                <div class="conf-video-container" id="videoWrapper">
+                    <!-- Главный слот Spotlight -->
+                    <div class="spotlight-main-slot p2p-hidden" id="spotlightSlot"></div>
+
+                    <!-- Основная сетка карточек -->
+                    <div class="conf-grid" id="videoGrid">
+                        <!-- Локальная камера -->
+                        <div class="video-tile mirrored" id="tile-cam-local">
+                            <video id="localVideo" autoplay playsinline webkit-playsinline muted></video>
+                            <div id="myAvatar" class="tile-avatar" style="display: none;">
+                                <span class="material-symbols-outlined" style="font-size: 32px;">person</span>
                             </div>
-                            <div class="tile-tag">
-                                <span id="myTagMic">🎤</span>
-                                <span id="myTagName">Вы</span>
+                            <div class="tile-overlay">
+                                <div class="tile-top-actions">
+                                    <button class="tile-action-btn" title="Pin stream"
+                                        onclick="toggleSpotlight('tile-cam-local')">
+                                        <span class="material-symbols-outlined">keep</span>
+                                    </button>
+                                    <button class="tile-action-btn" title="Fullscreen"
+                                        onclick="toggleNativeFullscreen('tile-cam-local')">
+                                        <span class="material-symbols-outlined">fullscreen</span>
+                                    </button>
+                                </div>
+                                <div class="tile-tag">
+                                    <span id="myTagMic" class="material-symbols-outlined"
+                                        style="font-size: 14px; color: var(--google-green);">mic</span>
+                                    <span id="myTagName">Вы</span>
+                                </div>
                             </div>
                         </div>
                     </div>
+
+                    <!-- Лента миниатюр для Spotlight -->
+                    <div class="spotlight-strip p2p-hidden" id="spotlightStrip"></div>
                 </div>
 
-                <!-- Панель чата -->
-                <div class="p2p-card chat-drawer p2p-hidden" id="chatPanel">
-                    <div
-                        style="padding: 8px 12px; background: var(--p2p-surface-muted); font-weight: 800; font-size: 12px; border-bottom: 2px solid var(--p2p-border); display: flex; justify-content: space-between;">
-                        <span>💬 ЧАТ ЗВОНКА</span>
-                        <span style="cursor: pointer;" id="btnCloseChat">✖</span>
+                <!-- ЧАТ В СТИЛЕ INSPECTOR -->
+                <div class="chat-drawer p2p-hidden" id="chatPanel">
+                    <div class="chat-header">
+                        <span style="display: flex; align-items: center; gap: 6px;">
+                            <span class="material-symbols-outlined">chat_bubble</span> Session Chat
+                        </span>
+                        <button class="tile-action-btn" id="btnCloseChat">
+                            <span class="material-symbols-outlined">close</span>
+                        </button>
                     </div>
-                    <div id="chatMessages"
-                        style="flex: 1; padding: 8px; overflow-y: auto; display: flex; flex-direction: column; gap: 6px;">
-                    </div>
-                    <div style="padding: 6px; border-top: 2px solid var(--p2p-border); display: flex; gap: 4px;">
-                        <input type="text" id="inputChatMessage" class="p2p-input"
-                            style="padding: 6px 8px; font-size: 12px;" placeholder="Сообщение...">
-                        <button class="p2p-btn p2p-btn-success p2p-btn-icon" id="btnSendChat">➤</button>
+                    <div class="chat-messages" id="chatMessages"></div>
+                    <div class="chat-input-box">
+                        <input type="text" id="inputChatMessage" class="studio-input" placeholder="Type a message...">
+                        <button class="studio-btn-primary" id="btnSendChat" style="padding: 0 12px;">
+                            <span class="material-symbols-outlined">send</span>
+                        </button>
                     </div>
                 </div>
             </div>
 
-            <!-- Реакции -->
-            <div class="p2p-card p2p-hidden" id="reactionBar"
-                style="position: absolute; bottom: 65px; left: 50%; transform: translateX(-50%); padding: 6px 10px; display: flex; gap: 6px; z-index: 100;">
-                <button class="p2p-btn p2p-btn-neutral p2p-btn-icon reaction-btn" data-emoji="👍">👍</button>
-                <button class="p2p-btn p2p-btn-neutral p2p-btn-icon reaction-btn" data-emoji="❤️">❤️</button>
-                <button class="p2p-btn p2p-btn-neutral p2p-btn-icon reaction-btn" data-emoji="😂">😂</button>
-                <button class="p2p-btn p2p-btn-neutral p2p-btn-icon reaction-btn" data-emoji="🔥">🔥</button>
-                <button class="p2p-btn p2p-btn-neutral p2p-btn-icon reaction-btn" data-emoji="🎉">🎉</button>
-                <button class="p2p-btn p2p-btn-neutral p2p-btn-icon reaction-btn" data-emoji="👏">👏</button>
+            <!-- ПАНЕЛЬ РЕАКЦИЙ -->
+            <div class="reactions-bar p2p-hidden" id="reactionBar">
+                <button class="reaction-item-btn" data-emoji="👍">👍</button>
+                <button class="reaction-item-btn" data-emoji="❤️">❤️</button>
+                <button class="reaction-item-btn" data-emoji="😂">😂</button>
+                <button class="reaction-item-btn" data-emoji="🔥">🔥</button>
+                <button class="reaction-item-btn" data-emoji="🎉">🎉</button>
+                <button class="reaction-item-btn" data-emoji="👏">👏</button>
             </div>
 
-            <!-- Панель управления -->
+            <!-- 4. CONTROLS DOCK -->
             <div class="conf-controls-bar">
-                <button class="p2p-btn p2p-btn-neutral ctrl-btn" id="btnMicToggle" title="Микрофон">🎤</button>
-                <button class="p2p-btn p2p-btn-neutral ctrl-btn" id="btnCamToggle" title="Камера">📷</button>
-                <button class="p2p-btn p2p-btn-neutral ctrl-btn" id="btnScreenShare"
-                    title="Поделиться экраном">🖥️</button>
-                <button class="p2p-btn p2p-btn-neutral ctrl-btn" id="btnReactionToggle" title="Реакции">🎉</button>
-                <button class="p2p-btn p2p-btn-neutral ctrl-btn" id="btnChatToggle" title="Чат">💬</button>
-                <button class="p2p-btn p2p-btn-neutral ctrl-btn" id="btnInviteInfo" title="Пригласить">🔗</button>
-                <button class="p2p-btn p2p-btn-danger" id="btnLeaveCall"
-                    style="width: auto; padding: 0 14px; height: 44px;">🔴 Выйти</button>
+                <button class="studio-btn-dock" id="btnMicToggle" title="Microphone">
+                    <span class="material-symbols-outlined">mic</span>
+                </button>
+                <button class="studio-btn-dock" id="btnCamToggle" title="Camera">
+                    <span class="material-symbols-outlined">videocam</span>
+                </button>
+                <button class="studio-btn-dock" id="btnScreenShare" title="Share Screen">
+                    <span class="material-symbols-outlined">present_to_all</span>
+                </button>
+                <button class="studio-btn-dock" id="btnReactionToggle" title="Reactions">
+                    <span class="material-symbols-outlined">add_reaction</span>
+                </button>
+                <button class="studio-btn-dock" id="btnChatToggle" title="Chat">
+                    <span class="material-symbols-outlined">chat</span>
+                </button>
+                <button class="studio-btn-dock" id="btnInviteInfo" title="Session Info">
+                    <span class="material-symbols-outlined">link</span>
+                </button>
+                <button class="studio-btn-dock studio-btn-danger" id="btnLeaveCall" title="Leave">
+                    <span class="material-symbols-outlined">call_end</span> End Call
+                </button>
             </div>
         </div>
 
-        <!-- Модалка инвайта -->
+        <!-- 5. МОДАЛЬНОЕ ОКНО ССЫЛКИ -->
         <div class="p2p-modal-backdrop p2p-hidden" id="inviteModal">
-            <div class="p2p-modal" style="max-width: 320px;">
-                <div style="font-size: 16px; font-weight: 900; color: var(--p2p-color-primary);">КОД КОМНАТЫ</div>
-                <div style="font-size: 24px; font-weight: 900; letter-spacing: 2px; color: var(--p2p-color-info); margin: 4px 0;"
+            <div class="studio-modal">
+                <div style="font-size: 12px; font-family: var(--font-mono); color: var(--text-muted);">SESSION
+                    INVITATION</div>
+                <div style="font-size: 26px; font-family: var(--font-mono); font-weight: 700; letter-spacing: 2px; color: var(--google-blue);"
                     id="modalRoomCode">...</div>
-                <div id="modalQrCode" style="display: flex; justify-content: center; margin: 6px 0;"></div>
-                <button class="p2p-btn p2p-btn-warning" id="btnCopyInviteLink" style="margin-bottom: 6px;">📋
-                    Скопировать ссылку</button>
-                <button class="p2p-btn p2p-btn-info" id="btnCloseInviteModal">Закрыть</button>
+                <div id="modalQrCode"
+                    style="display: flex; justify-content: center; padding: 10px; background: #fff; border-radius: var(--radius-sm); margin: 4px auto; width: fit-content;">
+                </div>
+                <button class="studio-btn-primary" id="btnCopyInviteLink">
+                    <span class="material-symbols-outlined">content_copy</span> Копировать ссылку
+                </button>
+                <button class="studio-btn-secondary" id="btnCloseInviteModal">Закрыть</button>
             </div>
         </div>
 
-        <!-- Лог консоль -->
+        <!-- КОНСОЛЬ ЛОГОВ -->
         <div class="p2p-card p2p-hidden" id="logConsole"
-            style="position: absolute; bottom: 65px; left: 10px; right: 10px; background: #222f3e; color: #1dd1a1; font-family: monospace; font-size: 10px; max-height: 100px; overflow-y: auto; z-index: 200;">
-            LOG: Инициализация...
+            style="position: absolute; bottom: 65px; left: 16px; right: 16px; background: #0e0e10; border: 1px solid var(--border-subtle); color: var(--google-green); font-family: var(--font-mono); font-size: 11px; max-height: 120px; overflow-y: auto; z-index: 2000; border-radius: var(--radius-sm); padding: 8px;">
+            > System initialized...
         </div>
     </div>
 
     <script>
-        /* 1. AUDIO FEEDBACK */
-        const AudioFX = {
-            ctx: null, muted: false,
-            init() { if (!this.ctx) this.ctx = new (window.AudioContext || window.webkitAudioContext)(); },
-            playPop() {
-                if (this.muted || !this.ctx) return;
-                const osc = this.ctx.createOscillator(), gain = this.ctx.createGain();
-                osc.type = 'sine'; osc.frequency.setValueAtTime(450, this.ctx.currentTime);
-                gain.gain.setValueAtTime(0.2, this.ctx.currentTime); gain.gain.linearRampToValueAtTime(0.01, this.ctx.currentTime + 0.08);
-                osc.connect(gain); gain.connect(this.ctx.destination); osc.start(); osc.stop(this.ctx.currentTime + 0.08);
-            },
-            playJoin() {
-                if (this.muted || !this.ctx) return;
-                [440, 554.37, 659.25].forEach((f, i) => setTimeout(() => {
-                    if (this.muted || !this.ctx) return;
-                    const osc = this.ctx.createOscillator(), gain = this.ctx.createGain();
-                    osc.type = 'triangle'; osc.frequency.setValueAtTime(f, this.ctx.currentTime);
-                    gain.gain.setValueAtTime(0.15, this.ctx.currentTime); gain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + 0.2);
-                    osc.connect(gain); gain.connect(this.ctx.destination); osc.start(); osc.stop(this.ctx.currentTime + 0.2);
-                }, i * 70));
-            }
-        };
-        window.addEventListener('click', () => AudioFX.init(), { once: true });
-
-        const logConsole = document.getElementById('logConsole');
-        document.getElementById('btnLogToggle').onclick = () => logConsole.classList.toggle('p2p-hidden');
-        function sysLog(text) {
-            console.log(text);
-            const time = new Date().toTimeString().split(' ')[0];
-            logConsole.innerHTML = `[${time}] ${text}<br>` + logConsole.innerHTML;
-        }
-
-        /* 2. STATE & NET */
+        /* 1. STATE & NET */
         const net = new P2PNet({ appPrefix: 'dropconf', mode: 'mesh', debug: true });
 
-        let myName = "Участник";
+        let myName = "User";
         let isCamOn = true;
         let isMicOn = true;
         let isScreenSharing = false;
@@ -424,6 +943,7 @@
 
         const toast = document.getElementById('toast');
         const netBadge = document.getElementById('netBadge');
+        const netBadgeText = document.getElementById('netBadgeText');
         const lobbyScreen = document.getElementById('lobbyScreen');
         const conferenceScreen = document.getElementById('conferenceScreen');
         const previewVideo = document.getElementById('previewVideo');
@@ -435,6 +955,8 @@
         const myTagName = document.getElementById('myTagName');
         const myTagMic = document.getElementById('myTagMic');
         const videoGrid = document.getElementById('videoGrid');
+        const spotlightSlot = document.getElementById('spotlightSlot');
+        const spotlightStrip = document.getElementById('spotlightStrip');
 
         const btnMicToggle = document.getElementById('btnMicToggle');
         const btnCamToggle = document.getElementById('btnCamToggle');
@@ -445,30 +967,59 @@
         const chatPanel = document.getElementById('chatPanel');
         const chatMessages = document.getElementById('chatMessages');
         const inputChatMessage = document.getElementById('inputChatMessage');
+        const logConsole = document.getElementById('logConsole');
 
-        function showToast(msg) { toast.textContent = msg; toast.classList.add('show'); setTimeout(() => toast.classList.remove('show'), 2200); }
+        document.getElementById('btnLogToggle').onclick = () => logConsole.classList.toggle('p2p-hidden');
+        function sysLog(text) {
+            console.log(text);
+            const time = new Date().toTimeString().split(' ')[0];
+            logConsole.innerHTML = `> [${time}] ${text}<br>` + logConsole.innerHTML;
+        }
 
-        /* 3. ИНИЦИАЛИЗАЦИЯ МЕДИА */
+        function showToast(msg) {
+            toast.textContent = msg;
+            toast.classList.add('show');
+            setTimeout(() => toast.classList.remove('show'), 2200);
+        }
+
+        /* 2. ADAPTIVE MEDIA INITIALIZATION */
+        async function getSafeUserMedia(constraints) {
+            try {
+                return await navigator.mediaDevices.getUserMedia(constraints);
+            } catch (err) {
+                sysLog("Fallback media constraints: " + err.message);
+                return await navigator.mediaDevices.getUserMedia({
+                    video: constraints.video ? { facingMode: 'user' } : false,
+                    audio: constraints.audio ? true : false
+                });
+            }
+        }
+
         async function initPreview() {
             try {
-                const stream = await net.startMedia({ video: { width: 1280, height: 720 }, audio: true });
+                const stream = await getSafeUserMedia({
+                    video: { width: { ideal: 1280 }, height: { ideal: 720 }, facingMode: 'user' },
+                    audio: true
+                });
+                net.localStream = stream;
                 previewVideo.srcObject = stream;
                 localVideo.srcObject = stream;
+                previewVideo.play().catch(() => { });
+                localVideo.play().catch(() => { });
             } catch (e) {
-                sysLog("Камера/микрофон не получены: " + e.message);
+                sysLog("Devices unavailable: " + e.message);
                 isCamOn = false;
                 isMicOn = false;
-                previewAvatar.style.display = 'block';
-                myAvatar.style.display = 'block';
+                previewAvatar.style.display = 'flex';
+                myAvatar.style.display = 'flex';
                 btnCamToggle.classList.add('off');
                 btnMicToggle.classList.add('off');
             }
         }
 
-        /* 4. УПРАВЛЕНИЕ ЖЕЛЕЗОМ (ПОЛНОЕ ВЫКЛЮЧЕНИЕ / ВКЛЮЧЕНИЕ ТРЕКОВ) */
+        /* 3. DEVICE HARDWARE TOGGLE */
         async function toggleCamera() {
             if (isCamOn) {
-                // Полностью глушим железо (светодиод камеры гаснет)
                 if (net.localStream) {
                     net.localStream.getVideoTracks().forEach(t => {
                         t.stop();
@@ -478,16 +1029,17 @@
                 isCamOn = false;
                 localVideo.srcObject = null;
                 previewVideo.srcObject = null;
-                myAvatar.style.display = 'block';
-                previewAvatar.style.display = 'block';
+                myAvatar.style.display = 'flex';
+                previewAvatar.style.display = 'flex';
                 btnCamToggle.classList.add('off');
-                btnCamToggle.innerHTML = '🚫 📷';
+                btnCamToggle.innerHTML = '<span class="material-symbols-outlined">videocam_off</span>';
                 net.broadcast({ type: 'CAM_STATUS', isCamOn: false });
-                sysLog("Камера выключена (железо освобождено)");
             } else {
-                // Заново запрашиваем видеопоток у операционной системы
                 try {
-                    const freshStream = await navigator.mediaDevices.getUserMedia({ video: { width: 1280, height: 720 } });
+                    const freshStream = await getSafeUserMedia({
+                        video: { width: { ideal: 1280 }, height: { ideal: 720 }, facingMode: 'user' },
+                        audio: false
+                    });
                     const newVideoTrack = freshStream.getVideoTracks()[0];
 
                     if (!net.localStream) {
@@ -505,21 +1057,18 @@
                     previewAvatar.style.display = 'none';
                     isCamOn = true;
                     btnCamToggle.classList.remove('off');
-                    btnCamToggle.innerHTML = '📷';
+                    btnCamToggle.innerHTML = '<span class="material-symbols-outlined">videocam</span>';
 
-                    // Подменяем трек во всех активных звонках
                     net.replaceTrack(newVideoTrack, 'video');
                     net.broadcast({ type: 'CAM_STATUS', isCamOn: true });
-                    sysLog("Камера включена заново");
                 } catch (err) {
-                    showToast("Не удалось включить камеру: " + err.message);
+                    showToast("Camera error: " + err.message);
                 }
             }
         }
 
         async function toggleMicrophone() {
             if (isMicOn) {
-                // Полностью глушим микрофон
                 if (net.localStream) {
                     net.localStream.getAudioTracks().forEach(t => {
                         t.stop();
@@ -527,16 +1076,18 @@
                     });
                 }
                 isMicOn = false;
-                myTagMic.textContent = '🔇';
+                myTagMic.textContent = 'mic_off';
+                myTagMic.style.color = 'var(--google-red)';
                 btnMicToggle.classList.add('off');
-                btnMicToggle.innerHTML = '🚫 🎤';
-                document.getElementById('btnTogglePreviewMic').textContent = '🔇 Выкл';
+                btnMicToggle.innerHTML = '<span class="material-symbols-outlined">mic_off</span>';
+                document.getElementById('btnTogglePreviewMic').innerHTML = '<span class="material-symbols-outlined">mic_off</span> Off';
                 net.broadcast({ type: 'MIC_STATUS', isMicOn: false });
-                sysLog("Микрофон выключен (железо освобождено)");
             } else {
-                // Заново запрашиваем аудиопоток
                 try {
-                    const freshStream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true } });
+                    const freshStream = await getSafeUserMedia({
+                        video: false,
+                        audio: { echoCancellation: true, noiseSuppression: true }
+                    });
                     const newAudioTrack = freshStream.getAudioTracks()[0];
 
                     if (!net.localStream) {
@@ -546,17 +1097,16 @@
                     }
 
                     isMicOn = true;
-                    myTagMic.textContent = '🎤';
+                    myTagMic.textContent = 'mic';
+                    myTagMic.style.color = 'var(--google-green)';
                     btnMicToggle.classList.remove('off');
-                    btnMicToggle.innerHTML = '🎤';
-                    document.getElementById('btnTogglePreviewMic').textContent = '🎤 Микрофон';
+                    btnMicToggle.innerHTML = '<span class="material-symbols-outlined">mic</span>';
+                    document.getElementById('btnTogglePreviewMic').innerHTML = '<span class="material-symbols-outlined">mic</span> Mic';
 
-                    // Подменяем аудиотрек в звонках
                     net.replaceTrack(newAudioTrack, 'audio');
                     net.broadcast({ type: 'MIC_STATUS', isMicOn: true });
-                    sysLog("Микрофон включен заново");
                 } catch (err) {
-                    showToast("Не удалось включить микрофон: " + err.message);
+                    showToast("Microphone error: " + err.message);
                 }
             }
         }
@@ -566,41 +1116,31 @@
         document.getElementById('btnTogglePreviewCam').onclick = toggleCamera;
         document.getElementById('btnTogglePreviewMic').onclick = toggleMicrophone;
 
-        /* 5. НЕЗАВИСИМАЯ ДЕМОНСТРАЦИЯ ЭКРАНА СО ЗВУКОМ */
+        /* 4. SCREEN SHARING */
         async function toggleScreenShare() {
             if (isScreenSharing) {
                 stopScreenShare();
             } else {
                 if (!navigator.mediaDevices || !navigator.mediaDevices.getDisplayMedia) {
-                    return showToast("Экран не поддерживается на данном устройстве");
+                    return showToast("Screen sharing not supported on this device");
                 }
 
                 try {
-                    // Запрашиваем экран и звук вкладки/системы
                     screenStream = await navigator.mediaDevices.getDisplayMedia({
                         video: { cursor: "always" },
                         audio: true
                     });
 
                     isScreenSharing = true;
-                    btnScreenShare.classList.add('active-screen');
-                    btnScreenShare.innerHTML = '🛑 Экран';
+                    btnScreenShare.classList.add('active');
+                    btnScreenShare.innerHTML = '<span class="material-symbols-outlined">stop_screen_share</span>';
 
-                    // 1. Создаем отдельную плитку для своего экрана
-                    addOrUpdateScreenTile('local-screen', screenStream, `${myName} (Экран)`, true);
-
-                    // 2. Рассылаем экран как отдельный медиапоток всем участникам
+                    addOrUpdateScreenTile('local', screenStream, `${myName} (Screen)`, true);
                     net.startScreenShare(screenStream, myName);
 
-                    // Обработка кнопки "Остановить показ" в браузере
-                    screenStream.getVideoTracks()[0].onended = () => {
-                        stopScreenShare();
-                    };
-                    sysLog("Экран и аудио транслируются отдельным потоком");
+                    screenStream.getVideoTracks()[0].onended = () => stopScreenShare();
                 } catch (err) {
-                    if (err.name !== 'NotAllowedError') {
-                        showToast("Ошибка экрана: " + err.message);
-                    }
+                    if (err.name !== 'NotAllowedError') showToast("Screen share error: " + err.message);
                 }
             }
         }
@@ -611,18 +1151,16 @@
                 screenStream = null;
             }
             isScreenSharing = false;
-            btnScreenShare.classList.remove('active-screen');
-            btnScreenShare.innerHTML = '🖥️';
+            btnScreenShare.classList.remove('active');
+            btnScreenShare.innerHTML = '<span class="material-symbols-outlined">present_to_all</span>';
 
-            // Удаляем свою плитку экрана
-            removeTile('tile-local-screen');
+            removeTile('tile-screen-local');
             net.stopScreenShare();
-            sysLog("Демонстрация экрана остановлена");
         }
 
         btnScreenShare.onclick = toggleScreenShare;
 
-        /* 6. УПРАВЛЕНИЕ КАРТОЧКАМИ В СЕТКЕ (ПОЛНОЭКРАННЫЙ РЕЖИМ И SPOTLIGHT) */
+        /* 5. TILE MANAGEMENT, SPOTLIGHT & FULLSCREEN */
         function addOrUpdateCamTile(peerId, stream, participantName) {
             const tileId = `tile-cam-${peerId}`;
             let tile = document.getElementById(tileId);
@@ -632,27 +1170,32 @@
                 tile.className = 'video-tile mirrored';
                 tile.id = tileId;
                 tile.innerHTML = `
-                    <video id="video-cam-${peerId}" autoplay playsinline style="width:100%; height:100%;"></video>
-                    <div id="avatar-cam-${peerId}" class="tile-avatar" style="display:none;">😎</div>
+                    <video id="video-cam-${peerId}" autoplay playsinline webkit-playsinline></video>
+                    <div id="avatar-cam-${peerId}" class="tile-avatar" style="display:none;">
+                        <span class="material-symbols-outlined" style="font-size:32px;">person</span>
+                    </div>
                     <div class="tile-overlay">
                         <div class="tile-top-actions">
-                            <button class="tile-action-btn" title="Закрепить" onclick="toggleSpotlight('${tileId}')">📌</button>
-                            <button class="tile-action-btn" title="Во весь экран" onclick="toggleNativeFullscreen('${tileId}')">⛶</button>
+                            <button class="tile-action-btn" title="Pin stream" onclick="toggleSpotlight('${tileId}')">
+                                <span class="material-symbols-outlined">keep</span>
+                            </button>
+                            <button class="tile-action-btn" title="Fullscreen" onclick="toggleNativeFullscreen('${tileId}')">
+                                <span class="material-symbols-outlined">fullscreen</span>
+                            </button>
                         </div>
                         <div class="tile-tag">
-                            <span id="mic-cam-${peerId}">🎤</span>
-                            <span>${participantName || 'Участник'}</span>
+                            <span id="mic-cam-${peerId}" class="material-symbols-outlined" style="font-size:14px; color:var(--google-green);">mic</span>
+                            <span>${participantName || 'Participant'}</span>
                         </div>
                     </div>
                 `;
-                videoGrid.appendChild(tile);
-                AudioFX.playJoin();
+                appendTileProperly(tile);
             }
 
             const videoEl = document.getElementById(`video-cam-${peerId}`);
             if (videoEl && stream) {
                 videoEl.srcObject = stream;
-                videoEl.play().catch(e => sysLog("Autoplay cam: " + e));
+                videoEl.play().catch(() => { });
             }
         }
 
@@ -665,113 +1208,181 @@
                 tile.className = 'video-tile screen-tile';
                 tile.id = tileId;
                 tile.innerHTML = `
-                    <video id="video-screen-${peerId}" autoplay playsinline ${isLocal ? 'muted' : ''} style="width:100%; height:100%;"></video>
+                    <video id="video-screen-${peerId}" autoplay playsinline webkit-playsinline ${isLocal ? 'muted' : ''}></video>
                     <div class="tile-overlay">
                         <div class="tile-top-actions">
-                            <button class="tile-action-btn" title="Закрепить" onclick="toggleSpotlight('${tileId}')">📌</button>
-                            <button class="tile-action-btn" title="Во весь экран" onclick="toggleNativeFullscreen('${tileId}')">⛶</button>
+                            <button class="tile-action-btn" title="Pin stream" onclick="toggleSpotlight('${tileId}')">
+                                <span class="material-symbols-outlined">keep</span>
+                            </button>
+                            <button class="tile-action-btn" title="Fullscreen" onclick="toggleNativeFullscreen('${tileId}')">
+                                <span class="material-symbols-outlined">fullscreen</span>
+                            </button>
                         </div>
-                        <div class="tile-tag" style="background: rgba(9, 132, 227, 0.9);">
-                            <span>🖥️</span>
-                            <span>${titleName || 'Демонстрация экрана'}</span>
+                        <div class="tile-tag" style="border-color: rgba(168, 199, 250, 0.4);">
+                            <span class="material-symbols-outlined" style="font-size:14px; color:var(--google-blue);">screen_share</span>
+                            <span>${titleName || 'Screen'}</span>
                         </div>
                     </div>
                 `;
-                videoGrid.appendChild(tile);
-                AudioFX.playJoin();
+                appendTileProperly(tile);
             }
 
             const videoEl = document.getElementById(`video-screen-${peerId}`);
             if (videoEl && stream) {
                 videoEl.srcObject = stream;
-                videoEl.play().catch(e => sysLog("Autoplay screen: " + e));
+                if (!isLocal) {
+                    videoEl.muted = false;
+                    videoEl.volume = 1.0;
+                }
+                videoEl.play().catch(() => { });
+            }
+        }
+
+        function appendTileProperly(tile) {
+            if (activeSpotlightId) {
+                spotlightStrip.appendChild(tile);
+            } else {
+                videoGrid.appendChild(tile);
             }
         }
 
         function removeTile(tileId) {
             const tile = document.getElementById(tileId);
-            if (tile) {
-                if (activeSpotlightId === tileId) {
-                    toggleSpotlight(tileId);
-                }
-                tile.remove();
-            }
+            if (!tile) return;
+            if (activeSpotlightId === tileId) toggleSpotlight(tileId);
+            tile.remove();
         }
 
-        // Spotlight (закрепление видео в центре интерфейса)
         window.toggleSpotlight = function (tileId) {
             const tile = document.getElementById(tileId);
             if (!tile) return;
 
             if (activeSpotlightId === tileId) {
-                tile.classList.remove('spotlight');
-                videoGrid.classList.remove('has-spotlight');
+                spotlightSlot.innerHTML = '';
+                spotlightSlot.classList.add('p2p-hidden');
+                spotlightStrip.classList.add('p2p-hidden');
+
+                const stripTiles = Array.from(spotlightStrip.children);
+                stripTiles.forEach(t => videoGrid.appendChild(t));
+                videoGrid.appendChild(tile);
+                videoGrid.classList.remove('p2p-hidden');
+
                 activeSpotlightId = null;
             } else {
                 if (activeSpotlightId) {
                     const prev = document.getElementById(activeSpotlightId);
-                    if (prev) prev.classList.remove('spotlight');
+                    if (prev) spotlightStrip.appendChild(prev);
                 }
-                tile.classList.add('spotlight');
-                videoGrid.classList.add('has-spotlight');
+
+                const allTiles = Array.from(videoGrid.children);
+                allTiles.forEach(t => {
+                    if (t.id !== tileId) spotlightStrip.appendChild(t);
+                });
+
+                videoGrid.classList.add('p2p-hidden');
+                spotlightSlot.innerHTML = '';
+                spotlightSlot.appendChild(tile);
+
+                spotlightSlot.classList.remove('p2p-hidden');
+                spotlightStrip.classList.remove('p2p-hidden');
                 activeSpotlightId = tileId;
             }
         };
 
-        // Fullscreen API (на весь дисплей устройства)
         window.toggleNativeFullscreen = function (tileId) {
             const tile = document.getElementById(tileId);
             if (!tile) return;
 
-            if (!document.fullscreenElement) {
-                if (tile.requestFullscreen) tile.requestFullscreen();
-                else if (tile.webkitRequestFullscreen) tile.webkitRequestFullscreen();
+            if (tile.classList.contains('pseudo-fullscreen')) {
+                tile.classList.remove('pseudo-fullscreen');
+                return;
+            }
+
+            if (!document.fullscreenElement && !document.webkitFullscreenElement) {
+                if (tile.requestFullscreen) {
+                    tile.requestFullscreen().catch(() => tile.classList.add('pseudo-fullscreen'));
+                } else if (tile.webkitRequestFullscreen) {
+                    tile.webkitRequestFullscreen();
+                } else {
+                    tile.classList.add('pseudo-fullscreen');
+                }
             } else {
                 if (document.exitFullscreen) document.exitFullscreen();
+                else if (document.webkitExitFullscreen) document.webkitExitFullscreen();
             }
         };
 
-        /* 7. ВХОД И СОЗДАНИЕ КОМНАТЫ */
+        /* 6. JOIN / LEAVE LIFECYCLE */
         document.getElementById('btnCreateRoom').onclick = async () => {
-            AudioFX.playPop();
             prepareJoin();
             try {
                 const code = await net.createRoom();
-                netBadge.innerHTML = `🟢 ${code}`;
-                netBadge.className = "p2p-badge p2p-badge-online";
-                showToast("Комната создана!");
+                setRoomStatus(code);
+                showToast("Сессия успешно создана");
             } catch (err) {
                 alert("Ошибка: " + err.message);
+                leaveConference();
             }
         };
 
         document.getElementById('btnJoinRoom').onclick = () => {
-            AudioFX.playPop();
             const code = inputRoomCode.value.trim();
-            if (code.length < 3) return showToast("Введите код!");
+            if (code.length < 3) return showToast("Введите код сессии");
             prepareJoin();
-            net.joinRoom(code, { name: myName }).catch(err => {
-                alert("Не удалось войти в конференцию");
-                location.reload();
+            net.joinRoom(code, { name: myName }).then(() => {
+                setRoomStatus(code);
+            }).catch(err => {
+                alert("Не удалось подключиться: " + err.message);
+                leaveConference();
             });
         };
 
         function prepareJoin() {
-            myName = inputUserName.value.trim() || ("Кот-" + Math.floor(Math.random() * 900 + 100));
+            myName = inputUserName.value.trim() || ("User-" + Math.floor(Math.random() * 900 + 100));
             myTagName.textContent = myName + " (Вы)";
             lobbyScreen.classList.add('p2p-hidden');
             conferenceScreen.classList.remove('p2p-hidden');
         }
 
-        /* 8. P2P СОБЫТИЯ */
+        function setRoomStatus(code) {
+            netBadge.className = "studio-badge online";
+            netBadgeText.textContent = `ROOM: ${code}`;
+        }
+
+        function leaveConference() {
+            if (activeSpotlightId) toggleSpotlight(activeSpotlightId);
+            stopScreenShare();
+
+            const tiles = document.querySelectorAll('.video-tile:not(#tile-cam-local)');
+            tiles.forEach(t => t.remove());
+
+            net.destroy(true);
+
+            conferenceScreen.classList.add('p2p-hidden');
+            lobbyScreen.classList.remove('p2p-hidden');
+            netBadge.className = "studio-badge";
+            netBadgeText.textContent = "STANDBY";
+        }
+
+        document.getElementById('btnLeaveCall').onclick = leaveConference;
+
+        /* 7. P2P EVENTS */
         net.on('status', ({ online }) => {
-            netBadge.innerHTML = online ? (net.roomId ? `🟢 ${net.roomId}` : `🟢 ОНЛАЙН`) : "🟡 СЕТЬ...";
-            netBadge.className = online ? "p2p-badge p2p-badge-online" : "p2p-badge p2p-badge-waiting";
+            if (online) {
+                if (net.roomId) setRoomStatus(net.roomId);
+                else {
+                    netBadge.className = "studio-badge online";
+                    netBadgeText.textContent = "ONLINE";
+                }
+            } else {
+                netBadge.className = "studio-badge";
+                netBadgeText.textContent = "OFFLINE";
+            }
         });
 
         net.on('remote-stream', ({ peerId, stream, metadata }) => {
             if (metadata?.type === 'screen') {
-                addOrUpdateScreenTile(peerId, stream, `${metadata.name || 'Участник'} (Экран)`);
+                addOrUpdateScreenTile(peerId, stream, `${metadata.name || 'Participant'} (Screen)`);
             } else {
                 addOrUpdateCamTile(peerId, stream, metadata?.name);
             }
@@ -784,28 +1395,30 @@
 
         net.on('data', (data, senderPeerId) => {
             if (data.type === 'CHAT_MSG') {
-                AudioFX.playPop();
                 appendChatMessage(data.name, data.text, false);
             } else if (data.type === 'REACTION') {
                 spawnFloatingReaction(data.emoji);
             } else if (data.type === 'MIC_STATUS') {
                 const micEl = document.getElementById(`mic-cam-${senderPeerId}`);
-                if (micEl) micEl.textContent = data.isMicOn ? '🎤' : '🔇';
+                if (micEl) {
+                    micEl.textContent = data.isMicOn ? 'mic' : 'mic_off';
+                    micEl.style.color = data.isMicOn ? 'var(--google-green)' : 'var(--google-red)';
+                }
             } else if (data.type === 'CAM_STATUS') {
                 const vid = document.getElementById(`video-cam-${senderPeerId}`);
                 const avt = document.getElementById(`avatar-cam-${senderPeerId}`);
                 if (vid && avt) {
                     vid.style.display = data.isCamOn ? 'block' : 'none';
-                    avt.style.display = data.isCamOn ? 'none' : 'block';
+                    avt.style.display = data.isCamOn ? 'none' : 'flex';
                 }
             } else if (data.type === 'SCREEN_STOPPED') {
                 removeTile(`tile-screen-${senderPeerId}`);
             }
         });
 
-        /* 9. РЕАКЦИИ И ЧАТ */
+        /* 8. CHAT & REACTIONS */
         btnReactionToggle.onclick = () => reactionBar.classList.toggle('p2p-hidden');
-        document.querySelectorAll('.reaction-btn').forEach(btn => {
+        document.querySelectorAll('.reaction-item-btn').forEach(btn => {
             btn.onclick = () => {
                 const emoji = btn.dataset.emoji;
                 spawnFloatingReaction(emoji);
@@ -825,44 +1438,42 @@
 
         btnChatToggle.onclick = () => chatPanel.classList.toggle('p2p-hidden');
         document.getElementById('btnCloseChat').onclick = () => chatPanel.classList.add('p2p-hidden');
-
         document.getElementById('btnSendChat').onclick = sendChatMessage;
         inputChatMessage.onkeydown = (e) => { if (e.key === 'Enter') sendChatMessage(); };
 
         function sendChatMessage() {
             const text = inputChatMessage.value.trim();
             if (!text) return;
-            appendChatMessage("Вы", text, true);
+            appendChatMessage("You", text, true);
             net.broadcast({ type: 'CHAT_MSG', name: myName, text });
             inputChatMessage.value = '';
         }
 
         function appendChatMessage(sender, text, isMe) {
-            const el = document.createElement('div');
-            el.style.background = isMe ? 'var(--p2p-color-info)' : 'var(--p2p-surface-muted)';
-            el.style.color = isMe ? '#fff' : 'var(--p2p-text)';
-            el.style.border = '2px solid var(--p2p-border)';
-            el.style.borderRadius = '8px';
-            el.style.padding = '4px 8px';
-            el.style.fontSize = '11px';
-            el.style.alignSelf = isMe ? 'flex-end' : 'flex-start';
-            el.innerHTML = `<strong>${sender}:</strong> ${text}`;
-            chatMessages.appendChild(el);
+            const msgEl = document.createElement('div');
+            msgEl.className = `chat-msg ${isMe ? 'me' : 'other'}`;
+            msgEl.innerHTML = `
+                <div class="chat-msg-sender">${sender}</div>
+                <div class="chat-msg-bubble">${escapeHtml(text)}</div>
+            `;
+            chatMessages.appendChild(msgEl);
             chatMessages.scrollTop = chatMessages.scrollHeight;
+        }
+
+        function escapeHtml(str) {
+            return str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
         }
 
         document.getElementById('btnInviteInfo').onclick = () => {
             document.getElementById('modalRoomCode').textContent = net.roomId;
             const qrEl = document.getElementById('modalQrCode'); qrEl.innerHTML = "";
-            new QRCode(qrEl, { text: net.getShareUrl(), width: 140, height: 140, colorDark: "#222f3e", colorLight: "#ffffff" });
+            new QRCode(qrEl, { text: net.getShareUrl(), width: 130, height: 130, colorDark: "#131314", colorLight: "#ffffff" });
             document.getElementById('inviteModal').classList.remove('p2p-hidden');
         };
         document.getElementById('btnCloseInviteModal').onclick = () => document.getElementById('inviteModal').classList.add('p2p-hidden');
         document.getElementById('btnCopyInviteLink').onclick = () => {
-            navigator.clipboard.writeText(net.getShareUrl()).then(() => showToast("Ссылка скопирована!"));
+            navigator.clipboard.writeText(net.getShareUrl()).then(() => showToast("Ссылка скопирована"));
         };
-
-        document.getElementById('btnLeaveCall').onclick = () => location.reload();
 
         window.addEventListener('load', () => {
             initPreview();

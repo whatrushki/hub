@@ -76,36 +76,34 @@ class SoundSynthesizer {
             const gain = this.ctx.createGain();
             osc.type = type;
             osc.frequency.setValueAtTime(freq, this.ctx.currentTime);
-
             gain.gain.setValueAtTime(gainVal * this.volume, this.ctx.currentTime);
             gain.gain.exponentialRampToValueAtTime(0.0001, this.ctx.currentTime + duration);
 
             osc.connect(gain);
             gain.connect(this.ctx.destination);
-
             osc.start();
             osc.stop(this.ctx.currentTime + duration);
         } catch (e) { }
     }
 
     join() {
-        this.playTone(523.25, 0.15, 'sine', 0.25);
-        setTimeout(() => this.playTone(659.25, 0.18, 'sine', 0.25), 100);
-        setTimeout(() => this.playTone(783.99, 0.3, 'sine', 0.3), 200);
+        this.playTone(523.25, 0.12, 'sine', 0.25);
+        setTimeout(() => this.playTone(659.25, 0.15, 'sine', 0.25), 90);
+        setTimeout(() => this.playTone(783.99, 0.25, 'sine', 0.3), 180);
     }
 
     leave() {
-        this.playTone(659.25, 0.15, 'sine', 0.2);
-        setTimeout(() => this.playTone(440.0, 0.25, 'sine', 0.2), 120);
+        this.playTone(659.25, 0.12, 'sine', 0.2);
+        setTimeout(() => this.playTone(440.0, 0.2, 'sine', 0.2), 100);
     }
 
     chat() {
         this.playTone(880, 0.08, 'triangle', 0.2);
-        setTimeout(() => this.playTone(1174.66, 0.12, 'sine', 0.25), 60);
+        setTimeout(() => this.playTone(1174.66, 0.12, 'sine', 0.25), 50);
     }
 
     hand() {
-        this.playTone(1046.5, 0.35, 'sine', 0.35);
+        this.playTone(1046.5, 0.3, 'sine', 0.35);
     }
 
     reaction() {
@@ -118,7 +116,7 @@ class SoundSynthesizer {
 
     kick() {
         this.playTone(300, 0.2, 'sawtooth', 0.3);
-        setTimeout(() => this.playTone(200, 0.3, 'sawtooth', 0.3), 150);
+        setTimeout(() => this.playTone(200, 0.3, 'sawtooth', 0.3), 130);
     }
 }
 const soundFx = new SoundSynthesizer();
@@ -210,7 +208,6 @@ function unlockAudioEngine() {
     document.querySelectorAll('video').forEach(v => {
         if (v.id !== 'localVideo' && v.id !== 'previewVideo') {
             v.muted = false;
-            v.volume = 1.0;
             v.play().catch(() => { });
         }
     });
@@ -219,7 +216,7 @@ window.addEventListener('click', unlockAudioEngine, { once: true });
 window.addEventListener('touchstart', unlockAudioEngine, { once: true });
 
 /* ==========================================================================
-   4. ИНИЦИАЛИЗАЦИЯ И МЕДИА УСТРОЙСТВА
+   4. ИНИЦИАЛИЗАЦИЯ И МЕДИА
    ========================================================================== */
 const net = new P2PNet({ appPrefix: 'dropconf', mode: 'mesh', debug: true });
 
@@ -234,6 +231,10 @@ let currentAudioDeviceId = null;
 let screenStream = null;
 let showChatToasts = true;
 let isMirrored = true;
+let pinnedTileId = null;
+
+// Хранилище индивидуальной громкости участников
+const participantVolumes = new Map();
 
 // UI ЭЛЕМЕНТЫ
 const toast = document.getElementById('toast');
@@ -254,7 +255,7 @@ const myAvatar = document.getElementById('myAvatar');
 const myTagName = document.getElementById('myTagName');
 const myTagMic = document.getElementById('myTagMic');
 const myHandBadge = document.getElementById('myHandBadge');
-const myHostBadge = document.getElementById('myHostBadge');
+const myHostCrown = document.getElementById('myHostCrown');
 const videoGrid = document.getElementById('videoGrid');
 const meetLiveTime = document.getElementById('meetLiveTime');
 const meetRoomCodePill = document.getElementById('meetRoomCodePill');
@@ -282,7 +283,6 @@ function showToast(msg, icon = 'info') {
     setTimeout(() => toast.classList.remove('show'), 2600);
 }
 
-// Часы внизу
 setInterval(() => {
     const d = new Date();
     if (meetLiveTime) meetLiveTime.textContent = d.toTimeString().split(' ')[0].substring(0, 5);
@@ -291,10 +291,16 @@ setInterval(() => {
 function updateGridCount() {
     const count = videoGrid.children.length;
     videoGrid.classList.remove('count-1', 'count-2', 'count-3', 'count-4', 'count-many');
-    if (count <= 1) videoGrid.classList.add('count-1');
-    else if (count === 2) videoGrid.classList.add('count-2');
-    else if (count <= 4) videoGrid.classList.add('count-4');
-    else videoGrid.classList.add('count-many');
+
+    if (pinnedTileId || document.querySelector('.screen-tile.is-stage')) {
+        videoGrid.classList.add('has-stage');
+    } else {
+        videoGrid.classList.remove('has-stage');
+        if (count <= 1) videoGrid.classList.add('count-1');
+        else if (count === 2) videoGrid.classList.add('count-2');
+        else if (count <= 4) videoGrid.classList.add('count-4');
+        else videoGrid.classList.add('count-many');
+    }
 }
 
 function updateMirrorState() {
@@ -454,9 +460,9 @@ document.getElementById('btnTogglePreviewCam').onclick = toggleCamera;
 document.getElementById('btnTogglePreviewMic').onclick = toggleMicrophone;
 
 /* ==========================================================================
-   5. ВИДЕОКАРТОЧКИ УЧАСТНИКОВ
+   5. ВИДЕОКАРТОЧКИ УЧАСТНИКОВ, PINNING И МЕНЮ (3 ТОЧКИ)
    ========================================================================== */
-function addOrUpdateCamTile(peerId, stream, participantName) {
+function addOrUpdateCamTile(peerId, stream, participantName, initialMicState = true, initialCamState = true) {
     const tileId = `tile-cam-${peerId}`;
     let tile = document.getElementById(tileId);
 
@@ -465,22 +471,34 @@ function addOrUpdateCamTile(peerId, stream, participantName) {
         tile = document.createElement('div');
         tile.className = 'video-tile';
         tile.id = tileId;
+        tile.dataset.peer = peerId;
         tile.innerHTML = `
             <video id="video-cam-${peerId}" autoplay playsinline></video>
             <div id="avatar-cam-${peerId}" class="tile-avatar" style="display:none;">
                 <span class="material-symbols-outlined">person</span>
             </div>
+
+            <!-- Верхний тулбар при наведении в стиле Google Meet -->
+            <div class="tile-hover-controls">
+                <button class="tile-ctrl-btn" title="Закрепить" onclick="togglePinTile('${tileId}')">
+                    <span class="material-symbols-outlined">keep</span>
+                </button>
+                <button class="tile-ctrl-btn" title="На весь экран" onclick="toggleNativeFullscreen('${tileId}')">
+                    <span class="material-symbols-outlined">fullscreen</span>
+                </button>
+                <button class="tile-ctrl-btn" title="Дополнительно" onclick="toggleTileMenu('${peerId}', '${tileId}', event)">
+                    <span class="material-symbols-outlined">more_vert</span>
+                </button>
+            </div>
+
             <div class="tile-overlay">
                 <div class="tile-top-actions">
-                    <div class="admin-badge p2p-hidden" id="host-badge-${peerId}">👑 Хост</div>
                     <div class="hand-badge p2p-hidden" id="hand-${peerId}">✋ Рука</div>
-                    <button class="tile-action-btn" title="На весь экран" onclick="toggleNativeFullscreen('${tileId}')">
-                        <span class="material-symbols-outlined">fullscreen</span>
-                    </button>
                 </div>
                 <div class="tile-tag">
                     <span id="mic-cam-${peerId}" class="material-symbols-outlined mic-icon">mic</span>
                     <span id="name-cam-${peerId}">${escapeHtml(participantName || 'Участник')}</span>
+                    <span id="crown-cam-${peerId}" class="material-symbols-outlined host-crown p2p-hidden" title="Организатор встречи">crown</span>
                 </div>
             </div>
         `;
@@ -491,35 +509,82 @@ function addOrUpdateCamTile(peerId, stream, participantName) {
     if (videoEl && stream) {
         videoEl.srcObject = stream;
         videoEl.muted = false;
-        videoEl.volume = 1.0;
+        const currentVol = participantVolumes.get(peerId) ?? 1.0;
+        videoEl.volume = currentVol;
         videoEl.play().catch(() => { });
     }
 
+    // Синхронизация начального статуса микрофона и камеры
+    const micIcon = document.getElementById(`mic-cam-${peerId}`);
+    if (micIcon) {
+        micIcon.textContent = initialMicState ? 'mic' : 'mic_off';
+        micIcon.style.color = initialMicState ? 'var(--google-green)' : 'var(--google-red)';
+    }
+
+    const avatarEl = document.getElementById(`avatar-cam-${peerId}`);
+    if (avatarEl && videoEl) {
+        videoEl.style.display = initialCamState ? 'block' : 'none';
+        avatarEl.style.display = initialCamState ? 'none' : 'flex';
+    }
+
     if (net.hostId === peerId) {
-        const hostB = document.getElementById(`host-badge-${peerId}`);
-        if (hostB) hostB.classList.remove('p2p-hidden');
+        const crown = document.getElementById(`crown-cam-${peerId}`);
+        if (crown) crown.classList.remove('p2p-hidden');
     }
 
     updateGridCount();
     refreshAdminParticipantsList();
 }
 
+/* ==========================================================================
+   ДЕМОНСТРАЦИЯ ЭКРАНА В СТИЛЕ DISCORD (СМОТРЕТЬ СТРИМ)
+   ========================================================================== */
+const activeScreenStreams = new Map();
+
 function addOrUpdateScreenTile(peerId, stream, titleName, isLocal = false) {
     const tileId = `tile-screen-${peerId}`;
     let tile = document.getElementById(tileId);
 
+    activeScreenStreams.set(peerId, stream);
+
     if (!tile) {
         tile = document.createElement('div');
-        tile.className = 'video-tile screen-tile';
+        tile.className = 'video-tile screen-tile is-stage';
         tile.id = tileId;
+        tile.dataset.peer = peerId;
         tile.innerHTML = `
             <video id="video-screen-${peerId}" autoplay playsinline ${isLocal ? 'muted' : ''}></video>
-            <div class="tile-overlay">
-                <div class="tile-top-actions">
-                    <button class="tile-action-btn" title="На весь экран" onclick="toggleNativeFullscreen('${tileId}')">
-                        <span class="material-symbols-outlined">fullscreen</span>
-                    </button>
+
+            <!-- Карточка Discord для подключения к стриму (только для удаленных) -->
+            ${!isLocal ? `
+            <div class="stream-discord-card" id="streamCard-${peerId}">
+                <div class="stream-discord-icon">
+                    <span class="material-symbols-outlined" style="font-size:28px;">desktop_windows</span>
                 </div>
+                <div class="stream-discord-title">Трансляция экрана</div>
+                <div class="stream-discord-desc">${escapeHtml(titleName)} делится экраном</div>
+                <button class="studio-btn-primary" onclick="joinScreenStream('${peerId}')" style="margin-top:6px;">
+                    <span class="material-symbols-outlined">play_arrow</span> Смотреть стрим
+                </button>
+            </div>
+            ` : ''}
+
+            <div class="tile-hover-controls">
+                <button class="tile-ctrl-btn" title="Закрепить" onclick="togglePinTile('${tileId}')">
+                    <span class="material-symbols-outlined">keep</span>
+                </button>
+                <button class="tile-ctrl-btn" title="На весь экран" onclick="toggleNativeFullscreen('${tileId}')">
+                    <span class="material-symbols-outlined">fullscreen</span>
+                </button>
+                ${!isLocal ? `
+                <button class="tile-ctrl-btn" title="Дополнительно" onclick="toggleTileMenu('${peerId}', '${tileId}', event, true)">
+                    <span class="material-symbols-outlined">more_vert</span>
+                </button>
+                ` : ''}
+            </div>
+
+            <div class="tile-overlay">
+                <div></div>
                 <div class="tile-tag">
                     <span class="material-symbols-outlined" style="font-size:14px; color:var(--google-blue);">screen_share</span>
                     <span>${escapeHtml(titleName || 'Экран')}</span>
@@ -530,17 +595,137 @@ function addOrUpdateScreenTile(peerId, stream, titleName, isLocal = false) {
     }
 
     const videoEl = document.getElementById(`video-screen-${peerId}`);
-    if (videoEl && stream) {
+    if (videoEl && stream && isLocal) {
         videoEl.srcObject = stream;
-        if (!isLocal) { videoEl.muted = false; videoEl.volume = 1.0; }
         videoEl.play().catch(() => { });
     }
+
     updateGridCount();
 }
 
+window.joinScreenStream = function (peerId) {
+    soundFx.click();
+    const stream = activeScreenStreams.get(peerId);
+    const videoEl = document.getElementById(`video-screen-${peerId}`);
+    const card = document.getElementById(`streamCard-${peerId}`);
+
+    if (videoEl && stream) {
+        videoEl.srcObject = stream;
+        videoEl.muted = false;
+        videoEl.play().catch(() => { });
+    }
+    if (card) card.remove();
+    showToast("Вы подключились к трансляции", 'play_arrow');
+};
+
+/* ==========================================================================
+   МЕНЮ УЧАСТНИКА (3 ТОЧКИ) И ГРОМКОСТЬ
+   ========================================================================== */
+let activeContextMenu = null;
+
+window.toggleTileMenu = function (peerId, tileId, event, isScreen = false) {
+    event.stopPropagation();
+    soundFx.click();
+
+    if (activeContextMenu) {
+        activeContextMenu.remove();
+        activeContextMenu = null;
+    }
+
+    const tile = document.getElementById(tileId);
+    if (!tile) return;
+
+    const menu = document.createElement('div');
+    menu.className = 'tile-context-menu';
+    const curVol = Math.round((participantVolumes.get(peerId) ?? 1.0) * 100);
+
+    menu.innerHTML = `
+        <div class="tile-volume-box">
+            <div class="tile-volume-label">
+                <span>ГРОМКОСТЬ</span>
+                <span id="volLabel-${peerId}">${curVol}%</span>
+            </div>
+            <input type="range" class="studio-range" min="0" max="1" step="0.05" value="${(curVol / 100)}" 
+                   oninput="setPeerVolume('${peerId}', this.value)">
+        </div>
+        <button class="tile-menu-item" onclick="togglePinTile('${tileId}')">
+            <span class="material-symbols-outlined">keep</span>
+            <span>${tile.classList.contains('is-stage') ? 'Открепить' : 'Закрепить'}</span>
+        </button>
+        <button class="tile-menu-item" onclick="toggleNativeFullscreen('${tileId}')">
+            <span class="material-symbols-outlined">fullscreen</span>
+            <span>Во весь экран</span>
+        </button>
+        ${net.isHost ? `
+            ${isScreen ? `
+                <button class="tile-menu-item danger" onclick="adminStopScreenShare('${peerId}')">
+                    <span class="material-symbols-outlined">cancel_presentation</span>
+                    <span>Остановить показ</span>
+                </button>
+            ` : `
+                <button class="tile-menu-item danger" onclick="kickParticipant('${peerId}')">
+                    <span class="material-symbols-outlined">person_remove</span>
+                    <span>Исключить</span>
+                </button>
+            `}
+        ` : ''}
+    `;
+
+    tile.appendChild(menu);
+    activeContextMenu = menu;
+
+    const closeHandler = (e) => {
+        if (!menu.contains(e.target)) {
+            menu.remove();
+            activeContextMenu = null;
+            window.removeEventListener('click', closeHandler);
+        }
+    };
+    setTimeout(() => window.addEventListener('click', closeHandler), 10);
+};
+
+window.setPeerVolume = function (peerId, val) {
+    const num = parseFloat(val);
+    participantVolumes.set(peerId, num);
+    const videoCam = document.getElementById(`video-cam-${peerId}`);
+    const videoScreen = document.getElementById(`video-screen-${peerId}`);
+    if (videoCam) videoCam.volume = num;
+    if (videoScreen) videoScreen.volume = num;
+
+    const label = document.getElementById(`volLabel-${peerId}`);
+    if (label) label.textContent = `${Math.round(num * 100)}%`;
+};
+
+window.togglePinTile = function (tileId) {
+    soundFx.click();
+    const tile = document.getElementById(tileId);
+    if (!tile) return;
+
+    if (pinnedTileId === tileId) {
+        pinnedTileId = null;
+        tile.classList.remove('is-stage');
+    } else {
+        document.querySelectorAll('.video-tile').forEach(t => t.classList.remove('is-stage'));
+        pinnedTileId = tileId;
+        tile.classList.add('is-stage');
+    }
+    if (activeContextMenu) { activeContextMenu.remove(); activeContextMenu = null; }
+    updateGridCount();
+};
+
+window.adminStopScreenShare = function (peerId) {
+    if (!net.isHost) return;
+    net.send({ type: 'FORCE_STOP_SCREEN' }, peerId);
+    removeTile(`tile-screen-${peerId}`);
+    showToast("Демонстрация остановлена", 'cancel_presentation');
+};
+
 function removeTile(tileId) {
     const tile = document.getElementById(tileId);
-    if (tile) tile.remove();
+    if (tile) {
+        if (pinnedTileId === tileId) pinnedTileId = null;
+        tile.remove();
+    }
     updateGridCount();
     refreshAdminParticipantsList();
 }
@@ -548,6 +733,7 @@ function removeTile(tileId) {
 window.toggleNativeFullscreen = function (tileId) {
     const tile = document.getElementById(tileId);
     if (tile) tile.classList.toggle('pseudo-fullscreen');
+    if (activeContextMenu) { activeContextMenu.remove(); activeContextMenu = null; }
 };
 
 /* ==========================================================================
@@ -606,7 +792,7 @@ async function toggleScreenShare() {
 btnScreenShare.onclick = toggleScreenShare;
 
 /* ==========================================================================
-   7. УМНЫЙ ЧАТ (SQUEEZE ВИДЕОСЕТКИ) И РЕАКЦИИ БЕЗ АВТОЗАКРЫТИЯ
+   7. УМНЫЙ ЧАТ И РЕАКЦИИ БЕЗ АВТОЗАКРЫТИЯ
    ========================================================================== */
 function toggleChatPanel() {
     soundFx.click();
@@ -641,7 +827,6 @@ function appendChatMessage(sender, text, isMe) {
     chatMessages.appendChild(msgEl);
     chatMessages.scrollTop = chatMessages.scrollHeight;
 
-    // Всплывающее уведомление поверх видео, если чат закрыт
     if (!isMe && chatPanel.classList.contains('p2p-hidden')) {
         chatUnreadDot.classList.remove('p2p-hidden');
         if (showChatToasts) {
@@ -665,7 +850,6 @@ function spawnChatToastOverlay(sender, text) {
     setTimeout(() => bubble.remove(), 5000);
 }
 
-// Эмодзи бар — не закрывается при клике на эмодзи!
 btnReactionToggle.onclick = () => {
     soundFx.click();
     reactionBar.classList.toggle('p2p-hidden');
@@ -705,7 +889,6 @@ const chkLockRoom = document.getElementById('chkLockRoom');
 const chkAllowScreenShare = document.getElementById('chkAllowScreenShare');
 const adminParticipantsList = document.getElementById('adminParticipantsList');
 
-// Переключение табов в настройках
 document.querySelectorAll('.settings-tab-btn').forEach(btn => {
     btn.onclick = () => {
         document.querySelectorAll('.settings-tab-btn').forEach(b => b.classList.remove('active'));
@@ -854,9 +1037,9 @@ document.getElementById('btnCreateRoom').onclick = async () => {
     unlockAudioEngine();
     prepareJoin();
     try {
-        const code = await net.createRoom(null, myName);
+        const code = await net.createRoom(null, myName, isMicOn, isCamOn);
         setRoomStatus(code);
-        myHostBadge.classList.remove('p2p-hidden');
+        myHostCrown.classList.remove('p2p-hidden');
         soundFx.join();
         showToast("Комната создана: " + code, 'check_circle');
     } catch (err) {
@@ -870,7 +1053,7 @@ document.getElementById('btnJoinRoom').onclick = () => {
     const code = inputRoomCode.value.trim();
     if (code.length < 3) return showToast("Введите код", 'warning');
     prepareJoin();
-    net.joinRoom(code, { name: myName }).then(() => {
+    net.joinRoom(code, { name: myName, isMicOn, isCamOn }).then(() => {
         setRoomStatus(code);
         soundFx.join();
         showToast("Вы подключились", 'check_circle');
@@ -907,9 +1090,10 @@ function leaveConference() {
 
     conferenceScreen.classList.add('p2p-hidden');
     lobbyScreen.classList.remove('p2p-hidden');
-    myHostBadge.classList.add('p2p-hidden');
+    myHostCrown.classList.add('p2p-hidden');
     netBadge.className = "studio-badge";
     netBadgeText.textContent = "STANDBY";
+    pinnedTileId = null;
     updateGridCount();
 }
 document.getElementById('btnLeaveCall').onclick = leaveConference;
@@ -928,9 +1112,9 @@ net.on('status', ({ online, reconnecting }) => {
 
 net.on('remote-stream', ({ peerId, stream, metadata }) => {
     if (metadata?.type === 'screen') {
-        addOrUpdateScreenTile(peerId, stream, `${metadata.name || 'Участник'} (Экран)`);
+        addOrUpdateScreenTile(peerId, stream, `${metadata.name || 'Участник'}`);
     } else {
-        addOrUpdateCamTile(peerId, stream, metadata?.name);
+        addOrUpdateCamTile(peerId, stream, metadata?.name, metadata?.isMicOn ?? true, metadata?.isCamOn ?? true);
     }
 });
 
@@ -948,18 +1132,27 @@ net.on('peer-disconnected', ({ peerId }) => {
 
 net.on('kicked', () => {
     soundFx.kick();
-    alert("Вы были исключены администратором конференции.");
+    alert("Вы были исключены организатором встречи.");
     leaveConference();
 });
 
 net.on('host-changed', ({ isHost, hostName, hostId }) => {
     if (isHost) {
-        myHostBadge.classList.remove('p2p-hidden');
+        myHostCrown.classList.remove('p2p-hidden');
         showToast("👑 Вы стали организатором встречи", 'admin_panel_settings');
     } else {
-        myHostBadge.classList.add('p2p-hidden');
-        showToast(`Организатор сменился на: ${hostName}`, 'admin_panel_settings');
+        myHostCrown.classList.add('p2p-hidden');
+        showToast(`Организатор сменился: ${hostName}`, 'admin_panel_settings');
     }
+
+    document.querySelectorAll('.host-crown').forEach(c => c.classList.add('p2p-hidden'));
+    if (isHost) {
+        myHostCrown.classList.remove('p2p-hidden');
+    } else {
+        const crown = document.getElementById(`crown-cam-${hostId}`);
+        if (crown) crown.classList.remove('p2p-hidden');
+    }
+
     updateAdminSettingsUI();
 });
 
@@ -997,6 +1190,11 @@ net.on('data', (data, senderPeerId) => {
         }
     } else if (data.type === 'SCREEN_STOPPED') {
         removeTile(`tile-screen-${senderPeerId}`);
+    } else if (data.type === 'FORCE_STOP_SCREEN') {
+        if (isScreenSharing) {
+            toggleScreenShare();
+            showToast("Демонстрация остановлена администратором", 'cancel_presentation');
+        }
     } else if (data.type === 'SCREEN_PERM_CHANGED') {
         if (!data.allowed && isScreenSharing) {
             toggleScreenShare();

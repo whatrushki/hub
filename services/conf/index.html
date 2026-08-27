@@ -33,9 +33,7 @@
         <header class="studio-header">
             <div class="studio-logo-area">
                 <span class="gemini-sparkle">✦</span>
-                <div class="studio-title">
-                    WHAT CONF <span class="studio-version">Mesh v4.0</span>
-                </div>
+                <div class="studio-title">WHAT CONF</div>
             </div>
 
             <div class="header-actions">
@@ -65,10 +63,10 @@
                     </div>
                     <div class="preview-controls">
                         <button class="studio-btn-secondary" id="btnTogglePreviewMic">
-                            <span class="material-symbols-outlined">mic</span> Mic
+                            <span class="material-symbols-outlined">mic</span> <span class="hide-mobile">Mic</span>
                         </button>
                         <button class="studio-btn-secondary" id="btnTogglePreviewCam">
-                            <span class="material-symbols-outlined">videocam</span> Cam
+                            <span class="material-symbols-outlined">videocam</span> <span class="hide-mobile">Cam</span>
                         </button>
                         <button class="studio-btn-secondary" id="btnFlipCamPreview" title="Сменить камеру">
                             <span class="material-symbols-outlined">flip_camera_ios</span>
@@ -102,38 +100,48 @@
 
         <!-- КОНФЕРЕНЦИЯ -->
         <div id="conferenceScreen" class="conference-container p2p-hidden">
-            <!-- ОСНОВНАЯ ЗОНА (ВИДЕО СЕТКА + ЧАТ СО СЖАТИЕМ) -->
+            <!-- ОСНОВНАЯ ЗОНА (ВИДЕО СЕТКА + ЧАТ) -->
             <div class="conf-main-area" id="confMainArea">
                 <div class="conf-video-container" id="videoWrapper">
                     <div class="conf-grid count-1" id="videoGrid">
                         <!-- Локальная камера -->
-                        <div class="video-tile mirrored" id="tile-cam-local">
+                        <div class="video-tile mirrored" id="tile-cam-local" data-peer="local">
                             <video id="localVideo" autoplay playsinline muted></video>
                             <div id="myAvatar" class="tile-avatar" style="display: none;">
                                 <span class="material-symbols-outlined">person</span>
                             </div>
+
+                            <!-- Плавающий бар управления карточкой -->
+                            <div class="tile-hover-controls">
+                                <button class="tile-ctrl-btn" title="Закрепить"
+                                    onclick="togglePinTile('tile-cam-local')">
+                                    <span class="material-symbols-outlined">keep</span>
+                                </button>
+                                <button class="tile-ctrl-btn" title="На весь экран"
+                                    onclick="toggleNativeFullscreen('tile-cam-local')">
+                                    <span class="material-symbols-outlined">fullscreen</span>
+                                </button>
+                            </div>
+
                             <div class="tile-overlay">
                                 <div class="tile-top-actions">
-                                    <div class="admin-badge p2p-hidden" id="myHostBadge">👑 Хост</div>
                                     <div class="hand-badge p2p-hidden" id="myHandBadge">✋ Рука</div>
-                                    <button class="tile-action-btn" title="На весь экран"
-                                        onclick="toggleNativeFullscreen('tile-cam-local')">
-                                        <span class="material-symbols-outlined">fullscreen</span>
-                                    </button>
                                 </div>
                                 <div class="tile-tag">
                                     <span id="myTagMic" class="material-symbols-outlined mic-icon">mic</span>
                                     <span id="myTagName">Вы</span>
+                                    <span id="myHostCrown" class="material-symbols-outlined host-crown p2p-hidden"
+                                        title="Организатор встречи">crown</span>
                                 </div>
                             </div>
                         </div>
                     </div>
 
-                    <!-- Всплывающие сообщения поверх видео (когда чат закрыт) -->
+                    <!-- Всплывающие уведомления чата поверх видео -->
                     <div class="chat-toast-container" id="chatToastContainer"></div>
                 </div>
 
-                <!-- БОКОВОЙ ЧАТ (СЖИМАЕТ СЕТКУ ВИДЕО) -->
+                <!-- БОКОВОЙ ЧАТ -->
                 <aside class="chat-drawer p2p-hidden" id="chatPanel">
                     <div class="chat-header">
                         <div class="chat-header-title">
@@ -155,7 +163,7 @@
                 </aside>
             </div>
 
-            <!-- ПАНЕЛЬ ЭМОДЗИ (Мульти-выбор без автозакрытия) -->
+            <!-- ПАНЕЛЬ ЭМОДЗИ -->
             <div class="reactions-popover p2p-hidden" id="reactionBar">
                 <button class="reaction-item-btn" data-emoji="👍">👍</button>
                 <button class="reaction-item-btn" data-emoji="❤️">❤️</button>
@@ -170,9 +178,8 @@
                 </button>
             </div>
 
-            <!-- НИЖНЯЯ ПАНЕЛЬ В СТИЛЕ GOOGLE MEET -->
+            <!-- НИЖНЯЯ ПАНЕЛЬ GOOGLE MEET -->
             <footer class="meet-bottom-bar">
-                <!-- Левая секция: время и код комнаты -->
                 <div class="meet-bar-left hide-mobile">
                     <div class="meet-time-pill" id="meetLiveTime">12:00</div>
                     <div class="meet-room-pill" id="meetRoomCodePill" title="Копировать код">
@@ -181,7 +188,6 @@
                     </div>
                 </div>
 
-                <!-- Центральная секция: основные органы управления -->
                 <div class="meet-bar-center">
                     <button class="meet-btn" id="btnMicToggle" title="Микрофон [M]">
                         <span class="material-symbols-outlined">mic</span>
@@ -206,7 +212,6 @@
                     </button>
                 </div>
 
-                <!-- Правая секция: чат, участники, ссылка -->
                 <div class="meet-bar-right">
                     <button class="meet-btn" id="btnInviteInfo" title="Информация о встрече">
                         <span class="material-symbols-outlined">info</span>
@@ -219,7 +224,7 @@
             </footer>
         </div>
 
-        <!-- МОДАЛЬНОЕ ОКНО НАСТРОЕК С ВКЛАДКАМИ -->
+        <!-- МОДАЛЬНОЕ ОКНО НАСТРОЕК -->
         <div class="p2p-modal-backdrop p2p-hidden" id="settingsModal">
             <div class="studio-modal modal-settings">
                 <div class="modal-header">
@@ -230,11 +235,12 @@
                             class="material-symbols-outlined">close</span></button>
                 </div>
 
-                <!-- Табы настроек -->
-                <div class="settings-tabs">
-                    <button class="settings-tab-btn active" data-tab="tab-devices">Оборудование</button>
-                    <button class="settings-tab-btn" data-tab="tab-ui">Интерфейс & Звук</button>
-                    <button class="settings-tab-btn" data-tab="tab-admin">Администрирование</button>
+                <div class="settings-tabs-scroll">
+                    <div class="settings-tabs">
+                        <button class="settings-tab-btn active" data-tab="tab-devices">Оборудование</button>
+                        <button class="settings-tab-btn" data-tab="tab-ui">Интерфейс & Звук</button>
+                        <button class="settings-tab-btn" data-tab="tab-admin">Администрирование</button>
+                    </div>
                 </div>
 
                 <div class="settings-body">
@@ -269,11 +275,11 @@
                         <div class="settings-checkbox-group">
                             <label class="checkbox-container">
                                 <input type="checkbox" id="chkSoundFx" checked>
-                                <span>Звуковые эффекты (вход, чат, реакции, рука)</span>
+                                <span>Звуковые эффекты</span>
                             </label>
                             <label class="checkbox-container">
                                 <input type="checkbox" id="chkChatToasts" checked>
-                                <span>Показывать всплывающие сообщения поверх видео</span>
+                                <span>Всплывающие сообщения поверх видео</span>
                             </label>
                         </div>
                         <div class="settings-form-group" style="margin-top: 10px;">
@@ -293,7 +299,7 @@
                         <div class="settings-checkbox-group" id="adminControlsBlock">
                             <label class="checkbox-container">
                                 <input type="checkbox" id="chkLockRoom">
-                                <span>Заблокировать комнату (запретить вход новым)</span>
+                                <span>Заблокировать комнату для новых участников</span>
                             </label>
                             <label class="checkbox-container">
                                 <input type="checkbox" id="chkAllowScreenShare" checked>
@@ -303,9 +309,7 @@
 
                         <div class="admin-participants-area">
                             <div class="studio-label" style="margin-bottom: 6px;">Участники встречи</div>
-                            <div class="participants-list" id="adminParticipantsList">
-                                <!-- Список генерируется через JS -->
-                            </div>
+                            <div class="participants-list" id="adminParticipantsList"></div>
                         </div>
                     </div>
                 </div>
@@ -322,14 +326,16 @@
                 <div class="modal-header">
                     <div class="modal-title">
                         <span class="material-symbols-outlined" style="color: var(--google-yellow);">terminal</span>
-                        Системный аудит & WebRTC Watchdog
+                        <span class="hide-mobile">Системный аудит</span>
                     </div>
-                    <div style="display: flex; gap: 6px;">
-                        <button class="studio-btn-secondary" id="btnCopyLogs">
-                            <span class="material-symbols-outlined">content_copy</span> Копировать
+                    <div class="modal-header-actions">
+                        <button class="studio-btn-secondary" id="btnCopyLogs" title="Копировать">
+                            <span class="material-symbols-outlined">content_copy</span> <span
+                                class="hide-mobile">Копировать</span>
                         </button>
-                        <button class="studio-btn-secondary" id="btnClearLogs">
-                            <span class="material-symbols-outlined">delete</span> Очистить
+                        <button class="studio-btn-secondary" id="btnClearLogs" title="Очистить">
+                            <span class="material-symbols-outlined">delete</span> <span
+                                class="hide-mobile">Очистить</span>
                         </button>
                         <button class="tile-action-btn" id="btnCloseLogs"><span
                                 class="material-symbols-outlined">close</span></button>

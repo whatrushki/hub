@@ -1,6 +1,6 @@
 /**
- * P2PNet v4.0 - Полноценный WebRTC Mesh с Watchdog-восстановлением,
- * авто-исправлением медиа-дорожек, выборами Host/Admin и контролем доступа
+ * P2PNet v4.1 - Полноценный WebRTC Mesh с Watchdog-восстановлением,
+ * синхронизацией состояния микрофонов/камер и администрированием
  */
 class P2PNet {
     static ALPHABET = "23456789ABCDEFGHJKMNPQRSTUVWXYZ";
@@ -29,7 +29,6 @@ class P2PNet {
         this.isDestroyed = false;
         this.userName = 'User';
 
-        // Политики комнаты
         this.isLocked = false;
         this.allowScreenShare = true;
 
@@ -84,9 +83,11 @@ class P2PNet {
         return str.trim().toUpperCase().replace(/O/g, '0').replace(/[IL]/g, '1');
     }
 
-    async createRoom(customCode = null, myName = 'Host', maxRetries = 3) {
+    async createRoom(customCode = null, myName = 'Host', isMicOn = true, isCamOn = true, maxRetries = 3) {
         this.isHost = true;
         this.userName = myName;
+        this.initialMicState = isMicOn;
+        this.initialCamState = isCamOn;
         let attempts = 0;
 
         while (attempts < maxRetries) {
@@ -118,6 +119,8 @@ class P2PNet {
         this.isHost = false;
         this.roomId = P2PNet.cleanCode(code);
         this.userName = myData.name || 'Guest';
+        this.initialMicState = myData.isMicOn ?? true;
+        this.initialCamState = myData.isCamOn ?? true;
         const hostPeerId = `${this.appPrefix}-${this.roomId}`;
 
         this._audit('NET', `Подключение к сессии: ${hostPeerId}`);
@@ -135,7 +138,14 @@ class P2PNet {
                 onOpen: (conn) => {
                     clearTimeout(timer);
                     this._audit('NET', `DataChannel с хостом установлен. Отправка JOIN_REQ`);
-                    conn.send({ __sys: 'JOIN_REQ', peerId: this.peer.id, name: this.userName, ...myData });
+                    conn.send({
+                        __sys: 'JOIN_REQ',
+                        peerId: this.peer.id,
+                        name: this.userName,
+                        isMicOn: this.initialMicState,
+                        isCamOn: this.initialCamState,
+                        ...myData
+                    });
                     resolve(conn);
                 },
                 onError: (err) => {
@@ -207,16 +217,12 @@ class P2PNet {
         }, delay);
     }
 
-    /* ==========================================================================
-       WATCHDOG И ICE-RECOVERY МЕХАНИЗМ (ВОССТАНОВЛЕНИЕ ПОТОКОВ)
-       ========================================================================== */
     _startWatchdog() {
         if (this._watchdogTimer) clearInterval(this._watchdogTimer);
         this._watchdogTimer = setInterval(() => {
             if (this.isDestroyed || !this.peer) return;
 
             this.peers.forEach((record, peerId) => {
-                // Проверка жизнеспособности звонка
                 if (record.call && record.call.peerConnection) {
                     const pc = record.call.peerConnection;
                     const iceState = pc.iceConnectionState;
@@ -228,12 +234,11 @@ class P2PNet {
                         } catch (e) { }
                     }
 
-                    // Проверка активности медиа треков
                     const receivers = pc.getReceivers ? pc.getReceivers() : [];
                     const activeTracks = receivers.filter(r => r.track && r.track.readyState === 'live');
 
                     if (receivers.length > 0 && activeTracks.length === 0 && record.isReady) {
-                        this._audit('WARN', `У пира ${peerId} застряли медиа-треки. Переподключение медиа-сессии...`);
+                        this._audit('WARN', `У пира ${peerId} застряли медиа-треки. Восстановление сессии...`);
                         this.repairPeerMedia(peerId);
                     }
                 }
@@ -249,7 +254,12 @@ class P2PNet {
             try { record.call.close(); } catch (e) { }
         }
         setTimeout(() => {
-            this.call(peerId, this.localStream, { type: 'camera', name: this.userName });
+            this.call(peerId, this.localStream, {
+                type: 'camera',
+                name: this.userName,
+                isMicOn: this.initialMicState,
+                isCamOn: this.initialCamState
+            });
         }, 300);
     }
 
@@ -348,15 +358,11 @@ class P2PNet {
         this._audit('SYS', `Пир ${peerId} удален`);
         this.emit('peer-disconnected', { peerId, totalPeers: this.peers.size });
 
-        // Если отключился хост — производим выборы нового хоста
         if (peerId === this.hostId) {
             this._electNewHost();
         }
     }
 
-    /* ==========================================================================
-       УПРАВЛЕНИЕ ХОСТОМ, БЛОКИРОВКА И ИСКЛЮЧЕНИЕ
-       ========================================================================== */
     _electNewHost() {
         const allIds = [this.peer.id, ...Array.from(this.peers.keys())].sort();
         const nextHostId = allIds[0];
@@ -405,7 +411,6 @@ class P2PNet {
         } else if (packet.__sys === 'JOIN_REQ') {
             const guestName = packet.name || 'Guest';
 
-            // Проверка блокировки комнаты хостом
             if (this.isHost && this.isLocked) {
                 this._audit('SYS', `Отказ входа для ${senderPeerId}: комната заблокирована`);
                 this.send({ __sys: 'JOIN_REJECTED', reason: 'Комната заблокирована организатором.' }, senderPeerId);
@@ -430,11 +435,22 @@ class P2PNet {
                 allowScreenShare: this.allowScreenShare
             }, senderPeerId);
 
-            this.broadcast({ __sys: 'NEW_PEER', peerId: senderPeerId, name: guestName }, [senderPeerId]);
+            this.broadcast({
+                __sys: 'NEW_PEER',
+                peerId: senderPeerId,
+                name: guestName,
+                isMicOn: packet.isMicOn,
+                isCamOn: packet.isCamOn
+            }, [senderPeerId]);
 
             setTimeout(() => {
                 if (this.localStream) {
-                    this.call(senderPeerId, this.localStream, { type: 'camera', name: this.userName });
+                    this.call(senderPeerId, this.localStream, {
+                        type: 'camera',
+                        name: this.userName,
+                        isMicOn: this.initialMicState,
+                        isCamOn: this.initialCamState
+                    });
                 }
             }, 300);
 
@@ -466,7 +482,12 @@ class P2PNet {
 
                 setTimeout(() => {
                     if (this.localStream) {
-                        this.call(packet.peerId, this.localStream, { type: 'camera', name: this.userName });
+                        this.call(packet.peerId, this.localStream, {
+                            type: 'camera',
+                            name: this.userName,
+                            isMicOn: this.initialMicState,
+                            isCamOn: this.initialCamState
+                        });
                     }
                 }, 400);
             }

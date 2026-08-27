@@ -122,7 +122,7 @@ class SoundSynthesizer {
 const soundFx = new SoundSynthesizer();
 
 /* ==========================================================================
-   3. VAD (РАСПРЕДЕЛЕННЫЙ ДЕТЕКТОР РЕЧИ)
+   3. VAD (ДЕТЕКТОР РЕЧИ)
    ========================================================================== */
 class LocalVoiceDetector {
     constructor() {
@@ -233,7 +233,6 @@ let showChatToasts = true;
 let isMirrored = true;
 let pinnedTileId = null;
 
-// Хранилище индивидуальной громкости участников
 const participantVolumes = new Map();
 
 // UI ЭЛЕМЕНТЫ
@@ -276,6 +275,18 @@ const inputChatMessage = document.getElementById('inputChatMessage');
 const chatToastContainer = document.getElementById('chatToastContainer');
 const chatUnreadDot = document.getElementById('chatUnreadDot');
 
+// МОБИЛЬНЫЙ BOTTOM SHEET
+const btnMoreMobile = document.getElementById('btnMoreMobile');
+const mobileSheetBackdrop = document.getElementById('mobileSheetBackdrop');
+const sheetBtnHand = document.getElementById('sheetBtnHand');
+const sheetBtnScreen = document.getElementById('sheetBtnScreen');
+const sheetBtnFlip = document.getElementById('sheetBtnFlip');
+const sheetBtnAudit = document.getElementById('sheetBtnAudit');
+const sheetBtnChat = document.getElementById('sheetBtnChat');
+const sheetBtnInvite = document.getElementById('sheetBtnInvite');
+const sheetBtnSettings = document.getElementById('sheetBtnSettings');
+const sheetChatBadge = document.getElementById('sheetChatBadge');
+
 function showToast(msg, icon = 'info') {
     toastText.textContent = msg;
     toastIcon.textContent = icon;
@@ -292,7 +303,7 @@ function updateGridCount() {
     const count = videoGrid.children.length;
     videoGrid.classList.remove('count-1', 'count-2', 'count-3', 'count-4', 'count-many');
 
-    if (pinnedTileId || document.querySelector('.screen-tile.is-stage')) {
+    if (pinnedTileId) {
         videoGrid.classList.add('has-stage');
     } else {
         videoGrid.classList.remove('has-stage');
@@ -403,6 +414,7 @@ async function flipCamera() {
     }
 }
 btnFlipCam.onclick = flipCamera;
+sheetBtnFlip.onclick = () => { flipCamera(); closeMobileSheet(); };
 document.getElementById('btnFlipCamPreview').onclick = flipCamera;
 
 function toggleCamera() {
@@ -460,7 +472,7 @@ document.getElementById('btnTogglePreviewCam').onclick = toggleCamera;
 document.getElementById('btnTogglePreviewMic').onclick = toggleMicrophone;
 
 /* ==========================================================================
-   5. ВИДЕОКАРТОЧКИ УЧАСТНИКОВ, PINNING И МЕНЮ (3 ТОЧКИ)
+   5. ВИДЕОКАРТОЧКИ УЧАСТНИКОВ, PINNING И МЕНЮ
    ========================================================================== */
 function addOrUpdateCamTile(peerId, stream, participantName, initialMicState = true, initialCamState = true) {
     const tileId = `tile-cam-${peerId}`;
@@ -478,7 +490,6 @@ function addOrUpdateCamTile(peerId, stream, participantName, initialMicState = t
                 <span class="material-symbols-outlined">person</span>
             </div>
 
-            <!-- Верхний тулбар при наведении в стиле Google Meet -->
             <div class="tile-hover-controls">
                 <button class="tile-ctrl-btn" title="Закрепить" onclick="togglePinTile('${tileId}')">
                     <span class="material-symbols-outlined">keep</span>
@@ -498,7 +509,7 @@ function addOrUpdateCamTile(peerId, stream, participantName, initialMicState = t
                 <div class="tile-tag">
                     <span id="mic-cam-${peerId}" class="material-symbols-outlined mic-icon">mic</span>
                     <span id="name-cam-${peerId}">${escapeHtml(participantName || 'Участник')}</span>
-                    <span id="crown-cam-${peerId}" class="material-symbols-outlined host-crown p2p-hidden" title="Организатор встречи">crown</span>
+                    <span id="crown-cam-${peerId}" class="material-symbols-outlined host-crown p2p-hidden" title="Организатор">crown</span>
                 </div>
             </div>
         `;
@@ -514,7 +525,6 @@ function addOrUpdateCamTile(peerId, stream, participantName, initialMicState = t
         videoEl.play().catch(() => { });
     }
 
-    // Синхронизация начального статуса микрофона и камеры
     const micIcon = document.getElementById(`mic-cam-${peerId}`);
     if (micIcon) {
         micIcon.textContent = initialMicState ? 'mic' : 'mic_off';
@@ -537,7 +547,7 @@ function addOrUpdateCamTile(peerId, stream, participantName, initialMicState = t
 }
 
 /* ==========================================================================
-   ДЕМОНСТРАЦИЯ ЭКРАНА В СТИЛЕ DISCORD (СМОТРЕТЬ СТРИМ)
+   ДЕМОНСТРАЦИЯ ЭКРАНА В СТИЛЕ DISCORD (БЕЗ АВТО-STAGE)
    ========================================================================== */
 const activeScreenStreams = new Map();
 
@@ -549,22 +559,21 @@ function addOrUpdateScreenTile(peerId, stream, titleName, isLocal = false) {
 
     if (!tile) {
         tile = document.createElement('div');
-        tile.className = 'video-tile screen-tile is-stage';
+        tile.className = 'video-tile screen-tile'; // БЕЗ is-stage по умолчанию!
         tile.id = tileId;
         tile.dataset.peer = peerId;
         tile.innerHTML = `
             <video id="video-screen-${peerId}" autoplay playsinline ${isLocal ? 'muted' : ''}></video>
 
-            <!-- Карточка Discord для подключения к стриму (только для удаленных) -->
             ${!isLocal ? `
             <div class="stream-discord-card" id="streamCard-${peerId}">
                 <div class="stream-discord-icon">
-                    <span class="material-symbols-outlined" style="font-size:28px;">desktop_windows</span>
+                    <span class="material-symbols-outlined" style="font-size:24px;">desktop_windows</span>
                 </div>
                 <div class="stream-discord-title">Трансляция экрана</div>
                 <div class="stream-discord-desc">${escapeHtml(titleName)} делится экраном</div>
-                <button class="studio-btn-primary" onclick="joinScreenStream('${peerId}')" style="margin-top:6px;">
-                    <span class="material-symbols-outlined">play_arrow</span> Смотреть стрим
+                <button class="studio-btn-primary" onclick="joinScreenStream('${peerId}')" style="margin-top:4px; padding:6px 12px; font-size:12px;">
+                    <span class="material-symbols-outlined" style="font-size:16px;">play_arrow</span> Смотреть стрим
                 </button>
             </div>
             ` : ''}
@@ -615,11 +624,11 @@ window.joinScreenStream = function (peerId) {
         videoEl.play().catch(() => { });
     }
     if (card) card.remove();
-    showToast("Вы подключились к трансляции", 'play_arrow');
+    showToast("Вы подключились к стриму", 'play_arrow');
 };
 
 /* ==========================================================================
-   МЕНЮ УЧАСТНИКА (3 ТОЧКИ) И ГРОМКОСТЬ
+   КОНТЕКСТНОЕ МЕНЮ КАРТОЧКИ И ЗАКРЕПЛЕНИЕ (PIN)
    ========================================================================== */
 let activeContextMenu = null;
 
@@ -742,6 +751,7 @@ window.toggleNativeFullscreen = function (tileId) {
 function toggleHandRaise() {
     isHandRaised = !isHandRaised;
     btnHandRaise.classList.toggle('active-yellow', isHandRaised);
+    sheetBtnHand.classList.toggle('active', isHandRaised);
     myHandBadge.classList.toggle('p2p-hidden', !isHandRaised);
 
     if (isHandRaised) {
@@ -757,6 +767,7 @@ function toggleHandRaise() {
     });
 }
 btnHandRaise.onclick = toggleHandRaise;
+sheetBtnHand.onclick = () => { toggleHandRaise(); closeMobileSheet(); };
 
 async function toggleScreenShare() {
     soundFx.click();
@@ -771,6 +782,7 @@ async function toggleScreenShare() {
         }
         isScreenSharing = false;
         btnScreenShare.classList.remove('active');
+        sheetBtnScreen.classList.remove('active');
         removeTile('tile-screen-local');
         net.stopScreenShare();
     } else {
@@ -781,6 +793,7 @@ async function toggleScreenShare() {
             screenStream = await navigator.mediaDevices.getDisplayMedia({ video: true, audio: true });
             isScreenSharing = true;
             btnScreenShare.classList.add('active');
+            sheetBtnScreen.classList.add('active');
             addOrUpdateScreenTile('local', screenStream, `${myName} (Экран)`, true);
             net.startScreenShare(screenStream, myName);
             screenStream.getVideoTracks()[0].onended = () => toggleScreenShare();
@@ -790,9 +803,32 @@ async function toggleScreenShare() {
     }
 }
 btnScreenShare.onclick = toggleScreenShare;
+sheetBtnScreen.onclick = () => { toggleScreenShare(); closeMobileSheet(); };
 
 /* ==========================================================================
-   7. УМНЫЙ ЧАТ И РЕАКЦИИ БЕЗ АВТОЗАКРЫТИЯ
+   7. МОБИЛЬНЫЙ BOTTOM SHEET
+   ========================================================================== */
+function openMobileSheet() {
+    soundFx.click();
+    mobileSheetBackdrop.classList.remove('p2p-hidden');
+}
+
+function closeMobileSheet() {
+    mobileSheetBackdrop.classList.add('p2p-hidden');
+}
+
+btnMoreMobile.onclick = openMobileSheet;
+mobileSheetBackdrop.onclick = (e) => {
+    if (e.target === mobileSheetBackdrop) closeMobileSheet();
+};
+
+sheetBtnChat.onclick = () => { closeMobileSheet(); toggleChatPanel(); };
+sheetBtnInvite.onclick = () => { closeMobileSheet(); document.getElementById('btnInviteInfo').click(); };
+sheetBtnSettings.onclick = () => { closeMobileSheet(); document.getElementById('btnSettingsOpen').click(); };
+sheetBtnAudit.onclick = () => { closeMobileSheet(); document.getElementById('btnOpenLogs').click(); };
+
+/* ==========================================================================
+   8. ЧАТ И РЕАКЦИИ
    ========================================================================== */
 function toggleChatPanel() {
     soundFx.click();
@@ -800,6 +836,7 @@ function toggleChatPanel() {
     btnChatToggle.classList.toggle('active', !isHidden);
     if (!isHidden) {
         chatUnreadDot.classList.add('p2p-hidden');
+        sheetChatBadge.classList.add('p2p-hidden');
         setTimeout(() => inputChatMessage.focus(), 100);
     }
 }
@@ -829,6 +866,7 @@ function appendChatMessage(sender, text, isMe) {
 
     if (!isMe && chatPanel.classList.contains('p2p-hidden')) {
         chatUnreadDot.classList.remove('p2p-hidden');
+        sheetChatBadge.classList.remove('p2p-hidden');
         if (showChatToasts) {
             spawnChatToastOverlay(sender, text);
         }
@@ -875,7 +913,7 @@ function spawnFloatingReaction(emoji) {
 }
 
 /* ==========================================================================
-   8. НАСТРОЙКИ, АДМИНИСТРИРОВАНИЕ И МОДАЛКИ
+   9. НАСТРОЙКИ, АДМИНИСТРИРОВАНИЕ И МОДАЛКИ
    ========================================================================== */
 const settingsModal = document.getElementById('settingsModal');
 const selectVideoInput = document.getElementById('selectVideoInput');
@@ -1031,7 +1069,7 @@ document.getElementById('btnSaveSettings').onclick = async () => {
 };
 
 /* ==========================================================================
-   9. ПОДКЛЮЧЕНИЕ К КОМНАТЕ И СЕТЕВЫЕ СОБЫТИЯ
+   10. ПОДКЛЮЧЕНИЕ К КОМНАТЕ
    ========================================================================== */
 document.getElementById('btnCreateRoom').onclick = async () => {
     unlockAudioEngine();
@@ -1094,6 +1132,7 @@ function leaveConference() {
     netBadge.className = "studio-badge";
     netBadgeText.textContent = "STANDBY";
     pinnedTileId = null;
+    closeMobileSheet();
     updateGridCount();
 }
 document.getElementById('btnLeaveCall').onclick = leaveConference;

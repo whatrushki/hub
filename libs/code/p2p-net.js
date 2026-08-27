@@ -1,5 +1,5 @@
 /**
- * P2PNet v4.1 - Полноценный WebRTC Mesh с Watchdog-восстановлением,
+ * P2PNet v4.2 - Полноценный WebRTC Mesh с Watchdog-восстановлением,
  * синхронизацией состояния микрофонов/камер и администрированием
  */
 class P2PNet {
@@ -590,7 +590,16 @@ class P2PNet {
             const peerName = this.peers.get(peerId)?.name || meta.name || 'Участник';
 
             this._audit('MEDIA', `Поток от ${peerId} (${peerName}) готов (Видео:${vCount}, Аудио:${aCount})`);
-            this.emit('remote-stream', { peerId, stream: remoteStream, metadata: { ...meta, name: peerName } });
+            this.emit('remote-stream', {
+                peerId,
+                stream: remoteStream,
+                metadata: {
+                    ...meta,
+                    name: peerName,
+                    isMicOn: meta.isMicOn ?? true,
+                    isCamOn: meta.isCamOn ?? true
+                }
+            });
         });
 
         call.on('close', () => {

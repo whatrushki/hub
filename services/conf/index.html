@@ -41,11 +41,11 @@
                     <span class="status-dot"></span>
                     <span id="netBadgeText">STANDBY</span>
                 </div>
-                <button class="studio-btn-compact" id="btnOpenLogs" title="Системный аудит">
+                <button class="studio-btn-compact hide-mobile" id="btnOpenLogs" title="Системный аудит">
                     <span class="material-symbols-outlined" style="color: var(--google-yellow);">terminal</span>
-                    <span class="hide-mobile">Audit</span>
+                    <span>Audit</span>
                 </button>
-                <button class="studio-btn-compact" id="btnSettingsOpen" title="Настройки">
+                <button class="studio-btn-compact hide-mobile" id="btnSettingsOpen" title="Настройки">
                     <span class="material-symbols-outlined">settings</span>
                 </button>
             </div>
@@ -63,10 +63,10 @@
                     </div>
                     <div class="preview-controls">
                         <button class="studio-btn-secondary" id="btnTogglePreviewMic">
-                            <span class="material-symbols-outlined">mic</span> <span class="hide-mobile">Mic</span>
+                            <span class="material-symbols-outlined">mic</span> Mic
                         </button>
                         <button class="studio-btn-secondary" id="btnTogglePreviewCam">
-                            <span class="material-symbols-outlined">videocam</span> <span class="hide-mobile">Cam</span>
+                            <span class="material-symbols-outlined">videocam</span> Cam
                         </button>
                         <button class="studio-btn-secondary" id="btnFlipCamPreview" title="Сменить камеру">
                             <span class="material-symbols-outlined">flip_camera_ios</span>
@@ -111,7 +111,6 @@
                                 <span class="material-symbols-outlined">person</span>
                             </div>
 
-                            <!-- Плавающий бар управления карточкой -->
                             <div class="tile-hover-controls">
                                 <button class="tile-ctrl-btn" title="Закрепить"
                                     onclick="togglePinTile('tile-cam-local')">
@@ -131,7 +130,7 @@
                                     <span id="myTagMic" class="material-symbols-outlined mic-icon">mic</span>
                                     <span id="myTagName">Вы</span>
                                     <span id="myHostCrown" class="material-symbols-outlined host-crown p2p-hidden"
-                                        title="Организатор встречи">crown</span>
+                                        title="Организатор">crown</span>
                                 </div>
                             </div>
                         </div>
@@ -178,50 +177,103 @@
                 </button>
             </div>
 
-            <!-- НИЖНЯЯ ПАНЕЛЬ GOOGLE MEET -->
-            <footer class="meet-bottom-bar">
-                <div class="meet-bar-left hide-mobile">
-                    <div class="meet-time-pill" id="meetLiveTime">12:00</div>
-                    <div class="meet-room-pill" id="meetRoomCodePill" title="Копировать код">
-                        <span id="meetRoomCodeText">ROOM</span>
-                        <span class="material-symbols-outlined" style="font-size: 14px;">content_copy</span>
+            <!-- ПЛАВАЮЩАЯ НИЖНЯЯ ПАНЕЛЬ GOOGLE MEET -->
+            <div class="meet-bar-wrapper">
+                <footer class="meet-bottom-bar">
+                    <!-- Десктопная левая часть -->
+                    <div class="meet-bar-left hide-mobile">
+                        <div class="meet-time-pill" id="meetLiveTime">12:00</div>
+                        <div class="meet-room-pill" id="meetRoomCodePill" title="Копировать код">
+                            <span id="meetRoomCodeText">ROOM</span>
+                            <span class="material-symbols-outlined" style="font-size: 14px;">content_copy</span>
+                        </div>
                     </div>
-                </div>
 
-                <div class="meet-bar-center">
-                    <button class="meet-btn" id="btnMicToggle" title="Микрофон [M]">
-                        <span class="material-symbols-outlined">mic</span>
-                    </button>
-                    <button class="meet-btn" id="btnCamToggle" title="Камера [V]">
-                        <span class="material-symbols-outlined">videocam</span>
-                    </button>
-                    <button class="meet-btn" id="btnFlipCam" title="Сменить камеру">
-                        <span class="material-symbols-outlined">flip_camera_ios</span>
-                    </button>
-                    <button class="meet-btn" id="btnScreenShare" title="Поделиться экраном [S]">
-                        <span class="material-symbols-outlined">present_to_all</span>
-                    </button>
-                    <button class="meet-btn" id="btnHandRaise" title="Поднять руку [H]">
+                    <!-- Основной док кнопок -->
+                    <div class="meet-bar-center">
+                        <button class="meet-btn" id="btnMicToggle" title="Микрофон [M]">
+                            <span class="material-symbols-outlined">mic</span>
+                        </button>
+                        <button class="meet-btn" id="btnCamToggle" title="Камера [V]">
+                            <span class="material-symbols-outlined">videocam</span>
+                        </button>
+                        <button class="meet-btn hide-mobile" id="btnFlipCam" title="Сменить камеру">
+                            <span class="material-symbols-outlined">flip_camera_ios</span>
+                        </button>
+                        <button class="meet-btn hide-mobile" id="btnScreenShare" title="Поделиться экраном [S]">
+                            <span class="material-symbols-outlined">present_to_all</span>
+                        </button>
+                        <button class="meet-btn hide-mobile" id="btnHandRaise" title="Поднять руку [H]">
+                            <span class="material-symbols-outlined">back_hand</span>
+                        </button>
+                        <button class="meet-btn" id="btnReactionToggle" title="Реакции">
+                            <span class="material-symbols-outlined">mood</span>
+                        </button>
+                        <!-- Кнопка 3 точки (только на мобилке, открывает Bottom Sheet) -->
+                        <button class="meet-btn show-mobile-only" id="btnMoreMobile" title="Ещё">
+                            <span class="material-symbols-outlined">more_vert</span>
+                        </button>
+                        <button class="meet-btn meet-btn-danger" id="btnLeaveCall" title="Завершить звонок">
+                            <span class="material-symbols-outlined">call_end</span>
+                        </button>
+                    </div>
+
+                    <!-- Десктопная правая часть -->
+                    <div class="meet-bar-right hide-mobile">
+                        <button class="meet-btn" id="btnInviteInfo" title="Информация о встрече">
+                            <span class="material-symbols-outlined">info</span>
+                        </button>
+                        <button class="meet-btn" id="btnChatToggle" title="Чат [C]">
+                            <span class="material-symbols-outlined">chat</span>
+                            <span class="chat-unread-dot p2p-hidden" id="chatUnreadDot"></span>
+                        </button>
+                    </div>
+                </footer>
+            </div>
+        </div>
+
+        <!-- МОБИЛЬНЫЙ BOTTOM SHEET В СТИЛЕ GOOGLE MEET -->
+        <div class="p2p-modal-backdrop p2p-hidden" id="mobileSheetBackdrop">
+            <div class="meet-bottom-sheet" id="mobileBottomSheet">
+                <div class="sheet-drag-handle"></div>
+
+                <!-- Блок быстрых кнопок 2x2 -->
+                <div class="sheet-grid-actions">
+                    <button class="sheet-tile-btn" id="sheetBtnHand">
                         <span class="material-symbols-outlined">back_hand</span>
+                        <span>Поднять руку</span>
                     </button>
-                    <button class="meet-btn" id="btnReactionToggle" title="Реакции">
-                        <span class="material-symbols-outlined">add_reaction</span>
+                    <button class="sheet-tile-btn" id="sheetBtnScreen">
+                        <span class="material-symbols-outlined">present_to_all</span>
+                        <span>Экран</span>
                     </button>
-                    <button class="meet-btn meet-btn-danger" id="btnLeaveCall" title="Покинуть звонок">
-                        <span class="material-symbols-outlined">call_end</span>
+                    <button class="sheet-tile-btn" id="sheetBtnFlip">
+                        <span class="material-symbols-outlined">flip_camera_ios</span>
+                        <span>Сменить камеру</span>
+                    </button>
+                    <button class="sheet-tile-btn" id="sheetBtnAudit">
+                        <span class="material-symbols-outlined" style="color: var(--google-yellow);">terminal</span>
+                        <span>Аудит</span>
                     </button>
                 </div>
 
-                <div class="meet-bar-right">
-                    <button class="meet-btn" id="btnInviteInfo" title="Информация о встрече">
-                        <span class="material-symbols-outlined">info</span>
-                    </button>
-                    <button class="meet-btn" id="btnChatToggle" title="Чат [C]">
+                <!-- Список действий во всю ширину -->
+                <div class="sheet-list-actions">
+                    <button class="sheet-list-item" id="sheetBtnChat">
                         <span class="material-symbols-outlined">chat</span>
-                        <span class="chat-unread-dot p2p-hidden" id="chatUnreadDot"></span>
+                        <span>Сообщения встречи</span>
+                        <span class="sheet-badge p2p-hidden" id="sheetChatBadge">New</span>
+                    </button>
+                    <button class="sheet-list-item" id="sheetBtnInvite">
+                        <span class="material-symbols-outlined">person_add</span>
+                        <span>Пригласить участников</span>
+                    </button>
+                    <button class="sheet-list-item" id="sheetBtnSettings">
+                        <span class="material-symbols-outlined">settings</span>
+                        <span>Настройки</span>
                     </button>
                 </div>
-            </footer>
+            </div>
         </div>
 
         <!-- МОДАЛЬНОЕ ОКНО НАСТРОЕК -->
@@ -326,7 +378,7 @@
                 <div class="modal-header">
                     <div class="modal-title">
                         <span class="material-symbols-outlined" style="color: var(--google-yellow);">terminal</span>
-                        <span class="hide-mobile">Системный аудит</span>
+                        <span>Системный аудит</span>
                     </div>
                     <div class="modal-header-actions">
                         <button class="studio-btn-secondary" id="btnCopyLogs" title="Копировать">

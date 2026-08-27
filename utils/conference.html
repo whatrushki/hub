@@ -1,12 +1,12 @@
+<!DOCTYPE html>
 <html lang="ru">
 
 <head>
     <meta charset="UTF-8">
     <meta name="viewport"
         content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>DROPCONF // Studio Mesh Edition</title>
+    <title>DROPCONF // Mesh Engine</title>
 
-    <!-- Google Fonts & Material Symbols -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link
@@ -81,14 +81,12 @@
         .conf-app {
             width: 100%;
             height: 100%;
-            height: 100dvh;
             display: flex;
             flex-direction: column;
             background-color: var(--bg-base);
             position: relative;
         }
 
-        /* 1. ХЕДЕР */
         .studio-header {
             height: 48px;
             background: var(--bg-base);
@@ -159,7 +157,6 @@
             box-shadow: 0 0 6px var(--google-green);
         }
 
-        /* 2. РАБОЧАЯ ОБЛАСТЬ */
         .conf-main-area {
             flex: 1;
             display: flex;
@@ -179,7 +176,6 @@
             position: relative;
         }
 
-        /* СЕТКА ВИДЕОКАРТОЧЕК */
         .conf-grid {
             flex: 1;
             display: grid;
@@ -224,13 +220,11 @@
             .conf-grid.count-1 .video-tile {
                 flex: 1;
                 height: 100%;
-                min-height: 0;
             }
 
             .conf-grid.count-2 .video-tile {
                 flex: 1;
                 height: calc(50% - 3px);
-                min-height: 0;
             }
 
             .conf-grid.count-3,
@@ -247,38 +241,6 @@
             }
         }
 
-        /* SPOTLIGHT */
-        .spotlight-strip {
-            display: flex;
-            gap: 8px;
-            overflow-x: auto;
-            overflow-y: hidden;
-            padding: 4px 0;
-            height: 110px;
-            flex-shrink: 0;
-            border-top: 1px solid var(--border-subtle);
-        }
-
-        .spotlight-strip .video-tile {
-            width: 150px;
-            height: 100%;
-            flex-shrink: 0;
-        }
-
-        .spotlight-main-slot {
-            flex: 1;
-            min-height: 0;
-            display: flex;
-            width: 100%;
-            height: 100%;
-        }
-
-        .spotlight-main-slot .video-tile {
-            width: 100%;
-            height: 100%;
-        }
-
-        /* КАРТОЧКА ВИДЕО */
         .video-tile {
             background: var(--bg-surface);
             border: 2px solid var(--border-subtle);
@@ -292,19 +254,14 @@
             transition: border-color 0.2s ease, box-shadow 0.2s ease;
         }
 
-        /* ПОДСВЕТКА ГОВОРЯЩЕГО (ТОЛЬКО ДЛЯ КАМЕР) */
         .video-tile.speaking:not(.screen-tile) {
             border-color: var(--google-blue) !important;
             box-shadow: 0 0 14px rgba(168, 199, 250, 0.45) !important;
         }
 
-        /* ДЕМОНСТРАЦИЯ ЭКРАНА — СТРОГО БЕЗ ПОДСВЕТКИ */
-        .video-tile.screen-tile,
-        .video-tile.screen-tile.speaking,
-        div.video-tile.screen-tile {
+        .video-tile.screen-tile {
             border: 1.5px solid rgba(255, 255, 255, 0.16) !important;
             box-shadow: none !important;
-            outline: none !important;
         }
 
         .video-tile video {
@@ -323,7 +280,6 @@
             object-fit: contain;
         }
 
-        /* ПОЛНОЭКРАННЫЙ РЕЖИМ (PSEUDO-FULLSCREEN) */
         .video-tile.pseudo-fullscreen {
             position: fixed !important;
             inset: 0 !important;
@@ -335,33 +291,6 @@
             background: #000 !important;
         }
 
-        /* ПЛАВАЮЩАЯ КНОПКА ЧАТА В ПОЛНОЭКРАННОМ РЕЖИМЕ (СНИЗУ СПРАВА) */
-        .fullscreen-chat-fab {
-            position: fixed;
-            bottom: 24px;
-            right: 24px;
-            z-index: 100010 !important;
-            background: rgba(30, 31, 32, 0.9);
-            border: 1px solid var(--border-focus);
-            backdrop-filter: blur(12px);
-            color: var(--text-primary);
-            padding: 10px 16px;
-            border-radius: var(--radius-full);
-            font-size: 13px;
-            font-weight: 600;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            cursor: pointer;
-            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.7);
-            transition: all 0.2s ease;
-        }
-
-        .fullscreen-chat-fab:active {
-            transform: scale(0.94);
-        }
-
-        /* ОВЕРЛЕИ КАРТОЧКИ */
         .tile-overlay {
             position: absolute;
             inset: 0;
@@ -394,12 +323,6 @@
             backdrop-filter: blur(8px);
         }
 
-        .tile-action-btn:hover {
-            background: var(--bg-surface-elevated);
-            color: var(--text-primary);
-            border-color: var(--border-focus);
-        }
-
         .tile-tag {
             align-self: flex-start;
             background: rgba(19, 19, 20, 0.85);
@@ -417,18 +340,6 @@
             max-width: 85%;
         }
 
-        .hand-badge {
-            background: var(--google-yellow);
-            color: #000;
-            border-radius: var(--radius-full);
-            padding: 2px 6px;
-            font-size: 11px;
-            font-weight: 700;
-            display: flex;
-            align-items: center;
-            gap: 2px;
-        }
-
         .tile-avatar {
             position: absolute;
             width: 60px;
@@ -444,7 +355,6 @@
             z-index: 2;
         }
 
-        /* 3. НИЖНЯЯ ПАНЕЛЬ */
         .conf-controls-bar {
             display: flex;
             justify-content: center;
@@ -457,7 +367,6 @@
             flex-shrink: 0;
             z-index: 25;
             overflow-x: auto;
-            -webkit-overflow-scrolling: touch;
         }
 
         .studio-btn-dock {
@@ -481,7 +390,6 @@
 
         .studio-btn-dock:hover {
             background: var(--bg-surface-hover);
-            border-color: rgba(255, 255, 255, 0.2);
         }
 
         .studio-btn-dock.off {
@@ -508,67 +416,6 @@
             border-color: rgba(242, 139, 130, 0.3);
         }
 
-        /* 4. ВСПЛЫВАЮЩИЕ УВЕДОМЛЕНИЯ СВЕРХУ (ПОВЕРХ ВСЕГО) */
-        .chat-toast-container {
-            position: fixed;
-            top: 16px;
-            right: 16px;
-            display: flex;
-            flex-direction: column;
-            gap: 8px;
-            z-index: 200000 !important;
-            pointer-events: none;
-            max-width: 320px;
-            width: calc(100% - 32px);
-        }
-
-        .chat-floating-toast {
-            background: rgba(30, 31, 32, 0.95);
-            border: 1px solid var(--border-focus);
-            backdrop-filter: blur(16px);
-            border-radius: var(--radius-md);
-            padding: 10px 14px;
-            color: var(--text-primary);
-            font-size: 12px;
-            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.7);
-            pointer-events: auto;
-            cursor: pointer;
-            display: flex;
-            flex-direction: column;
-            gap: 3px;
-            animation: slideInDown 0.25s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
-            transition: opacity 0.3s ease, transform 0.3s ease;
-        }
-
-        .chat-floating-toast .sender {
-            font-size: 11px;
-            font-weight: 600;
-            color: var(--google-blue);
-            display: flex;
-            align-items: center;
-            gap: 4px;
-        }
-
-        .chat-floating-toast .text {
-            color: var(--text-primary);
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-        }
-
-        @keyframes slideInDown {
-            from {
-                opacity: 0;
-                transform: translateY(-16px);
-            }
-
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
-        }
-
-        /* 5. ЧАТ ПАНЕЛЬ */
         .chat-drawer {
             width: 340px;
             height: 100%;
@@ -577,16 +424,6 @@
             display: flex;
             flex-direction: column;
             z-index: 150000 !important;
-            position: relative;
-            box-shadow: -6px 0 24px rgba(0, 0, 0, 0.6);
-        }
-
-        body.has-fullscreen .chat-drawer {
-            position: fixed !important;
-            top: 0 !important;
-            right: 0 !important;
-            bottom: 0 !important;
-            height: 100dvh !important;
         }
 
         .chat-header {
@@ -624,12 +461,6 @@
             align-self: flex-start;
         }
 
-        .chat-msg-sender {
-            font-size: 11px;
-            color: var(--text-muted);
-            font-family: var(--font-mono);
-        }
-
         .chat-msg-bubble {
             padding: 8px 12px;
             border-radius: var(--radius-sm);
@@ -665,11 +496,6 @@
             outline: none;
         }
 
-        .studio-input:focus {
-            border-color: var(--border-focus);
-        }
-
-        /* 6. ЛОББИ */
         .lobby-container {
             flex: 1;
             display: flex;
@@ -738,7 +564,6 @@
             gap: 6px;
         }
 
-        /* 7. ТОСТЫ И МОДАЛКИ */
         .p2p-toast {
             position: fixed;
             top: 20px;
@@ -768,8 +593,8 @@
         .p2p-modal-backdrop {
             position: fixed;
             inset: 0;
-            background: rgba(0, 0, 0, 0.7);
-            backdrop-filter: blur(4px);
+            background: rgba(0, 0, 0, 0.75);
+            backdrop-filter: blur(6px);
             display: flex;
             align-items: center;
             justify-content: center;
@@ -781,13 +606,18 @@
             background: var(--bg-surface);
             border: 1px solid var(--border-subtle);
             border-radius: var(--radius-lg);
-            padding: 24px;
-            max-width: 380px;
+            padding: 20px;
+            max-width: 420px;
             width: 100%;
-            text-align: center;
             display: flex;
             flex-direction: column;
             gap: 12px;
+            box-shadow: 0 16px 40px rgba(0, 0, 0, 0.8);
+        }
+
+        .studio-modal.modal-large {
+            max-width: 780px;
+            height: 80vh;
         }
 
         .studio-select {
@@ -799,6 +629,74 @@
             font-size: 12px;
             outline: none;
             width: 100%;
+        }
+
+        /* AUDIT LOG CONSOLE */
+        .log-terminal-window {
+            flex: 1;
+            background: #090a0f;
+            border: 1px solid #22252a;
+            border-radius: var(--radius-sm);
+            padding: 10px;
+            font-family: var(--font-mono);
+            font-size: 11px;
+            color: #d1d5db;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            white-space: pre-wrap;
+            word-break: break-all;
+        }
+
+        .log-line {
+            display: flex;
+            gap: 8px;
+            line-height: 1.4;
+        }
+
+        .log-time {
+            color: #6b7280;
+            flex-shrink: 0;
+        }
+
+        .log-tag {
+            font-weight: 700;
+            padding: 1px 4px;
+            border-radius: 3px;
+            font-size: 10px;
+            flex-shrink: 0;
+        }
+
+        .log-tag-SYS {
+            background: #374151;
+            color: #9ca3af;
+        }
+
+        .log-tag-NET {
+            background: rgba(59, 130, 246, 0.2);
+            color: #60a5fa;
+        }
+
+        .log-tag-MEDIA {
+            background: rgba(16, 185, 129, 0.2);
+            color: #34d399;
+        }
+
+        .log-tag-ICE {
+            background: rgba(245, 158, 11, 0.2);
+            color: #fbbf24;
+        }
+
+        .log-tag-ERR {
+            background: rgba(239, 68, 68, 0.2);
+            color: #f87171;
+            font-weight: 800;
+        }
+
+        .log-tag-WARN {
+            background: rgba(217, 119, 6, 0.2);
+            color: #f59e0b;
         }
 
         .reactions-bar {
@@ -821,7 +719,6 @@
             font-size: 18px;
             padding: 6px 8px;
             cursor: pointer;
-            border-radius: var(--radius-full);
         }
 
         .p2p-float-item {
@@ -874,31 +771,6 @@
                 inset: 0;
                 width: 100%;
             }
-
-            .conf-controls-bar {
-                padding: 6px 4px;
-                gap: 4px;
-                justify-content: flex-start;
-            }
-
-            .studio-btn-dock {
-                min-width: 36px;
-                height: 36px;
-                padding: 0 6px;
-                font-size: 11px;
-            }
-
-            .studio-btn-dock span.material-symbols-outlined {
-                font-size: 18px;
-            }
-
-            .chat-toast-container {
-                top: 8px;
-                right: 8px;
-                left: 8px;
-                max-width: none;
-                width: auto;
-            }
         }
     </style>
 </head>
@@ -909,47 +781,39 @@
         <span id="toastText">Уведомление</span>
     </div>
 
-    <!-- ВСПЛЫВАЮЩИЕ СООБЩЕНИЯ СВЕРХУ (ПОВЕРХ FULLSCREEN) -->
-    <div class="chat-toast-container" id="chatToastContainer"></div>
-
-    <!-- ПЛАВАЮЩАЯ КНОПКА ЧАТА ДЛЯ ПОЛНОЭКРАННОГО РЕЖИМА (СНИЗУ СПРАВА) -->
-    <button class="fullscreen-chat-fab p2p-hidden" id="fullscreenChatFab" onclick="toggleChat(true)">
-        <span class="material-symbols-outlined">chat</span>
-        <span>Чат</span>
-    </button>
-
     <div class="conf-app" id="reactionContainer">
-        <!-- 1. STUDIO HEADER -->
+        <!-- HEADER -->
         <header class="studio-header">
             <div class="studio-logo-area">
                 <span class="gemini-sparkle">✦</span>
                 <div class="studio-title">
-                    DROPCONF <span style="color: var(--text-muted); font-size: 12px;">Mesh v2.5</span>
+                    DROPCONF <span style="color: var(--text-muted); font-size: 12px;">Mesh v3.2</span>
                 </div>
             </div>
             <div style="display: flex; gap: 8px; align-items: center;">
+                <button class="studio-btn-dock" id="btnOpenLogs" title="Системный аудит и логи"
+                    style="height: 28px; padding: 0 8px; font-size: 11px;">
+                    <span class="material-symbols-outlined"
+                        style="font-size: 16px; color: var(--google-yellow);">terminal</span> Audit Log
+                </button>
                 <button class="studio-btn-dock" id="btnSettingsOpen" title="Настройки устройств"
                     style="height: 28px; padding: 0 8px;">
                     <span class="material-symbols-outlined" style="font-size: 16px;">settings</span>
                 </button>
-                <button class="studio-btn-dock" id="btnLogToggle" title="Логи системы"
-                    style="height: 28px; padding: 0 8px; font-size: 11px;">
-                    <span class="material-symbols-outlined" style="font-size: 16px;">terminal</span> Logs
-                </button>
                 <div class="studio-badge" id="netBadge">
                     <span class="status-dot"></span>
-                    <span id="netBadgeText">CONNECTING</span>
+                    <span id="netBadgeText">STANDBY</span>
                 </div>
             </div>
         </header>
 
-        <!-- 2. LOBBY SCREEN -->
+        <!-- LOBBY -->
         <div class="lobby-container" id="lobbyScreen">
             <div class="lobby-card">
                 <div class="lobby-preview-pane">
                     <div class="video-tile mirrored" id="previewTile"
                         style="width: 100%; max-width: 280px; aspect-ratio: 4/3;">
-                        <video id="previewVideo" autoplay playsinline webkit-playsinline muted></video>
+                        <video id="previewVideo" autoplay playsinline muted></video>
                         <div id="previewAvatar" class="tile-avatar" style="display: none;">
                             <span class="material-symbols-outlined" style="font-size: 32px;">person</span>
                         </div>
@@ -974,7 +838,7 @@
                     <div>
                         <div
                             style="font-size: 11px; font-family: var(--font-mono); color: var(--text-muted); margin-bottom: 6px;">
-                            IDENTIFICATION
+                            NAME / CALLSIGN
                         </div>
                         <input type="text" class="studio-input" id="inputUserName" placeholder="Ваше имя..."
                             style="width: 100%;" maxlength="15">
@@ -1000,29 +864,21 @@
             </div>
         </div>
 
-        <!-- 3. CONFERENCE SCREEN -->
+        <!-- CONFERENCE -->
         <div id="conferenceScreen" class="p2p-hidden"
             style="flex: 1; display: flex; flex-direction: column; overflow: hidden; min-height: 0;">
             <div class="conf-main-area">
                 <div class="conf-video-container" id="videoWrapper">
-                    <!-- Слот Spotlight -->
-                    <div class="spotlight-main-slot p2p-hidden" id="spotlightSlot"></div>
-
-                    <!-- Сетка потоков -->
                     <div class="conf-grid count-1" id="videoGrid">
-                        <!-- Локальная камера -->
+                        <!-- Мой тайл -->
                         <div class="video-tile mirrored" id="tile-cam-local">
-                            <video id="localVideo" autoplay playsinline webkit-playsinline muted></video>
+                            <video id="localVideo" autoplay playsinline muted></video>
                             <div id="myAvatar" class="tile-avatar" style="display: none;">
                                 <span class="material-symbols-outlined" style="font-size: 32px;">person</span>
                             </div>
                             <div class="tile-overlay">
                                 <div class="tile-top-actions">
                                     <div class="hand-badge p2p-hidden" id="myHandBadge">✋ Рука</div>
-                                    <button class="tile-action-btn" title="Закрепить"
-                                        onclick="toggleSpotlight('tile-cam-local')">
-                                        <span class="material-symbols-outlined">keep</span>
-                                    </button>
                                     <button class="tile-action-btn" title="На весь экран"
                                         onclick="toggleNativeFullscreen('tile-cam-local')">
                                         <span class="material-symbols-outlined">fullscreen</span>
@@ -1036,9 +892,6 @@
                             </div>
                         </div>
                     </div>
-
-                    <!-- Лента миниатюр для Spotlight -->
-                    <div class="spotlight-strip p2p-hidden" id="spotlightStrip"></div>
                 </div>
 
                 <!-- ЧАТ -->
@@ -1047,22 +900,20 @@
                         <span style="display: flex; align-items: center; gap: 6px;">
                             <span class="material-symbols-outlined">chat_bubble</span> Чат сессии
                         </span>
-                        <button class="tile-action-btn" id="btnCloseChat">
-                            <span class="material-symbols-outlined">close</span>
-                        </button>
+                        <button class="tile-action-btn" id="btnCloseChat"><span
+                                class="material-symbols-outlined">close</span></button>
                     </div>
                     <div class="chat-messages" id="chatMessages"></div>
                     <div class="chat-input-box">
                         <input type="text" id="inputChatMessage" class="studio-input"
-                            placeholder="Написать сообщение... (Enter)">
-                        <button class="studio-btn-primary" id="btnSendChat" style="padding: 0 12px;">
-                            <span class="material-symbols-outlined">send</span>
-                        </button>
+                            placeholder="Сообщение... (Enter)">
+                        <button class="studio-btn-primary" id="btnSendChat" style="padding: 0 12px;"><span
+                                class="material-symbols-outlined">send</span></button>
                     </div>
                 </div>
             </div>
 
-            <!-- ПАНЕЛЬ РЕАКЦИЙ -->
+            <!-- Реакции -->
             <div class="reactions-bar p2p-hidden" id="reactionBar">
                 <button class="reaction-item-btn" data-emoji="👍">👍</button>
                 <button class="reaction-item-btn" data-emoji="❤️">❤️</button>
@@ -1072,50 +923,67 @@
                 <button class="reaction-item-btn" data-emoji="👏">👏</button>
             </div>
 
-            <!-- 4. CONTROLS DOCK -->
+            <!-- Нижняя панель -->
             <div class="conf-controls-bar">
-                <button class="studio-btn-dock" id="btnMicToggle" title="Микрофон [M] / Пробел (Push-to-Talk)">
-                    <span class="material-symbols-outlined">mic</span>
-                </button>
-                <button class="studio-btn-dock" id="btnCamToggle" title="Камера [V]">
-                    <span class="material-symbols-outlined">videocam</span>
-                </button>
-                <button class="studio-btn-dock" id="btnFlipCam" title="Переключить камеру">
-                    <span class="material-symbols-outlined">flip_camera_ios</span>
-                </button>
-                <button class="studio-btn-dock" id="btnScreenShare" title="Демонстрация экрана [S]">
-                    <span class="material-symbols-outlined">present_to_all</span>
-                </button>
-                <button class="studio-btn-dock" id="btnHandRaise" title="Поднять руку [H]">
-                    <span class="material-symbols-outlined">back_hand</span>
-                </button>
-                <button class="studio-btn-dock" id="btnReactionToggle" title="Реакции">
-                    <span class="material-symbols-outlined">add_reaction</span>
-                </button>
-                <button class="studio-btn-dock" id="btnChatToggle" title="Чат [C]">
-                    <span class="material-symbols-outlined">chat</span>
-                </button>
-                <button class="studio-btn-dock" id="btnInviteInfo" title="Код и ссылка">
-                    <span class="material-symbols-outlined">link</span>
-                </button>
-                <button class="studio-btn-dock studio-btn-danger" id="btnLeaveCall" title="Покинуть звонок">
-                    <span class="material-symbols-outlined">call_end</span>
-                </button>
+                <button class="studio-btn-dock" id="btnMicToggle" title="Микрофон [M]"><span
+                        class="material-symbols-outlined">mic</span></button>
+                <button class="studio-btn-dock" id="btnCamToggle" title="Камера [V]"><span
+                        class="material-symbols-outlined">videocam</span></button>
+                <button class="studio-btn-dock" id="btnFlipCam" title="Сменить камеру"><span
+                        class="material-symbols-outlined">flip_camera_ios</span></button>
+                <button class="studio-btn-dock" id="btnScreenShare" title="Экран [S]"><span
+                        class="material-symbols-outlined">present_to_all</span></button>
+                <button class="studio-btn-dock" id="btnHandRaise" title="Рука [H]"><span
+                        class="material-symbols-outlined">back_hand</span></button>
+                <button class="studio-btn-dock" id="btnReactionToggle" title="Реакции"><span
+                        class="material-symbols-outlined">add_reaction</span></button>
+                <button class="studio-btn-dock" id="btnChatToggle" title="Чат [C]"><span
+                        class="material-symbols-outlined">chat</span></button>
+                <button class="studio-btn-dock" id="btnInviteInfo" title="Пригласить"><span
+                        class="material-symbols-outlined">link</span></button>
+                <button class="studio-btn-dock studio-btn-danger" id="btnLeaveCall" title="Выйти"><span
+                        class="material-symbols-outlined">call_end</span></button>
             </div>
         </div>
 
-        <!-- 5. МОДАЛЬНОЕ ОКНО НАСТРОЕК -->
+        <!-- МОДАЛЬНОЕ ОКНО АУДИТА И ЛОГОВ -->
+        <div class="p2p-modal-backdrop p2p-hidden" id="logModal">
+            <div class="studio-modal modal-large">
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <div style="font-size: 13px; font-weight: 600; display: flex; align-items: center; gap: 8px;">
+                        <span class="material-symbols-outlined" style="color: var(--google-yellow);">terminal</span>
+                        Журнал аудита системы (WebRTC / Media / ICE)
+                    </div>
+                    <div style="display: flex; gap: 6px;">
+                        <button class="studio-btn-secondary" id="btnCopyLogs"
+                            style="padding: 4px 10px; font-size: 11px;">
+                            <span class="material-symbols-outlined" style="font-size: 14px;">content_copy</span>
+                            Скопировать всё
+                        </button>
+                        <button class="studio-btn-secondary" id="btnClearLogs"
+                            style="padding: 4px 10px; font-size: 11px;">
+                            <span class="material-symbols-outlined" style="font-size: 14px;">delete</span> Очистить
+                        </button>
+                        <button class="tile-action-btn" id="btnCloseLogs"><span
+                                class="material-symbols-outlined">close</span></button>
+                    </div>
+                </div>
+                <div class="log-terminal-window" id="logTerminal"></div>
+            </div>
+        </div>
+
+        <!-- НАСТРОЙКИ ОБОРУДОВАНИЯ -->
         <div class="p2p-modal-backdrop p2p-hidden" id="settingsModal">
             <div class="studio-modal">
-                <div style="font-size: 13px; font-weight: 600; text-align: left;">Настройки оборудования</div>
+                <div style="font-size: 13px; font-weight: 600;">Выбор источников оборудования</div>
                 <div style="display: flex; flex-direction: column; gap: 8px; text-align: left;">
-                    <label style="font-size: 11px; color: var(--text-muted);">Камера</label>
+                    <label style="font-size: 11px; color: var(--text-muted);">Видеокамера</label>
                     <select class="studio-select" id="selectVideoInput"></select>
 
                     <label style="font-size: 11px; color: var(--text-muted);">Микрофон</label>
                     <select class="studio-select" id="selectAudioInput"></select>
 
-                    <label style="font-size: 11px; color: var(--text-muted);">Динамики</label>
+                    <label style="font-size: 11px; color: var(--text-muted);">Динамики (вывод)</label>
                     <select class="studio-select" id="selectAudioOutput"></select>
                 </div>
                 <button class="studio-btn-primary" id="btnSaveSettings" style="margin-top: 6px;">Применить</button>
@@ -1123,107 +991,74 @@
             </div>
         </div>
 
-        <!-- 6. МОДАЛКА ПРИГЛАШЕНИЯ -->
+        <!-- МОДАЛКА ПРИГЛАШЕНИЯ -->
         <div class="p2p-modal-backdrop p2p-hidden" id="inviteModal">
-            <div class="studio-modal">
-                <div style="font-size: 11px; font-family: var(--font-mono); color: var(--text-muted);">SESSION
-                    INVITATION</div>
-                <div style="font-size: 26px; font-family: var(--font-mono); font-weight: 700; letter-spacing: 2px; color: var(--google-blue);"
+            <div class="studio-modal" style="text-align: center;">
+                <div style="font-size: 11px; font-family: var(--font-mono); color: var(--text-muted);">ROOM ID</div>
+                <div style="font-size: 26px; font-family: var(--font-mono); font-weight: 700; color: var(--google-blue);"
                     id="modalRoomCode">...</div>
                 <div id="modalQrCode"
-                    style="display: flex; justify-content: center; padding: 10px; background: #fff; border-radius: var(--radius-sm); margin: 4px auto; width: fit-content;">
+                    style="display: flex; justify-content: center; padding: 10px; background: #fff; border-radius: var(--radius-sm); margin: 6px auto;">
                 </div>
-                <button class="studio-btn-primary" id="btnCopyInviteLink">
-                    <span class="material-symbols-outlined">content_copy</span> Копировать ссылку
-                </button>
+                <button class="studio-btn-primary" id="btnCopyInviteLink"><span
+                        class="material-symbols-outlined">content_copy</span> Копировать ссылку</button>
                 <button class="studio-btn-secondary" id="btnCloseInviteModal">Закрыть</button>
             </div>
-        </div>
-
-        <!-- ЛОГИ -->
-        <div class="p2p-card p2p-hidden" id="logConsole"
-            style="position: absolute; bottom: 65px; left: 16px; right: 16px; background: #0e0e10; border: 1px solid var(--border-subtle); color: var(--google-green); font-family: var(--font-mono); font-size: 11px; max-height: 120px; overflow-y: auto; z-index: 2000; border-radius: var(--radius-sm); padding: 8px;">
-            > System ready...
         </div>
     </div>
 
     <script>
         /* ==========================================================================
-   1. СЕССИОННОЕ ХРАНИЛИЩЕ И АВТО-ПЕРЕПОДКЛЮЧЕНИЕ ПРИ F5
-   ========================================================================== */
-        const SESSION_KEY = 'dropconf_active_session';
-
-        function saveSession(roomId, isHost, userName) {
-            sessionStorage.setItem(SESSION_KEY, JSON.stringify({ roomId, isHost, userName, timestamp: Date.now() }));
-            window.location.hash = '#' + roomId;
-        }
-
-        function clearSession() {
-            sessionStorage.removeItem(SESSION_KEY);
-            history.replaceState(null, '', window.location.pathname);
-        }
-
-        /* ==========================================================================
-           2. ЗВУКОВОЙ ДВИЖОК И БЕЗОПАСНЫЙ VAD
+           1. СИСТЕМА АУДИТА И ПОЛНОГО ЛОГИРОВАНИЯ
            ========================================================================== */
-        const SoundFX = {
-            ctx: null,
-            init() {
-                if (!this.ctx) {
-                    const AudioCtx = window.AudioContext || window.webkitAudioContext;
-                    if (AudioCtx) this.ctx = new AudioCtx();
-                }
-                if (this.ctx && this.ctx.state === 'suspended') {
-                    this.ctx.resume();
+        window.P2PAuditLog = {
+            logs: [],
+            add(category, message, extra = null) {
+                const time = new Date().toTimeString().split(' ')[0] + '.' + String(Date.now() % 1000).padStart(3, '0');
+                const entry = { time, category, message, extra: extra ? (typeof extra === 'object' ? JSON.stringify(extra) : extra) : null };
+                this.logs.push(entry);
+                if (this.logs.length > 500) this.logs.shift();
+
+                const logTerminal = document.getElementById('logTerminal');
+                if (logTerminal) {
+                    const row = document.createElement('div');
+                    row.className = 'log-line';
+                    row.innerHTML = `
+                        <span class="log-time">[${time}]</span>
+                        <span class="log-tag log-tag-${category}">${category}</span>
+                        <span>${escapeHtml(message)} ${entry.extra ? `<span style="color:#9ca3af;">${escapeHtml(entry.extra)}</span>` : ''}</span>
+                    `;
+                    logTerminal.appendChild(row);
+                    logTerminal.scrollTop = logTerminal.scrollHeight;
                 }
             },
-            playChime(type = 'join') {
-                try {
-                    this.init();
-                    if (!this.ctx) return;
-                    const now = this.ctx.currentTime;
-                    const osc = this.ctx.createOscillator(), gain = this.ctx.createGain();
-                    osc.connect(gain); gain.connect(this.ctx.destination);
-
-                    if (type === 'join') {
-                        osc.frequency.setValueAtTime(440, now);
-                        osc.frequency.exponentialRampToValueAtTime(880, now + 0.15);
-                        gain.gain.setValueAtTime(0.1, now);
-                        gain.gain.exponentialRampToValueAtTime(0.01, now + 0.2);
-                        osc.start(now); osc.stop(now + 0.2);
-                    } else if (type === 'leave') {
-                        osc.frequency.setValueAtTime(660, now);
-                        osc.frequency.exponentialRampToValueAtTime(330, now + 0.18);
-                        gain.gain.setValueAtTime(0.1, now);
-                        gain.gain.exponentialRampToValueAtTime(0.01, now + 0.2);
-                        osc.start(now); osc.stop(now + 0.2);
-                    } else if (type === 'hand') {
-                        osc.type = 'triangle';
-                        osc.frequency.setValueAtTime(523.25, now);
-                        osc.frequency.setValueAtTime(659.25, now + 0.08);
-                        gain.gain.setValueAtTime(0.12, now);
-                        gain.gain.exponentialRampToValueAtTime(0.01, now + 0.25);
-                        osc.start(now); osc.stop(now + 0.25);
-                    }
-                } catch (e) { }
+            exportText() {
+                return this.logs.map(l => `[${l.time}] [${l.category}] ${l.message} ${l.extra ? l.extra : ''}`).join('\n');
+            },
+            clear() {
+                this.logs = [];
+                const logTerminal = document.getElementById('logTerminal');
+                if (logTerminal) logTerminal.innerHTML = '';
             }
         };
 
-        function unlockAudioOutput() {
-            SoundFX.init();
-            audioVAD.init();
-            document.querySelectorAll('video').forEach(v => {
-                if (v.id !== 'localVideo' && v.id !== 'previewVideo' && !v.id.includes('local')) {
-                    v.muted = false;
-                    v.volume = 1.0;
-                    v.play().catch(() => { });
-                }
-            });
-        }
-        window.addEventListener('click', unlockAudioOutput, { once: true });
-        window.addEventListener('touchstart', unlockAudioOutput, { once: true });
-        window.addEventListener('keydown', unlockAudioOutput, { once: true });
+        const origConsoleLog = console.log;
+        const origConsoleWarn = console.warn;
+        const origConsoleError = console.error;
+        console.log = (...args) => { origConsoleLog(...args); window.P2PAuditLog.add('SYS', args.map(a => typeof a === 'object' ? JSON.stringify(a) : a).join(' ')); };
+        console.warn = (...args) => { origConsoleWarn(...args); window.P2PAuditLog.add('WARN', args.map(a => typeof a === 'object' ? JSON.stringify(a) : a).join(' ')); };
+        console.error = (...args) => { origConsoleError(...args); window.P2PAuditLog.add('ERR', args.map(a => typeof a === 'object' ? JSON.stringify(a) : a).join(' ')); };
 
+        document.getElementById('btnOpenLogs').onclick = () => document.getElementById('logModal').classList.remove('p2p-hidden');
+        document.getElementById('btnCloseLogs').onclick = () => document.getElementById('logModal').classList.add('p2p-hidden');
+        document.getElementById('btnClearLogs').onclick = () => window.P2PAuditLog.clear();
+        document.getElementById('btnCopyLogs').onclick = () => {
+            navigator.clipboard.writeText(window.P2PAuditLog.exportText()).then(() => showToast("Все логи скопированы в буфер", 'content_copy'));
+        };
+
+        /* ==========================================================================
+           2. VAD АНАЛИЗАТОР РЕЧИ
+           ========================================================================== */
         class AudioActivityMonitor {
             constructor() {
                 this.ctx = null;
@@ -1235,9 +1070,7 @@
                     const AudioCtx = window.AudioContext || window.webkitAudioContext;
                     if (AudioCtx) this.ctx = new AudioCtx();
                 }
-                if (this.ctx && this.ctx.state === 'suspended') {
-                    this.ctx.resume();
-                }
+                if (this.ctx && this.ctx.state === 'suspended') this.ctx.resume();
             }
 
             watch(peerId, stream, isLocal = false) {
@@ -1298,7 +1131,7 @@
                         }
                     });
                 } catch (e) {
-                    console.warn("[VAD] Error:", e);
+                    window.P2PAuditLog.add('WARN', `VAD failed for ${peerId}: ${e.message}`);
                 }
             }
 
@@ -1313,19 +1146,13 @@
 
             updateSpeakerUI(peerId, isSpeaking) {
                 const tile = document.getElementById(`tile-cam-${peerId}`);
-                if (tile) {
-                    tile.classList.toggle('speaking', isSpeaking);
-                }
-                const screenTile = document.getElementById(`tile-screen-${peerId}`);
-                if (screenTile) {
-                    screenTile.classList.remove('speaking');
-                }
+                if (tile) tile.classList.toggle('speaking', isSpeaking);
             }
         }
         const audioVAD = new AudioActivityMonitor();
 
         /* ==========================================================================
-           3. STATE & NET
+           3. ИНИЦИАЛИЗАЦИЯ И МЕДИА
            ========================================================================== */
         const net = new P2PNet({ appPrefix: 'dropconf', mode: 'mesh', debug: true });
 
@@ -1337,10 +1164,8 @@
         let currentFacingMode = 'user';
         let currentVideoDeviceId = null;
         let currentAudioDeviceId = null;
-        let activeSpotlightId = null;
         let screenStream = null;
 
-        // DOM Elements
         const toast = document.getElementById('toast');
         const toastText = document.getElementById('toastText');
         const toastIcon = document.getElementById('toastIcon');
@@ -1360,9 +1185,6 @@
         const myTagMic = document.getElementById('myTagMic');
         const myHandBadge = document.getElementById('myHandBadge');
         const videoGrid = document.getElementById('videoGrid');
-        const spotlightSlot = document.getElementById('spotlightSlot');
-        const spotlightStrip = document.getElementById('spotlightStrip');
-        const fullscreenChatFab = document.getElementById('fullscreenChatFab');
 
         const btnMicToggle = document.getElementById('btnMicToggle');
         const btnCamToggle = document.getElementById('btnCamToggle');
@@ -1375,15 +1197,6 @@
         const chatPanel = document.getElementById('chatPanel');
         const chatMessages = document.getElementById('chatMessages');
         const inputChatMessage = document.getElementById('inputChatMessage');
-        const chatToastContainer = document.getElementById('chatToastContainer');
-        const logConsole = document.getElementById('logConsole');
-
-        document.getElementById('btnLogToggle').onclick = () => logConsole.classList.toggle('p2p-hidden');
-        function sysLog(text) {
-            console.log(text);
-            const time = new Date().toTimeString().split(' ')[0];
-            logConsole.innerHTML = `> [${time}] ${text}<br>` + logConsole.innerHTML;
-        }
 
         function showToast(msg, icon = 'info') {
             toastText.textContent = msg;
@@ -1395,7 +1208,6 @@
         function updateGridCount() {
             const count = videoGrid.children.length;
             videoGrid.classList.remove('count-1', 'count-2', 'count-3', 'count-4', 'count-many');
-
             if (count <= 1) videoGrid.classList.add('count-1');
             else if (count === 2) videoGrid.classList.add('count-2');
             else if (count === 3) videoGrid.classList.add('count-3');
@@ -1403,9 +1215,6 @@
             else videoGrid.classList.add('count-many');
         }
 
-        /* ==========================================================================
-           4. ВАЛИДАЦИЯ КАМЕР И ПЕРЕКЛЮЧЕНИЕ ОБОРУДОВАНИЯ (КАК В GOOGLE MEET)
-           ========================================================================== */
         function updateMirrorState() {
             const isFront = (currentFacingMode === 'user');
             if (previewTile) previewTile.classList.toggle('mirrored', isFront);
@@ -1413,121 +1222,39 @@
         }
 
         /**
-         * Проверка реального поступления кадров с камеры
+         * БЕЗОПАСНЫЙ ЗАХВАТ КАМЕРЫ (БЕЗ БЛОКИРОВКИ ДРАЙВЕРА СМАРТФОНА)
          */
-        async function verifyVideoStream(stream, timeoutMs = 600) {
-            const track = stream.getVideoTracks()[0];
-            if (!track) return false;
-
-            const testVideo = document.createElement('video');
-            testVideo.muted = true;
-            testVideo.playsInline = true;
-            testVideo.srcObject = stream;
-
-            try {
-                await testVideo.play();
-            } catch (e) {
-                return false;
-            }
-
-            return new Promise((resolve) => {
-                let isDone = false;
-                const cleanup = (res) => {
-                    if (isDone) return;
-                    isDone = true;
-                    testVideo.pause();
-                    testVideo.srcObject = null;
-                    resolve(res);
-                };
-
-                const timer = setTimeout(() => cleanup(false), timeoutMs);
-
-                if ('requestVideoFrameCallback' in testVideo) {
-                    testVideo.requestVideoFrameCallback(() => {
-                        clearTimeout(timer);
-                        cleanup(testVideo.videoWidth > 0);
-                    });
-                } else {
-                    testVideo.onloadedmetadata = () => {
-                        if (testVideo.videoWidth > 0) {
-                            clearTimeout(timer);
-                            cleanup(true);
-                        }
-                    };
-                }
-            });
-        }
-
-        /**
-         * Интеллектуальный захват аудио и видео с автоматическим обходом нерабочих сенсоров
-         */
-        async function getSafeUserMedia(facingMode = 'user', audioSourceId = null, videoSourceId = null) {
+        async function getSafeUserMedia(facingMode = 'user', audioId = null, videoId = null) {
+            window.P2PAuditLog.add('MEDIA', `Запрос getUserMedia: facingMode=${facingMode}, videoId=${videoId}`);
             const audioConstraints = {
                 echoCancellation: true,
                 noiseSuppression: true,
                 autoGainControl: true,
-                ...(audioSourceId ? { deviceId: { exact: audioSourceId } } : {})
+                ...(audioId ? { deviceId: { exact: audioId } } : {})
             };
 
-            // 1. Если указан конкретный deviceId
-            if (videoSourceId) {
+            // Если явно указан deviceId из меню настроек
+            if (videoId) {
                 try {
-                    const stream = await navigator.mediaDevices.getUserMedia({
-                        video: { deviceId: { exact: videoSourceId }, width: { ideal: 1280 }, height: { ideal: 720 } },
+                    return await navigator.mediaDevices.getUserMedia({
+                        video: { deviceId: { exact: videoId }, width: { ideal: 1280 }, height: { ideal: 720 } },
                         audio: audioConstraints
                     });
-                    const isWorking = await verifyVideoStream(stream);
-                    if (isWorking) {
-                        currentVideoDeviceId = videoSourceId;
-                        return stream;
-                    }
-                    stream.getTracks().forEach(t => t.stop());
-                    sysLog("Камера " + videoSourceId + " не дает кадров. Поиск альтернативы...");
-                } catch (e) { }
+                } catch (e) {
+                    window.P2PAuditLog.add('WARN', `Точный deviceId ${videoId} недоступен, откат к facingMode...`);
+                }
             }
 
-            // 2. Семантический захват по facingMode (выбирает главную рабочую камеру ОС)
+            // Семантический запрос (выбирает ОС главную композитную камеру)
             try {
-                const stream = await navigator.mediaDevices.getUserMedia({
-                    video: {
-                        facingMode: { ideal: facingMode },
-                        width: { ideal: 1280 },
-                        height: { ideal: 720 }
-                    },
+                return await navigator.mediaDevices.getUserMedia({
+                    video: { facingMode: { ideal: facingMode }, width: { ideal: 1280 }, height: { ideal: 720 } },
                     audio: audioConstraints
                 });
-                const isWorking = await verifyVideoStream(stream);
-                if (isWorking) {
-                    const track = stream.getVideoTracks()[0];
-                    const settings = track.getSettings();
-                    if (settings.deviceId) currentVideoDeviceId = settings.deviceId;
-                    return stream;
-                }
-                stream.getTracks().forEach(t => t.stop());
-            } catch (e) { }
-
-            // 3. Fallback: перебор всех доступных видеоустройств
-            let devices = [];
-            try { devices = await navigator.mediaDevices.enumerateDevices(); } catch (e) { }
-            const videoDevs = devices.filter(d => d.kind === 'videoinput');
-
-            for (const dev of videoDevs) {
-                try {
-                    const stream = await navigator.mediaDevices.getUserMedia({
-                        video: { deviceId: { exact: dev.deviceId } },
-                        audio: audioConstraints
-                    });
-                    const ok = await verifyVideoStream(stream);
-                    if (ok) {
-                        currentVideoDeviceId = dev.deviceId;
-                        return stream;
-                    }
-                    stream.getTracks().forEach(t => t.stop());
-                } catch (err) { }
+            } catch (e) {
+                window.P2PAuditLog.add('WARN', `Идеальный facingMode не прошел: ${e.message}. Базовый запрос...`);
+                return await navigator.mediaDevices.getUserMedia({ video: true, audio: audioConstraints });
             }
-
-            // 4. Финальный аварийный запрос только базового аудио/видео
-            return await navigator.mediaDevices.getUserMedia({ video: true, audio: audioConstraints });
         }
 
         async function initPreview() {
@@ -1545,8 +1272,9 @@
 
                 audioVAD.watch('local', stream, true);
                 updateMirrorState();
+                window.P2PAuditLog.add('MEDIA', 'Локальные медиа-потоки успешно инициализированы');
             } catch (e) {
-                sysLog("Ошибка инициализации медиа: " + e.message);
+                window.P2PAuditLog.add('ERR', `Ошибка захвата камеры/микрофона: ${e.message}`);
                 isCamOn = false; isMicOn = false;
                 previewAvatar.style.display = 'flex';
                 myAvatar.style.display = 'flex';
@@ -1556,16 +1284,18 @@
         }
 
         /**
-         * Переключение фронтальной / тыловой камеры
+         * ПЕРЕКЛЮЧЕНИЕ КАМЕРЫ (FRONT / BACK)
          */
         async function flipCamera() {
             const nextMode = (currentFacingMode === 'user') ? 'environment' : 'user';
-            showToast("Переключение камеры...", 'sync');
+            window.P2PAuditLog.add('MEDIA', `Переключение камеры на: ${nextMode}`);
+            showToast("Смена камеры...", 'flip_camera_ios');
 
             try {
+                // Захватываем новый видеопоток
                 const newStream = await getSafeUserMedia(nextMode, currentAudioDeviceId, null);
-                const oldVideoTrack = net.localStream ? net.localStream.getVideoTracks()[0] : null;
                 const newVideoTrack = newStream.getVideoTracks()[0];
+                const oldVideoTrack = net.localStream ? net.localStream.getVideoTracks()[0] : null;
 
                 currentFacingMode = nextMode;
                 updateMirrorState();
@@ -1573,7 +1303,7 @@
                 if (net.localStream) {
                     if (oldVideoTrack) {
                         net.localStream.removeTrack(oldVideoTrack);
-                        oldVideoTrack.stop();
+                        oldVideoTrack.stop(); // Останавливаем старый трек
                     }
                     net.localStream.addTrack(newVideoTrack);
                 } else {
@@ -1585,25 +1315,20 @@
                 localVideo.play().catch(() => { });
                 previewVideo.play().catch(() => { });
 
-                // Подменяем трек в активных WebRTC-соединениях
-                await net.replaceTrack(newVideoTrack, 'video');
-
-                // Если камера была выключена — активируем
                 newVideoTrack.enabled = isCamOn;
+                await net.replaceTrack(newVideoTrack, 'video');
                 net.broadcast({ type: 'CAM_STATUS', isCamOn: isCamOn });
 
                 showToast(currentFacingMode === 'user' ? "Фронтальная камера" : "Основная камера", 'flip_camera_ios');
             } catch (err) {
-                showToast("Ошибка переключения камеры: " + err.message, 'error');
+                window.P2PAuditLog.add('ERR', `Сбой переключения камеры: ${err.message}`);
+                showToast("Ошибка смены камеры: " + err.message, 'error');
             }
         }
 
         btnFlipCam.onclick = flipCamera;
         document.getElementById('btnFlipCamPreview').onclick = flipCamera;
 
-        /**
-         * Быстрое включение/выключение камеры (через enabled без разрушения соединения)
-         */
         function toggleCamera() {
             if (!net.localStream) return;
             const videoTrack = net.localStream.getVideoTracks()[0];
@@ -1627,9 +1352,6 @@
             }
         }
 
-        /**
-         * Быстрое включение/выключение микрофона (через enabled)
-         */
         function toggleMicrophone() {
             if (!net.localStream) return;
             const audioTrack = net.localStream.getAudioTracks()[0];
@@ -1661,119 +1383,36 @@
         document.getElementById('btnTogglePreviewMic').onclick = toggleMicrophone;
 
         /* ==========================================================================
-           5. ГОРЯЧИЕ КЛАВИШИ
-           ========================================================================== */
-        let spacePressed = false;
-        window.addEventListener('keydown', (e) => {
-            if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
-
-            if (e.code === 'Space' && !spacePressed) {
-                spacePressed = true;
-                if (!isMicOn) toggleMicrophone();
-            } else if (e.key.toLowerCase() === 'm') {
-                toggleMicrophone();
-            } else if (e.key.toLowerCase() === 'v') {
-                toggleCamera();
-            } else if (e.key.toLowerCase() === 'h') {
-                toggleHandRaise();
-            } else if (e.key.toLowerCase() === 'c') {
-                toggleChat();
-            } else if (e.key === 'Escape') {
-                exitAllFullscreens();
-            }
-        });
-
-        window.addEventListener('keyup', (e) => {
-            if (e.code === 'Space' && spacePressed) {
-                spacePressed = false;
-                if (isMicOn) toggleMicrophone();
-            }
-        });
-
-        /* ==========================================================================
-           6. РУКА И ДЕМОНСТРАЦИЯ ЭКРАНА
-           ========================================================================== */
-        function toggleHandRaise() {
-            isHandRaised = !isHandRaised;
-            btnHandRaise.classList.toggle('active-yellow', isHandRaised);
-            myHandBadge.classList.toggle('p2p-hidden', !isHandRaised);
-
-            if (isHandRaised) SoundFX.playChime('hand');
-            net.broadcast({ type: 'HAND_RAISE', isRaised: isHandRaised, name: myName });
-        }
-        btnHandRaise.onclick = toggleHandRaise;
-
-        async function toggleScreenShare() {
-            if (isScreenSharing) {
-                stopScreenShare();
-            } else {
-                if (!navigator.mediaDevices || !navigator.mediaDevices.getDisplayMedia) {
-                    return showToast("Экран не поддерживается вашим браузером", 'error');
-                }
-
-                try {
-                    screenStream = await navigator.mediaDevices.getDisplayMedia({ video: { cursor: "always" }, audio: true });
-                    isScreenSharing = true;
-                    btnScreenShare.classList.add('active');
-                    btnScreenShare.innerHTML = '<span class="material-symbols-outlined">stop_screen_share</span>';
-
-                    addOrUpdateScreenTile('local', screenStream, `${myName} (Экран)`, true);
-                    net.startScreenShare(screenStream, myName);
-
-                    screenStream.getVideoTracks()[0].onended = () => stopScreenShare();
-                } catch (err) {
-                    if (err.name !== 'NotAllowedError') showToast("Ошибка экрана: " + err.message, 'error');
-                }
-            }
-        }
-
-        function stopScreenShare() {
-            if (screenStream) {
-                screenStream.getTracks().forEach(t => t.stop());
-                screenStream = null;
-            }
-            isScreenSharing = false;
-            btnScreenShare.classList.remove('active');
-            btnScreenShare.innerHTML = '<span class="material-symbols-outlined">present_to_all</span>';
-            removeTile('tile-screen-local');
-            net.stopScreenShare();
-        }
-        btnScreenShare.onclick = toggleScreenShare;
-
-        /* ==========================================================================
-           7. УПРАВЛЕНИЕ КАРТОЧКАМИ, SPOTLIGHT И FULLSCREEN
+           4. ПОТОКИ И КАРТОЧКИ УЧАСТНИКОВ
            ========================================================================== */
         function addOrUpdateCamTile(peerId, stream, participantName) {
             const tileId = `tile-cam-${peerId}`;
             let tile = document.getElementById(tileId);
 
             if (!tile) {
+                window.P2PAuditLog.add('MEDIA', `Создание видео-карточки для: ${peerId} (${participantName || 'Guest'})`);
                 tile = document.createElement('div');
                 tile.className = 'video-tile';
                 tile.id = tileId;
                 tile.innerHTML = `
-            <video id="video-cam-${peerId}" autoplay playsinline webkit-playsinline></video>
-            <div id="avatar-cam-${peerId}" class="tile-avatar" style="display:none;">
-                <span class="material-symbols-outlined" style="font-size:32px;">person</span>
-            </div>
-            <div class="tile-overlay">
-                <div class="tile-top-actions">
-                    <div class="hand-badge p2p-hidden" id="hand-${peerId}">✋ Рука</div>
-                    <button class="tile-action-btn" title="Закрепить" onclick="toggleSpotlight('${tileId}')">
-                        <span class="material-symbols-outlined">keep</span>
-                    </button>
-                    <button class="tile-action-btn" title="На весь экран" onclick="toggleNativeFullscreen('${tileId}')">
-                        <span class="material-symbols-outlined">fullscreen</span>
-                    </button>
-                </div>
-                <div class="tile-tag">
-                    <span id="mic-cam-${peerId}" class="material-symbols-outlined" style="font-size:14px; color:var(--google-green);">mic</span>
-                    <span>${participantName || 'Участник'}</span>
-                </div>
-            </div>
-        `;
-                appendTileProperly(tile);
-                SoundFX.playChime('join');
+                    <video id="video-cam-${peerId}" autoplay playsinline></video>
+                    <div id="avatar-cam-${peerId}" class="tile-avatar" style="display:none;">
+                        <span class="material-symbols-outlined" style="font-size:32px;">person</span>
+                    </div>
+                    <div class="tile-overlay">
+                        <div class="tile-top-actions">
+                            <div class="hand-badge p2p-hidden" id="hand-${peerId}">✋ Рука</div>
+                            <button class="tile-action-btn" title="На весь экран" onclick="toggleNativeFullscreen('${tileId}')">
+                                <span class="material-symbols-outlined">fullscreen</span>
+                            </button>
+                        </div>
+                        <div class="tile-tag">
+                            <span id="mic-cam-${peerId}" class="material-symbols-outlined" style="font-size:14px; color:var(--google-green);">mic</span>
+                            <span>${participantName || 'Участник'}</span>
+                        </div>
+                    </div>
+                `;
+                videoGrid.appendChild(tile);
             }
 
             const videoEl = document.getElementById(`video-cam-${peerId}`);
@@ -1781,7 +1420,15 @@
                 videoEl.srcObject = stream;
                 videoEl.muted = false;
                 videoEl.volume = 1.0;
-                videoEl.play().catch(() => { });
+
+                const playPromise = videoEl.play();
+                if (playPromise !== undefined) {
+                    playPromise.catch(err => {
+                        window.P2PAuditLog.add('WARN', `Autoplay заблокирован для ${peerId}, звук приглушен для старта`);
+                        videoEl.muted = true;
+                        videoEl.play().catch(() => { });
+                    });
+                }
                 audioVAD.watch(peerId, stream, false);
             }
             updateGridCount();
@@ -1796,116 +1443,48 @@
                 tile.className = 'video-tile screen-tile';
                 tile.id = tileId;
                 tile.innerHTML = `
-            <video id="video-screen-${peerId}" autoplay playsinline webkit-playsinline ${isLocal ? 'muted' : ''}></video>
-            <div class="tile-overlay">
-                <div class="tile-top-actions">
-                    <button class="tile-action-btn" title="Закрепить" onclick="toggleSpotlight('${tileId}')">
-                        <span class="material-symbols-outlined">keep</span>
-                    </button>
-                    <button class="tile-action-btn" title="На весь экран" onclick="toggleNativeFullscreen('${tileId}')">
-                        <span class="material-symbols-outlined">fullscreen</span>
-                    </button>
-                </div>
-                <div class="tile-tag" style="border-color: rgba(168, 199, 250, 0.4);">
-                    <span class="material-symbols-outlined" style="font-size:14px; color:var(--google-blue);">screen_share</span>
-                    <span>${titleName || 'Экран'}</span>
-                </div>
-            </div>
-        `;
-                appendTileProperly(tile);
+                    <video id="video-screen-${peerId}" autoplay playsinline ${isLocal ? 'muted' : ''}></video>
+                    <div class="tile-overlay">
+                        <div class="tile-top-actions">
+                            <button class="tile-action-btn" title="На весь экран" onclick="toggleNativeFullscreen('${tileId}')">
+                                <span class="material-symbols-outlined">fullscreen</span>
+                            </button>
+                        </div>
+                        <div class="tile-tag">
+                            <span class="material-symbols-outlined" style="font-size:14px; color:var(--google-blue);">screen_share</span>
+                            <span>${titleName || 'Экран'}</span>
+                        </div>
+                    </div>
+                `;
+                videoGrid.appendChild(tile);
             }
 
             const videoEl = document.getElementById(`video-screen-${peerId}`);
             if (videoEl && stream) {
                 videoEl.srcObject = stream;
-                if (!isLocal) {
-                    videoEl.muted = false;
-                    videoEl.volume = 1.0;
-                }
+                if (!isLocal) { videoEl.muted = false; videoEl.volume = 1.0; }
                 videoEl.play().catch(() => { });
             }
             updateGridCount();
         }
 
-        function appendTileProperly(tile) {
-            if (activeSpotlightId) {
-                spotlightStrip.appendChild(tile);
-            } else {
-                videoGrid.appendChild(tile);
-            }
-        }
-
         function removeTile(tileId) {
             const tile = document.getElementById(tileId);
             if (!tile) return;
-            if (activeSpotlightId === tileId) toggleSpotlight(tileId);
-
             const pId = tileId.replace('tile-cam-', '').replace('tile-screen-', '');
             audioVAD.unwatch(pId);
-
             tile.remove();
             updateGridCount();
-            SoundFX.playChime('leave');
         }
-
-        window.toggleSpotlight = function (tileId) {
-            const tile = document.getElementById(tileId);
-            if (!tile) return;
-
-            if (activeSpotlightId === tileId) {
-                spotlightSlot.innerHTML = '';
-                spotlightSlot.classList.add('p2p-hidden');
-                spotlightStrip.classList.add('p2p-hidden');
-
-                const stripTiles = Array.from(spotlightStrip.children);
-                stripTiles.forEach(t => videoGrid.appendChild(t));
-                videoGrid.appendChild(tile);
-                videoGrid.classList.remove('p2p-hidden');
-                activeSpotlightId = null;
-            } else {
-                if (activeSpotlightId) {
-                    const prev = document.getElementById(activeSpotlightId);
-                    if (prev) spotlightStrip.appendChild(prev);
-                }
-
-                const allTiles = Array.from(videoGrid.children);
-                allTiles.forEach(t => {
-                    if (t.id !== tileId) spotlightStrip.appendChild(t);
-                });
-
-                videoGrid.classList.add('p2p-hidden');
-                spotlightSlot.innerHTML = '';
-                spotlightSlot.appendChild(tile);
-
-                spotlightSlot.classList.remove('p2p-hidden');
-                spotlightStrip.classList.remove('p2p-hidden');
-                activeSpotlightId = tileId;
-            }
-            updateGridCount();
-        };
 
         window.toggleNativeFullscreen = function (tileId) {
             const tile = document.getElementById(tileId);
             if (!tile) return;
-
-            if (tile.classList.contains('pseudo-fullscreen')) {
-                exitAllFullscreens();
-            } else {
-                document.querySelectorAll('.pseudo-fullscreen').forEach(el => el.classList.remove('pseudo-fullscreen'));
-                tile.classList.add('pseudo-fullscreen');
-                document.body.classList.add('has-fullscreen');
-                fullscreenChatFab.classList.remove('p2p-hidden');
-            }
+            tile.classList.toggle('pseudo-fullscreen');
         };
 
-        function exitAllFullscreens() {
-            document.querySelectorAll('.pseudo-fullscreen').forEach(el => el.classList.remove('pseudo-fullscreen'));
-            document.body.classList.remove('has-fullscreen');
-            fullscreenChatFab.classList.add('p2p-hidden');
-        }
-
         /* ==========================================================================
-           8. НАСТРОЙКИ ОБОРУДОВАНИЯ
+           5. НАСТРОЙКИ ОБОРУДОВАНИЯ (СПИСОК ВСЕХ 4 КАМЕР)
            ========================================================================== */
         const settingsModal = document.getElementById('settingsModal');
         const selectVideoInput = document.getElementById('selectVideoInput');
@@ -1918,10 +1497,11 @@
             selectAudioInput.innerHTML = '';
             selectAudioOutput.innerHTML = '';
 
+            let camIndex = 1;
             devices.forEach(d => {
                 const opt = document.createElement('option');
                 opt.value = d.deviceId;
-                opt.text = d.label || `${d.kind} (${d.deviceId.slice(0, 5)}...)`;
+                opt.text = d.label || `${d.kind === 'videoinput' ? 'Камера ' + (camIndex++) : d.kind} (${d.deviceId.slice(0, 5)}...)`;
 
                 if (d.kind === 'videoinput') {
                     if (d.deviceId === currentVideoDeviceId) opt.selected = true;
@@ -1938,7 +1518,6 @@
         };
 
         document.getElementById('btnCloseSettings').onclick = () => settingsModal.classList.add('p2p-hidden');
-
         document.getElementById('btnSaveSettings').onclick = async () => {
             const audioId = selectAudioInput.value;
             const videoId = selectVideoInput.value;
@@ -1949,15 +1528,14 @@
                 currentAudioDeviceId = audioId;
                 currentVideoDeviceId = videoId;
 
-                const oldVTrack = net.localStream ? net.localStream.getVideoTracks()[0] : null;
-                const oldATrack = net.localStream ? net.localStream.getAudioTracks()[0] : null;
-
                 const newVTrack = newStream.getVideoTracks()[0];
                 const newATrack = newStream.getAudioTracks()[0];
 
                 if (net.localStream) {
-                    if (oldVTrack) { net.localStream.removeTrack(oldVTrack); oldVTrack.stop(); }
-                    if (oldATrack) { net.localStream.removeTrack(oldATrack); oldATrack.stop(); }
+                    const oldV = net.localStream.getVideoTracks()[0];
+                    const oldA = net.localStream.getAudioTracks()[0];
+                    if (oldV) { net.localStream.removeTrack(oldV); oldV.stop(); }
+                    if (oldA) { net.localStream.removeTrack(oldA); oldA.stop(); }
                     if (newVTrack) net.localStream.addTrack(newVTrack);
                     if (newATrack) net.localStream.addTrack(newATrack);
                 } else {
@@ -1977,24 +1555,23 @@
                     audioVAD.watch('local', net.localStream, true);
                 }
 
-                showToast("Оборудование успешно обновлено", 'check_circle');
+                showToast("Устройства обновлены", 'check_circle');
             } catch (e) {
-                showToast("Ошибка смены оборудования: " + e.message, 'error');
+                showToast("Ошибка: " + e.message, 'error');
             }
         };
 
         /* ==========================================================================
-           9. ПОДКЛЮЧЕНИЕ / ВЫХОД / СЕССИЯ
+           6. СЕТЬ И СОЕДИНЕНИЕ
            ========================================================================== */
         document.getElementById('btnCreateRoom').onclick = async () => {
             prepareJoin();
             try {
-                const code = await net.createRoom();
+                const code = await net.createRoom(null, myName);
                 setRoomStatus(code);
-                saveSession(code, true, myName);
-                showToast("Сессия создана", 'check_circle');
+                showToast("Комната создана: " + code, 'check_circle');
             } catch (err) {
-                alert("Ошибка: " + err.message);
+                alert("Ошибка создания: " + err.message);
                 leaveConference();
             }
         };
@@ -2005,7 +1582,7 @@
             prepareJoin();
             net.joinRoom(code, { name: myName }).then(() => {
                 setRoomStatus(code);
-                saveSession(code, false, myName);
+                showToast("Успешное подключение", 'check_circle');
             }).catch(err => {
                 alert("Не удалось подключиться: " + err.message);
                 leaveConference();
@@ -2027,14 +1604,8 @@
         }
 
         function leaveConference() {
-            clearSession();
-            exitAllFullscreens();
-            if (activeSpotlightId) toggleSpotlight(activeSpotlightId);
-            stopScreenShare();
-
             const tiles = document.querySelectorAll('.video-tile:not(#tile-cam-local)');
             tiles.forEach(t => t.remove());
-
             net.destroy(true);
 
             conferenceScreen.classList.add('p2p-hidden');
@@ -2045,23 +1616,15 @@
         }
         document.getElementById('btnLeaveCall').onclick = leaveConference;
 
-        /* ==========================================================================
-           10. СОБЫТИЯ СЕТИ И ВСПЛЫВАЮЩИЙ ЧАТ
-           ========================================================================== */
         net.on('status', ({ online, reconnecting }) => {
             if (reconnecting) {
                 netBadge.className = "studio-badge reconnecting";
                 netBadgeText.textContent = "RECONNECTING";
-                showToast("Переподключение к сети...", 'sync');
             } else if (online) {
                 if (net.roomId) setRoomStatus(net.roomId);
-                else {
-                    netBadge.className = "studio-badge online";
-                    netBadgeText.textContent = "ONLINE";
-                }
+                else { netBadge.className = "studio-badge online"; netBadgeText.textContent = "ONLINE"; }
             } else {
-                netBadge.className = "studio-badge";
-                netBadgeText.textContent = "OFFLINE";
+                netBadge.className = "studio-badge"; netBadgeText.textContent = "OFFLINE";
             }
         });
 
@@ -2081,18 +1644,11 @@
         net.on('data', (data, senderPeerId) => {
             if (data.type === 'CHAT_MSG') {
                 appendChatMessage(data.name, data.text, false);
-                if (chatPanel.classList.contains('p2p-hidden')) {
-                    showFloatingChatToast(data.name, data.text);
-                }
             } else if (data.type === 'REACTION') {
                 spawnFloatingReaction(data.emoji);
             } else if (data.type === 'HAND_RAISE') {
                 const handEl = document.getElementById(`hand-${senderPeerId}`);
                 if (handEl) handEl.classList.toggle('p2p-hidden', !data.isRaised);
-                if (data.isRaised) {
-                    SoundFX.playChime('hand');
-                    showToast(`${data.name || 'Участник'} поднял(а) руку ✋`, 'back_hand');
-                }
             } else if (data.type === 'MIC_STATUS') {
                 const micEl = document.getElementById(`mic-cam-${senderPeerId}`);
                 if (micEl) {
@@ -2112,43 +1668,31 @@
         });
 
         /* ==========================================================================
-           11. ЧАТ, РЕАКЦИИ И ПЛАВАЮЩИЕ УВЕДОМЛЕНИЯ СВЕРХУ
+           7. ЧАТ И РЕАКЦИИ
            ========================================================================== */
-        function showFloatingChatToast(sender, text) {
-            const toastEl = document.createElement('div');
-            toastEl.className = 'chat-floating-toast';
-            toastEl.innerHTML = `
-        <div class="sender">
-            <span class="material-symbols-outlined" style="font-size: 14px;">chat</span>
-            ${escapeHtml(sender)}
-        </div>
-        <div class="text">${escapeHtml(text)}</div>
-    `;
+        btnChatToggle.onclick = () => chatPanel.classList.toggle('p2p-hidden');
+        document.getElementById('btnCloseChat').onclick = () => chatPanel.classList.add('p2p-hidden');
+        document.getElementById('btnSendChat').onclick = sendChatMessage;
+        inputChatMessage.onkeydown = (e) => { if (e.key === 'Enter') sendChatMessage(); };
 
-            toastEl.onclick = () => {
-                toggleChat(true);
-                toastEl.remove();
-            };
-
-            chatToastContainer.appendChild(toastEl);
-            setTimeout(() => {
-                toastEl.style.opacity = '0';
-                toastEl.style.transform = 'translateY(-10px)';
-                setTimeout(() => toastEl.remove(), 300);
-            }, 4500);
+        function sendChatMessage() {
+            const text = inputChatMessage.value.trim();
+            if (!text) return;
+            appendChatMessage("You", text, true);
+            net.broadcast({ type: 'CHAT_MSG', name: myName, text });
+            inputChatMessage.value = '';
         }
 
-        function toggleChat(forceOpen = null) {
-            if (forceOpen === true) {
-                chatPanel.classList.remove('p2p-hidden');
-            } else {
-                chatPanel.classList.toggle('p2p-hidden');
-            }
-            if (!chatPanel.classList.contains('p2p-hidden')) {
-                chatToastContainer.innerHTML = '';
-            }
+        function appendChatMessage(sender, text, isMe) {
+            const msgEl = document.createElement('div');
+            msgEl.className = `chat-msg ${isMe ? 'me' : 'other'}`;
+            msgEl.innerHTML = `
+                <div style="font-size:11px; color:var(--text-muted); font-family:var(--font-mono);">${escapeHtml(sender)}</div>
+                <div class="chat-msg-bubble">${escapeHtml(text)}</div>
+            `;
+            chatMessages.appendChild(msgEl);
+            chatMessages.scrollTop = chatMessages.scrollHeight;
         }
-        window.toggleChat = toggleChat;
 
         btnReactionToggle.onclick = () => reactionBar.classList.toggle('p2p-hidden');
         document.querySelectorAll('.reaction-item-btn').forEach(btn => {
@@ -2169,32 +1713,9 @@
             setTimeout(() => el.remove(), 1800);
         }
 
-        btnChatToggle.onclick = () => toggleChat();
-        document.getElementById('btnCloseChat').onclick = () => chatPanel.classList.add('p2p-hidden');
-        document.getElementById('btnSendChat').onclick = sendChatMessage;
-        inputChatMessage.onkeydown = (e) => { if (e.key === 'Enter') sendChatMessage(); };
-
-        function sendChatMessage() {
-            const text = inputChatMessage.value.trim();
-            if (!text) return;
-            appendChatMessage("You", text, true);
-            net.broadcast({ type: 'CHAT_MSG', name: myName, text });
-            inputChatMessage.value = '';
-        }
-
-        function appendChatMessage(sender, text, isMe) {
-            const msgEl = document.createElement('div');
-            msgEl.className = `chat-msg ${isMe ? 'me' : 'other'}`;
-            msgEl.innerHTML = `
-        <div class="chat-msg-sender">${sender}</div>
-        <div class="chat-msg-bubble">${escapeHtml(text)}</div>
-    `;
-            chatMessages.appendChild(msgEl);
-            chatMessages.scrollTop = chatMessages.scrollHeight;
-        }
-
         function escapeHtml(str) {
-            return str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+            if (!str) return '';
+            return String(str).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
         }
 
         document.getElementById('btnInviteInfo').onclick = () => {
@@ -2208,45 +1729,13 @@
             navigator.clipboard.writeText(net.getShareUrl()).then(() => showToast("Ссылка скопирована", 'content_copy'));
         };
 
-        /* ==========================================================================
-           12. ИНИЦИАЛИЗАЦИЯ И ВОССТАНОВЛЕНИЕ СЕССИИ
-           ========================================================================== */
-        async function checkAutoReconnect() {
-            const raw = sessionStorage.getItem(SESSION_KEY);
+        window.addEventListener('load', async () => {
+            await initPreview();
             const hash = window.location.hash.substring(1).trim();
-            let session = null;
-            try { session = JSON.parse(raw); } catch (e) { }
-
-            if (session && session.roomId) {
-                const code = P2PNet.cleanCode(session.roomId);
-                inputUserName.value = session.userName || '';
-                myName = session.userName || 'User';
-                prepareJoin();
-                showToast(`Восстановление сессии ${code}...`, 'sync');
-
-                try {
-                    await initPreview();
-                    if (session.isHost) {
-                        await net.createRoom(code);
-                    } else {
-                        await net.joinRoom(code, { name: myName });
-                    }
-                    setRoomStatus(code);
-                    showToast("Сессия восстановлена", 'check_circle');
-                } catch (err) {
-                    sysLog("Авто-реконнект не удался: " + err.message);
-                    clearSession();
-                    leaveConference();
-                }
-            } else if (hash.length >= 3) {
+            if (hash.length >= 3) {
                 inputRoomCode.value = P2PNet.cleanCode(hash);
-                await initPreview();
-            } else {
-                await initPreview();
             }
-        }
-
-        window.addEventListener('load', checkAutoReconnect);
+        });
     </script>
 </body>
 

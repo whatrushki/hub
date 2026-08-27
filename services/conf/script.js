@@ -1,23 +1,23 @@
 /* ==========================================================================
-           1. СИСТЕМА АУДИТА
-           ========================================================================== */
+   1. СИСТЕМА АУДИТА И ЛОГИРОВАНИЯ
+   ========================================================================== */
 window.P2PAuditLog = {
     logs: [],
     add(category, message, extra = null) {
         const time = new Date().toTimeString().split(' ')[0] + '.' + String(Date.now() % 1000).padStart(3, '0');
         const extraStr = extra ? (typeof extra === 'object' ? JSON.stringify(extra) : String(extra)) : '';
         this.logs.push({ time, category, message, extra: extraStr });
-        if (this.logs.length > 600) this.logs.shift();
+        if (this.logs.length > 700) this.logs.shift();
 
         const logTerminal = document.getElementById('logTerminal');
         if (logTerminal) {
             const row = document.createElement('div');
             row.className = 'log-line';
             row.innerHTML = `
-                        <span class="log-time">[${time}]</span>
-                        <span class="log-tag log-tag-${category}">${category}</span>
-                        <span>${escapeHtml(message)} ${extraStr ? `<span style="color:#9ca3af;">${escapeHtml(extraStr)}</span>` : ''}</span>
-                    `;
+                <span class="log-time">[${time}]</span>
+                <span class="log-tag log-tag-${category}">${category}</span>
+                <span>${escapeHtml(message)} ${extraStr ? `<span style="color:#9ca3af;">${escapeHtml(extraStr)}</span>` : ''}</span>
+            `;
             logTerminal.appendChild(row);
             logTerminal.scrollTop = logTerminal.scrollHeight;
         }
@@ -47,7 +47,84 @@ document.getElementById('btnCopyLogs').onclick = () => {
 };
 
 /* ==========================================================================
-   2. РАСПРЕДЕЛЕННЫЙ VAD (БЕЗ ПЕРЕХВАТА УДАЛЕННОГО АУДИО)
+   2. СИНТЕЗАТОР ЗВУКОВЫХ ЭФФЕКТОВ (WEB AUDIO API)
+   ========================================================================== */
+class SoundSynthesizer {
+    constructor() {
+        this.ctx = null;
+        this.enabled = true;
+        this.volume = 0.5;
+    }
+
+    init() {
+        if (!this.ctx) {
+            const AudioCtx = window.AudioContext || window.webkitAudioContext;
+            if (AudioCtx) this.ctx = new AudioCtx();
+        }
+        if (this.ctx && this.ctx.state === 'suspended') {
+            this.ctx.resume();
+        }
+    }
+
+    playTone(freq, duration, type = 'sine', gainVal = 0.3) {
+        if (!this.enabled) return;
+        this.init();
+        if (!this.ctx) return;
+
+        try {
+            const osc = this.ctx.createOscillator();
+            const gain = this.ctx.createGain();
+            osc.type = type;
+            osc.frequency.setValueAtTime(freq, this.ctx.currentTime);
+
+            gain.gain.setValueAtTime(gainVal * this.volume, this.ctx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.0001, this.ctx.currentTime + duration);
+
+            osc.connect(gain);
+            gain.connect(this.ctx.destination);
+
+            osc.start();
+            osc.stop(this.ctx.currentTime + duration);
+        } catch (e) { }
+    }
+
+    join() {
+        this.playTone(523.25, 0.15, 'sine', 0.25);
+        setTimeout(() => this.playTone(659.25, 0.18, 'sine', 0.25), 100);
+        setTimeout(() => this.playTone(783.99, 0.3, 'sine', 0.3), 200);
+    }
+
+    leave() {
+        this.playTone(659.25, 0.15, 'sine', 0.2);
+        setTimeout(() => this.playTone(440.0, 0.25, 'sine', 0.2), 120);
+    }
+
+    chat() {
+        this.playTone(880, 0.08, 'triangle', 0.2);
+        setTimeout(() => this.playTone(1174.66, 0.12, 'sine', 0.25), 60);
+    }
+
+    hand() {
+        this.playTone(1046.5, 0.35, 'sine', 0.35);
+    }
+
+    reaction() {
+        this.playTone(587.33, 0.1, 'sine', 0.15);
+    }
+
+    click() {
+        this.playTone(400, 0.04, 'square', 0.05);
+    }
+
+    kick() {
+        this.playTone(300, 0.2, 'sawtooth', 0.3);
+        setTimeout(() => this.playTone(200, 0.3, 'sawtooth', 0.3), 150);
+    }
+}
+const soundFx = new SoundSynthesizer();
+
+/* ==========================================================================
+   3. VAD (РАСПРЕДЕЛЕННЫЙ ДЕТЕКТОР РЕЧИ)
    ========================================================================== */
 class LocalVoiceDetector {
     constructor() {
@@ -96,7 +173,7 @@ class LocalVoiceDetector {
                 for (let i = 0; i < data.length; i++) sum += data[i];
                 const avg = sum / data.length;
 
-                if (avg > 15) {
+                if (avg > 14) {
                     if (!this.isSpeaking) this._setSpeaking(true);
                     if (this.silenceTimer) clearTimeout(this.silenceTimer);
                     this.silenceTimer = setTimeout(() => this._setSpeaking(false), 350);
@@ -127,8 +204,8 @@ class LocalVoiceDetector {
 }
 const localVAD = new LocalVoiceDetector();
 
-// Разблокировка системного звука при первом клике
 function unlockAudioEngine() {
+    soundFx.init();
     localVAD.init();
     document.querySelectorAll('video').forEach(v => {
         if (v.id !== 'localVideo' && v.id !== 'previewVideo') {
@@ -142,7 +219,7 @@ window.addEventListener('click', unlockAudioEngine, { once: true });
 window.addEventListener('touchstart', unlockAudioEngine, { once: true });
 
 /* ==========================================================================
-   3. ИНИЦИАЛИЗАЦИЯ И МЕДИА
+   4. ИНИЦИАЛИЗАЦИЯ И МЕДИА УСТРОЙСТВА
    ========================================================================== */
 const net = new P2PNet({ appPrefix: 'dropconf', mode: 'mesh', debug: true });
 
@@ -155,7 +232,10 @@ let currentFacingMode = 'user';
 let currentVideoDeviceId = null;
 let currentAudioDeviceId = null;
 let screenStream = null;
+let showChatToasts = true;
+let isMirrored = true;
 
+// UI ЭЛЕМЕНТЫ
 const toast = document.getElementById('toast');
 const toastText = document.getElementById('toastText');
 const toastIcon = document.getElementById('toastIcon');
@@ -174,7 +254,11 @@ const myAvatar = document.getElementById('myAvatar');
 const myTagName = document.getElementById('myTagName');
 const myTagMic = document.getElementById('myTagMic');
 const myHandBadge = document.getElementById('myHandBadge');
+const myHostBadge = document.getElementById('myHostBadge');
 const videoGrid = document.getElementById('videoGrid');
+const meetLiveTime = document.getElementById('meetLiveTime');
+const meetRoomCodePill = document.getElementById('meetRoomCodePill');
+const meetRoomCodeText = document.getElementById('meetRoomCodeText');
 
 const btnMicToggle = document.getElementById('btnMicToggle');
 const btnCamToggle = document.getElementById('btnCamToggle');
@@ -183,39 +267,48 @@ const btnScreenShare = document.getElementById('btnScreenShare');
 const btnHandRaise = document.getElementById('btnHandRaise');
 const btnReactionToggle = document.getElementById('btnReactionToggle');
 const reactionBar = document.getElementById('reactionBar');
+const btnCloseReactions = document.getElementById('btnCloseReactions');
 const btnChatToggle = document.getElementById('btnChatToggle');
 const chatPanel = document.getElementById('chatPanel');
 const chatMessages = document.getElementById('chatMessages');
 const inputChatMessage = document.getElementById('inputChatMessage');
+const chatToastContainer = document.getElementById('chatToastContainer');
+const chatUnreadDot = document.getElementById('chatUnreadDot');
 
 function showToast(msg, icon = 'info') {
     toastText.textContent = msg;
     toastIcon.textContent = icon;
     toast.classList.add('show');
-    setTimeout(() => toast.classList.remove('show'), 2400);
+    setTimeout(() => toast.classList.remove('show'), 2600);
 }
+
+// Часы внизу
+setInterval(() => {
+    const d = new Date();
+    if (meetLiveTime) meetLiveTime.textContent = d.toTimeString().split(' ')[0].substring(0, 5);
+}, 1000);
 
 function updateGridCount() {
     const count = videoGrid.children.length;
     videoGrid.classList.remove('count-1', 'count-2', 'count-3', 'count-4', 'count-many');
     if (count <= 1) videoGrid.classList.add('count-1');
     else if (count === 2) videoGrid.classList.add('count-2');
-    else if (count === 3) videoGrid.classList.add('count-3');
-    else if (count === 4) videoGrid.classList.add('count-4');
+    else if (count <= 4) videoGrid.classList.add('count-4');
     else videoGrid.classList.add('count-many');
 }
 
 function updateMirrorState() {
-    const isFront = (currentFacingMode === 'user');
-    if (previewTile) previewTile.classList.toggle('mirrored', isFront);
-    if (tileCamLocal) tileCamLocal.classList.toggle('mirrored', isFront);
+    const shouldMirror = isMirrored && (currentFacingMode === 'user');
+    if (previewTile) previewTile.classList.toggle('mirrored', shouldMirror);
+    if (tileCamLocal) tileCamLocal.classList.toggle('mirrored', shouldMirror);
 }
 
 async function getSafeUserMedia(facingMode = 'user', audioId = null, videoId = null) {
+    const useProcessing = document.getElementById('chkNoiseSuppression')?.checked ?? true;
     const audioConstraints = {
-        echoCancellation: true,
-        noiseSuppression: true,
-        autoGainControl: true,
+        echoCancellation: useProcessing,
+        noiseSuppression: useProcessing,
+        autoGainControl: useProcessing,
         ...(audioId ? { deviceId: { exact: audioId } } : {})
     };
 
@@ -226,7 +319,7 @@ async function getSafeUserMedia(facingMode = 'user', audioId = null, videoId = n
                 audio: audioConstraints
             });
         } catch (e) {
-            window.P2PAuditLog.add('WARN', `Точный deviceId ${videoId} недоступен, откат к facingMode`);
+            window.P2PAuditLog.add('WARN', `Точный deviceId ${videoId} недоступен`);
         }
     }
 
@@ -246,7 +339,6 @@ async function initPreview() {
         net.localStream = stream;
         previewVideo.srcObject = stream;
         localVideo.srcObject = stream;
-
         previewVideo.muted = true;
         localVideo.muted = true;
 
@@ -257,7 +349,7 @@ async function initPreview() {
         updateMirrorState();
         window.P2PAuditLog.add('MEDIA', 'Медиа-поток инициализирован');
     } catch (e) {
-        window.P2PAuditLog.add('ERR', `Ошибка камеры/микрофона: ${e.message}`);
+        window.P2PAuditLog.add('ERR', `Ошибка оборудования: ${e.message}`);
         isCamOn = false; isMicOn = false;
         previewAvatar.style.display = 'flex';
         myAvatar.style.display = 'flex';
@@ -267,8 +359,8 @@ async function initPreview() {
 }
 
 async function flipCamera() {
+    soundFx.click();
     const nextMode = (currentFacingMode === 'user') ? 'environment' : 'user';
-    window.P2PAuditLog.add('MEDIA', `Переключение камеры на: ${nextMode}`);
     showToast("Смена камеры...", 'flip_camera_ios');
 
     try {
@@ -300,15 +392,15 @@ async function flipCamera() {
 
         showToast(currentFacingMode === 'user' ? "Фронтальная камера" : "Основная камера", 'flip_camera_ios');
     } catch (err) {
-        window.P2PAuditLog.add('ERR', `Ошибка переключения: ${err.message}`);
+        window.P2PAuditLog.add('ERR', `Ошибка смены камеры: ${err.message}`);
         showToast("Ошибка смены камеры", 'error');
     }
 }
-
 btnFlipCam.onclick = flipCamera;
 document.getElementById('btnFlipCamPreview').onclick = flipCamera;
 
 function toggleCamera() {
+    soundFx.click();
     if (!net.localStream) return;
     const videoTrack = net.localStream.getVideoTracks()[0];
 
@@ -332,6 +424,7 @@ function toggleCamera() {
 }
 
 function toggleMicrophone() {
+    soundFx.click();
     if (!net.localStream) return;
     const audioTrack = net.localStream.getAudioTracks()[0];
 
@@ -355,14 +448,13 @@ function toggleMicrophone() {
         net.broadcast({ type: 'MIC_STATUS', isMicOn: true });
     }
 }
-
 btnCamToggle.onclick = toggleCamera;
 btnMicToggle.onclick = toggleMicrophone;
 document.getElementById('btnTogglePreviewCam').onclick = toggleCamera;
 document.getElementById('btnTogglePreviewMic').onclick = toggleMicrophone;
 
 /* ==========================================================================
-   4. ПОТОКИ И КАРТОЧКИ УЧАСТНИКОВ
+   5. ВИДЕОКАРТОЧКИ УЧАСТНИКОВ
    ========================================================================== */
 function addOrUpdateCamTile(peerId, stream, participantName) {
     const tileId = `tile-cam-${peerId}`;
@@ -374,37 +466,42 @@ function addOrUpdateCamTile(peerId, stream, participantName) {
         tile.className = 'video-tile';
         tile.id = tileId;
         tile.innerHTML = `
-                    <video id="video-cam-${peerId}" autoplay playsinline></video>
-                    <div id="avatar-cam-${peerId}" class="tile-avatar" style="display:none;">
-                        <span class="material-symbols-outlined" style="font-size:32px;">person</span>
-                    </div>
-                    <div class="tile-overlay">
-                        <div class="tile-top-actions">
-                            <div class="hand-badge p2p-hidden" id="hand-${peerId}">✋ Рука</div>
-                            <button class="tile-action-btn" title="На весь экран" onclick="toggleNativeFullscreen('${tileId}')">
-                                <span class="material-symbols-outlined">fullscreen</span>
-                            </button>
-                        </div>
-                        <div class="tile-tag">
-                            <span id="mic-cam-${peerId}" class="material-symbols-outlined" style="font-size:14px; color:var(--google-green);">mic</span>
-                            <span id="name-cam-${peerId}">${escapeHtml(participantName || 'Участник')}</span>
-                        </div>
-                    </div>
-                `;
+            <video id="video-cam-${peerId}" autoplay playsinline></video>
+            <div id="avatar-cam-${peerId}" class="tile-avatar" style="display:none;">
+                <span class="material-symbols-outlined">person</span>
+            </div>
+            <div class="tile-overlay">
+                <div class="tile-top-actions">
+                    <div class="admin-badge p2p-hidden" id="host-badge-${peerId}">👑 Хост</div>
+                    <div class="hand-badge p2p-hidden" id="hand-${peerId}">✋ Рука</div>
+                    <button class="tile-action-btn" title="На весь экран" onclick="toggleNativeFullscreen('${tileId}')">
+                        <span class="material-symbols-outlined">fullscreen</span>
+                    </button>
+                </div>
+                <div class="tile-tag">
+                    <span id="mic-cam-${peerId}" class="material-symbols-outlined mic-icon">mic</span>
+                    <span id="name-cam-${peerId}">${escapeHtml(participantName || 'Участник')}</span>
+                </div>
+            </div>
+        `;
         videoGrid.appendChild(tile);
     }
 
     const videoEl = document.getElementById(`video-cam-${peerId}`);
     if (videoEl && stream) {
         videoEl.srcObject = stream;
-        videoEl.muted = false; // ГАРАНТИЯ ЗВУКА
+        videoEl.muted = false;
         videoEl.volume = 1.0;
-
-        videoEl.play().catch(err => {
-            window.P2PAuditLog.add('WARN', `Autoplay требует взаимодействия на этом устройстве: ${err.message}`);
-        });
+        videoEl.play().catch(() => { });
     }
+
+    if (net.hostId === peerId) {
+        const hostB = document.getElementById(`host-badge-${peerId}`);
+        if (hostB) hostB.classList.remove('p2p-hidden');
+    }
+
     updateGridCount();
+    refreshAdminParticipantsList();
 }
 
 function addOrUpdateScreenTile(peerId, stream, titleName, isLocal = false) {
@@ -416,19 +513,19 @@ function addOrUpdateScreenTile(peerId, stream, titleName, isLocal = false) {
         tile.className = 'video-tile screen-tile';
         tile.id = tileId;
         tile.innerHTML = `
-                    <video id="video-screen-${peerId}" autoplay playsinline ${isLocal ? 'muted' : ''}></video>
-                    <div class="tile-overlay">
-                        <div class="tile-top-actions">
-                            <button class="tile-action-btn" title="На весь экран" onclick="toggleNativeFullscreen('${tileId}')">
-                                <span class="material-symbols-outlined">fullscreen</span>
-                            </button>
-                        </div>
-                        <div class="tile-tag">
-                            <span class="material-symbols-outlined" style="font-size:14px; color:var(--google-blue);">screen_share</span>
-                            <span>${escapeHtml(titleName || 'Экран')}</span>
-                        </div>
-                    </div>
-                `;
+            <video id="video-screen-${peerId}" autoplay playsinline ${isLocal ? 'muted' : ''}></video>
+            <div class="tile-overlay">
+                <div class="tile-top-actions">
+                    <button class="tile-action-btn" title="На весь экран" onclick="toggleNativeFullscreen('${tileId}')">
+                        <span class="material-symbols-outlined">fullscreen</span>
+                    </button>
+                </div>
+                <div class="tile-tag">
+                    <span class="material-symbols-outlined" style="font-size:14px; color:var(--google-blue);">screen_share</span>
+                    <span>${escapeHtml(titleName || 'Экран')}</span>
+                </div>
+            </div>
+        `;
         videoGrid.appendChild(tile);
     }
 
@@ -445,6 +542,7 @@ function removeTile(tileId) {
     const tile = document.getElementById(tileId);
     if (tile) tile.remove();
     updateGridCount();
+    refreshAdminParticipantsList();
 }
 
 window.toggleNativeFullscreen = function (tileId) {
@@ -453,12 +551,17 @@ window.toggleNativeFullscreen = function (tileId) {
 };
 
 /* ==========================================================================
-   5. РУКА И ДЕМОНСТРАЦИЯ ЭКРАНА
+   6. РУКА И ДЕМОНСТРАЦИЯ ЭКРАНА
    ========================================================================== */
 function toggleHandRaise() {
     isHandRaised = !isHandRaised;
     btnHandRaise.classList.toggle('active-yellow', isHandRaised);
     myHandBadge.classList.toggle('p2p-hidden', !isHandRaised);
+
+    if (isHandRaised) {
+        soundFx.hand();
+        showToast("Вы подняли руку", 'back_hand');
+    }
 
     net.broadcast({
         type: 'HAND_RAISE',
@@ -466,12 +569,15 @@ function toggleHandRaise() {
         isRaised: isHandRaised,
         name: myName
     });
-
-    if (isHandRaised) showToast("Вы подняли руку", 'back_hand');
 }
 btnHandRaise.onclick = toggleHandRaise;
 
 async function toggleScreenShare() {
+    soundFx.click();
+    if (!net.allowScreenShare && !net.isHost) {
+        return showToast("Администратор отключил показ экрана", 'block');
+    }
+
     if (isScreenSharing) {
         if (screenStream) {
             screenStream.getTracks().forEach(t => t.stop());
@@ -500,24 +606,127 @@ async function toggleScreenShare() {
 btnScreenShare.onclick = toggleScreenShare;
 
 /* ==========================================================================
-   6. НАСТРОЙКИ ОБОРУДОВАНИЯ (СПИСОК ВСЕХ КАМЕР)
+   7. УМНЫЙ ЧАТ (SQUEEZE ВИДЕОСЕТКИ) И РЕАКЦИИ БЕЗ АВТОЗАКРЫТИЯ
+   ========================================================================== */
+function toggleChatPanel() {
+    soundFx.click();
+    const isHidden = chatPanel.classList.toggle('p2p-hidden');
+    btnChatToggle.classList.toggle('active', !isHidden);
+    if (!isHidden) {
+        chatUnreadDot.classList.add('p2p-hidden');
+        setTimeout(() => inputChatMessage.focus(), 100);
+    }
+}
+btnChatToggle.onclick = toggleChatPanel;
+document.getElementById('btnCloseChat').onclick = toggleChatPanel;
+document.getElementById('btnSendChat').onclick = sendChatMessage;
+inputChatMessage.onkeydown = (e) => { if (e.key === 'Enter') sendChatMessage(); };
+
+function sendChatMessage() {
+    const text = inputChatMessage.value.trim();
+    if (!text) return;
+    soundFx.chat();
+    appendChatMessage("Вы", text, true);
+    net.broadcast({ type: 'CHAT_MSG', name: myName, text });
+    inputChatMessage.value = '';
+}
+
+function appendChatMessage(sender, text, isMe) {
+    const msgEl = document.createElement('div');
+    msgEl.className = `chat-msg ${isMe ? 'me' : 'other'}`;
+    msgEl.innerHTML = `
+        <div class="chat-msg-author">${escapeHtml(sender)}</div>
+        <div class="chat-msg-bubble">${escapeHtml(text)}</div>
+    `;
+    chatMessages.appendChild(msgEl);
+    chatMessages.scrollTop = chatMessages.scrollHeight;
+
+    // Всплывающее уведомление поверх видео, если чат закрыт
+    if (!isMe && chatPanel.classList.contains('p2p-hidden')) {
+        chatUnreadDot.classList.remove('p2p-hidden');
+        if (showChatToasts) {
+            spawnChatToastOverlay(sender, text);
+        }
+    }
+}
+
+function spawnChatToastOverlay(sender, text) {
+    const bubble = document.createElement('div');
+    bubble.className = 'chat-overlay-bubble';
+    bubble.innerHTML = `
+        <div class="chat-overlay-author">${escapeHtml(sender)}</div>
+        <div class="chat-overlay-text">${escapeHtml(text)}</div>
+    `;
+    bubble.onclick = () => {
+        toggleChatPanel();
+        bubble.remove();
+    };
+    chatToastContainer.appendChild(bubble);
+    setTimeout(() => bubble.remove(), 5000);
+}
+
+// Эмодзи бар — не закрывается при клике на эмодзи!
+btnReactionToggle.onclick = () => {
+    soundFx.click();
+    reactionBar.classList.toggle('p2p-hidden');
+};
+btnCloseReactions.onclick = () => reactionBar.classList.add('p2p-hidden');
+
+document.querySelectorAll('.reaction-item-btn').forEach(btn => {
+    btn.onclick = () => {
+        const emoji = btn.dataset.emoji;
+        soundFx.reaction();
+        spawnFloatingReaction(emoji);
+        net.broadcast({ type: 'REACTION', emoji });
+    };
+});
+
+function spawnFloatingReaction(emoji) {
+    const el = document.createElement('div');
+    el.className = 'p2p-float-item';
+    el.textContent = emoji;
+    el.style.left = (Math.random() * 60 + 20) + '%';
+    document.body.appendChild(el);
+    setTimeout(() => el.remove(), 2200);
+}
+
+/* ==========================================================================
+   8. НАСТРОЙКИ, АДМИНИСТРИРОВАНИЕ И МОДАЛКИ
    ========================================================================== */
 const settingsModal = document.getElementById('settingsModal');
 const selectVideoInput = document.getElementById('selectVideoInput');
 const selectAudioInput = document.getElementById('selectAudioInput');
 const selectAudioOutput = document.getElementById('selectAudioOutput');
+const chkSoundFx = document.getElementById('chkSoundFx');
+const chkChatToasts = document.getElementById('chkChatToasts');
+const chkMirrorVideo = document.getElementById('chkMirrorVideo');
+const rangeSoundVolume = document.getElementById('rangeSoundVolume');
+const chkLockRoom = document.getElementById('chkLockRoom');
+const chkAllowScreenShare = document.getElementById('chkAllowScreenShare');
+const adminParticipantsList = document.getElementById('adminParticipantsList');
+
+// Переключение табов в настройках
+document.querySelectorAll('.settings-tab-btn').forEach(btn => {
+    btn.onclick = () => {
+        document.querySelectorAll('.settings-tab-btn').forEach(b => b.classList.remove('active'));
+        document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+        btn.classList.add('active');
+        document.getElementById(btn.dataset.tab).classList.add('active');
+    };
+});
 
 document.getElementById('btnSettingsOpen').onclick = async () => {
+    soundFx.click();
     const devices = await navigator.mediaDevices.enumerateDevices();
     selectVideoInput.innerHTML = '';
     selectAudioInput.innerHTML = '';
     selectAudioOutput.innerHTML = '';
 
-    let camIndex = 1;
+    let camIdx = 1, micIdx = 1;
     devices.forEach(d => {
         const opt = document.createElement('option');
         opt.value = d.deviceId;
-        opt.text = d.label || `${d.kind === 'videoinput' ? 'Камера ' + (camIndex++) : d.kind} (${d.deviceId.slice(0, 5)}...)`;
+        opt.text = d.label || (d.kind === 'videoinput' ? `Камера ${camIdx++}` : `Микрофон ${micIdx++}`);
 
         if (d.kind === 'videoinput') {
             if (d.deviceId === currentVideoDeviceId) opt.selected = true;
@@ -530,11 +739,73 @@ document.getElementById('btnSettingsOpen').onclick = async () => {
         }
     });
 
+    updateAdminSettingsUI();
     settingsModal.classList.remove('p2p-hidden');
 };
 
+function updateAdminSettingsUI() {
+    const isAdmin = net.isHost;
+    document.getElementById('adminStatusText').textContent = isAdmin
+        ? '👑 Вы являетесь администратором комнаты'
+        : `Участник (Хост: ${escapeHtml(net.hostName || 'Host')})`;
+    document.getElementById('adminControlsBlock').style.opacity = isAdmin ? '1' : '0.5';
+    document.getElementById('adminControlsBlock').style.pointerEvents = isAdmin ? 'auto' : 'none';
+
+    chkLockRoom.checked = net.isLocked;
+    chkAllowScreenShare.checked = net.allowScreenShare;
+    refreshAdminParticipantsList();
+}
+
+function refreshAdminParticipantsList() {
+    adminParticipantsList.innerHTML = '';
+    const myRow = document.createElement('div');
+    myRow.className = 'participant-row';
+    myRow.innerHTML = `<span><strong>${escapeHtml(myName)}</strong> (Вы ${net.isHost ? '👑' : ''})</span>`;
+    adminParticipantsList.appendChild(myRow);
+
+    net.peers.forEach((record, peerId) => {
+        const row = document.createElement('div');
+        row.className = 'participant-row';
+        row.innerHTML = `
+            <span>${escapeHtml(record.name || 'Участник')} ${net.hostId === peerId ? '👑' : ''}</span>
+            <div class="participant-row-actions">
+                ${net.isHost ? `<button class="admin-kick-btn" onclick="kickParticipant('${peerId}')">Исключить</button>` : ''}
+            </div>
+        `;
+        adminParticipantsList.appendChild(row);
+    });
+}
+
+window.kickParticipant = function (peerId) {
+    if (!net.isHost) return;
+    if (confirm("Исключить участника из встречи?")) {
+        net.kickPeer(peerId);
+        showToast("Участник исключен", 'person_remove');
+        refreshAdminParticipantsList();
+    }
+};
+
+chkLockRoom.onchange = () => {
+    if (!net.isHost) return;
+    net.setRoomLocked(chkLockRoom.checked);
+    showToast(net.isLocked ? "Комната заблокирована" : "Комната открыта", 'lock');
+};
+
+chkAllowScreenShare.onchange = () => {
+    if (!net.isHost) return;
+    net.setScreenShareAllowed(chkAllowScreenShare.checked);
+    showToast(net.allowScreenShare ? "Показ экрана разрешен" : "Показ экрана запрещен", 'present_to_all');
+};
+
 document.getElementById('btnCloseSettings').onclick = () => settingsModal.classList.add('p2p-hidden');
+
 document.getElementById('btnSaveSettings').onclick = async () => {
+    soundFx.enabled = chkSoundFx.checked;
+    soundFx.volume = parseFloat(rangeSoundVolume.value);
+    showChatToasts = chkChatToasts.checked;
+    isMirrored = chkMirrorVideo.checked;
+    updateMirrorState();
+
     const audioId = selectAudioInput.value;
     const videoId = selectVideoInput.value;
     settingsModal.classList.add('p2p-hidden');
@@ -570,15 +841,14 @@ document.getElementById('btnSaveSettings').onclick = async () => {
             await net.replaceTrack(newATrack, 'audio');
             localVAD.start(net.localStream);
         }
-
-        showToast("Устройства обновлены", 'check_circle');
+        showToast("Настройки применены", 'check_circle');
     } catch (e) {
-        showToast("Ошибка смены оборудования", 'error');
+        showToast("Ошибка сохранения устройств", 'error');
     }
 };
 
 /* ==========================================================================
-   7. СЕТЬ И СОЕДИНЕНИЕ
+   9. ПОДКЛЮЧЕНИЕ К КОМНАТЕ И СЕТЕВЫЕ СОБЫТИЯ
    ========================================================================== */
 document.getElementById('btnCreateRoom').onclick = async () => {
     unlockAudioEngine();
@@ -586,9 +856,11 @@ document.getElementById('btnCreateRoom').onclick = async () => {
     try {
         const code = await net.createRoom(null, myName);
         setRoomStatus(code);
+        myHostBadge.classList.remove('p2p-hidden');
+        soundFx.join();
         showToast("Комната создана: " + code, 'check_circle');
     } catch (err) {
-        alert("Ошибка: " + err.message);
+        alert("Ошибка создания: " + err.message);
         leaveConference();
     }
 };
@@ -600,7 +872,8 @@ document.getElementById('btnJoinRoom').onclick = () => {
     prepareJoin();
     net.joinRoom(code, { name: myName }).then(() => {
         setRoomStatus(code);
-        showToast("Успешный вход", 'check_circle');
+        soundFx.join();
+        showToast("Вы подключились", 'check_circle');
     }).catch(err => {
         alert("Не удалось войти: " + err.message);
         leaveConference();
@@ -619,15 +892,22 @@ function prepareJoin() {
 function setRoomStatus(code) {
     netBadge.className = "studio-badge online";
     netBadgeText.textContent = `ROOM: ${code}`;
+    meetRoomCodeText.textContent = code;
 }
 
+meetRoomCodePill.onclick = () => {
+    navigator.clipboard.writeText(net.getShareUrl()).then(() => showToast("Ссылка скопирована", 'content_copy'));
+};
+
 function leaveConference() {
+    soundFx.leave();
     const tiles = document.querySelectorAll('.video-tile:not(#tile-cam-local)');
     tiles.forEach(t => t.remove());
     net.destroy(true);
 
     conferenceScreen.classList.add('p2p-hidden');
     lobbyScreen.classList.remove('p2p-hidden');
+    myHostBadge.classList.add('p2p-hidden');
     netBadge.className = "studio-badge";
     netBadgeText.textContent = "STANDBY";
     updateGridCount();
@@ -654,21 +934,50 @@ net.on('remote-stream', ({ peerId, stream, metadata }) => {
     }
 });
 
+net.on('peer-connected', ({ peerId, name }) => {
+    soundFx.join();
+    showToast(`${name || 'Новый участник'} присоединился`, 'person_add');
+    refreshAdminParticipantsList();
+});
+
 net.on('peer-disconnected', ({ peerId }) => {
+    soundFx.leave();
     removeTile(`tile-cam-${peerId}`);
     removeTile(`tile-screen-${peerId}`);
 });
 
+net.on('kicked', () => {
+    soundFx.kick();
+    alert("Вы были исключены администратором конференции.");
+    leaveConference();
+});
+
+net.on('host-changed', ({ isHost, hostName, hostId }) => {
+    if (isHost) {
+        myHostBadge.classList.remove('p2p-hidden');
+        showToast("👑 Вы стали организатором встречи", 'admin_panel_settings');
+    } else {
+        myHostBadge.classList.add('p2p-hidden');
+        showToast(`Организатор сменился на: ${hostName}`, 'admin_panel_settings');
+    }
+    updateAdminSettingsUI();
+});
+
 net.on('data', (data, senderPeerId) => {
     if (data.type === 'CHAT_MSG') {
+        soundFx.chat();
         appendChatMessage(data.name, data.text, false);
     } else if (data.type === 'REACTION') {
+        soundFx.reaction();
         spawnFloatingReaction(data.emoji);
     } else if (data.type === 'HAND_RAISE') {
         const targetId = data.peerId || senderPeerId;
         const handEl = document.getElementById(`hand-${targetId}`);
         if (handEl) handEl.classList.toggle('p2p-hidden', !data.isRaised);
-        if (data.isRaised) showToast(`${data.name || 'Участник'} поднял(а) руку ✋`, 'back_hand');
+        if (data.isRaised) {
+            soundFx.hand();
+            showToast(`${data.name || 'Участник'} поднял(а) руку ✋`, 'back_hand');
+        }
     } else if (data.type === 'VAD_ACTIVITY') {
         const targetId = data.peerId || senderPeerId;
         const tile = document.getElementById(`tile-cam-${targetId}`);
@@ -688,55 +997,13 @@ net.on('data', (data, senderPeerId) => {
         }
     } else if (data.type === 'SCREEN_STOPPED') {
         removeTile(`tile-screen-${senderPeerId}`);
+    } else if (data.type === 'SCREEN_PERM_CHANGED') {
+        if (!data.allowed && isScreenSharing) {
+            toggleScreenShare();
+            showToast("Демонстрация экрана отключена администратором", 'block');
+        }
     }
 });
-
-/* ==========================================================================
-   8. ЧАТ И ЭМОДЗИ (СТРОГО СНИЗУ ВВЕРХ)
-   ========================================================================== */
-btnChatToggle.onclick = () => chatPanel.classList.toggle('p2p-hidden');
-document.getElementById('btnCloseChat').onclick = () => chatPanel.classList.add('p2p-hidden');
-document.getElementById('btnSendChat').onclick = sendChatMessage;
-inputChatMessage.onkeydown = (e) => { if (e.key === 'Enter') sendChatMessage(); };
-
-function sendChatMessage() {
-    const text = inputChatMessage.value.trim();
-    if (!text) return;
-    appendChatMessage("You", text, true);
-    net.broadcast({ type: 'CHAT_MSG', name: myName, text });
-    inputChatMessage.value = '';
-}
-
-function appendChatMessage(sender, text, isMe) {
-    const msgEl = document.createElement('div');
-    msgEl.className = `chat-msg ${isMe ? 'me' : 'other'}`;
-    msgEl.innerHTML = `
-                <div style="font-size:11px; color:var(--text-muted); font-family:var(--font-mono);">${escapeHtml(sender)}</div>
-                <div class="chat-msg-bubble">${escapeHtml(text)}</div>
-            `;
-    chatMessages.appendChild(msgEl);
-    chatMessages.scrollTop = chatMessages.scrollHeight;
-}
-
-btnReactionToggle.onclick = () => reactionBar.classList.toggle('p2p-hidden');
-document.querySelectorAll('.reaction-item-btn').forEach(btn => {
-    btn.onclick = () => {
-        const emoji = btn.dataset.emoji;
-        spawnFloatingReaction(emoji);
-        net.broadcast({ type: 'REACTION', emoji });
-        reactionBar.classList.add('p2p-hidden');
-    };
-});
-
-function spawnFloatingReaction(emoji) {
-    const el = document.createElement('div');
-    el.className = 'p2p-float-item';
-    el.textContent = emoji;
-    // Рандом по горизонтали
-    el.style.left = (Math.random() * 60 + 20) + '%';
-    document.body.appendChild(el);
-    setTimeout(() => el.remove(), 2200);
-}
 
 function escapeHtml(str) {
     if (!str) return '';
@@ -746,7 +1013,7 @@ function escapeHtml(str) {
 document.getElementById('btnInviteInfo').onclick = () => {
     document.getElementById('modalRoomCode').textContent = net.roomId;
     const qrEl = document.getElementById('modalQrCode'); qrEl.innerHTML = "";
-    new QRCode(qrEl, { text: net.getShareUrl(), width: 130, height: 130, colorDark: "#131314", colorLight: "#ffffff" });
+    new QRCode(qrEl, { text: net.getShareUrl(), width: 140, height: 140, colorDark: "#131314", colorLight: "#ffffff" });
     document.getElementById('inviteModal').classList.remove('p2p-hidden');
 };
 document.getElementById('btnCloseInviteModal').onclick = () => document.getElementById('inviteModal').classList.add('p2p-hidden');

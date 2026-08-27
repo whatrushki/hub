@@ -18,38 +18,38 @@
 
     <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
-    <script src="../../libs/code/p2p-net.js"></script>
+    <script src="./p2p-net.js"></script>
 </head>
 
 <body>
+    <!-- УВЕДОМЛЕНИЯ / TOAST -->
     <div class="p2p-toast" id="toast">
         <span class="material-symbols-outlined" id="toastIcon">info</span>
         <span id="toastText">Уведомление</span>
     </div>
 
-    <div class="conf-app" id="reactionContainer">
+    <div class="conf-app" id="appRoot">
         <!-- ХЕДЕР -->
         <header class="studio-header">
             <div class="studio-logo-area">
                 <span class="gemini-sparkle">✦</span>
                 <div class="studio-title">
-                    WHAT CONF <span style="color: var(--text-muted); font-size: 12px;">Mesh v3.5</span>
+                    WHAT CONF <span class="studio-version">Mesh v4.0</span>
                 </div>
             </div>
-            <div style="display: flex; gap: 8px; align-items: center;">
-                <button class="studio-btn-dock" id="btnOpenLogs" title="Системный аудит"
-                    style="height: 28px; padding: 0 8px; font-size: 11px;">
-                    <span class="material-symbols-outlined"
-                        style="font-size: 16px; color: var(--google-yellow);">terminal</span> Audit Log
-                </button>
-                <button class="studio-btn-dock" id="btnSettingsOpen" title="Настройки"
-                    style="height: 28px; padding: 0 8px;">
-                    <span class="material-symbols-outlined" style="font-size: 16px;">settings</span>
-                </button>
+
+            <div class="header-actions">
                 <div class="studio-badge" id="netBadge">
                     <span class="status-dot"></span>
                     <span id="netBadgeText">STANDBY</span>
                 </div>
+                <button class="studio-btn-compact" id="btnOpenLogs" title="Системный аудит">
+                    <span class="material-symbols-outlined" style="color: var(--google-yellow);">terminal</span>
+                    <span class="hide-mobile">Audit</span>
+                </button>
+                <button class="studio-btn-compact" id="btnSettingsOpen" title="Настройки">
+                    <span class="material-symbols-outlined">settings</span>
+                </button>
             </div>
         </header>
 
@@ -57,53 +57,43 @@
         <div class="lobby-container" id="lobbyScreen">
             <div class="lobby-card">
                 <div class="lobby-preview-pane">
-                    <div class="video-tile mirrored" id="previewTile"
-                        style="width: 100%; max-width: 280px; aspect-ratio: 4/3;">
+                    <div class="video-tile mirrored" id="previewTile">
                         <video id="previewVideo" autoplay playsinline muted></video>
                         <div id="previewAvatar" class="tile-avatar" style="display: none;">
-                            <span class="material-symbols-outlined" style="font-size: 32px;">person</span>
+                            <span class="material-symbols-outlined">person</span>
                         </div>
                     </div>
-                    <div style="display: flex; gap: 6px; width: 100%; max-width: 280px;">
-                        <button class="studio-btn-secondary" id="btnTogglePreviewMic"
-                            style="flex: 1; padding: 6px; font-size: 12px;">
-                            <span class="material-symbols-outlined" style="font-size: 16px;">mic</span> Mic
+                    <div class="preview-controls">
+                        <button class="studio-btn-secondary" id="btnTogglePreviewMic">
+                            <span class="material-symbols-outlined">mic</span> Mic
                         </button>
-                        <button class="studio-btn-secondary" id="btnTogglePreviewCam"
-                            style="flex: 1; padding: 6px; font-size: 12px;">
-                            <span class="material-symbols-outlined" style="font-size: 16px;">videocam</span> Cam
+                        <button class="studio-btn-secondary" id="btnTogglePreviewCam">
+                            <span class="material-symbols-outlined">videocam</span> Cam
                         </button>
-                        <button class="studio-btn-secondary" id="btnFlipCamPreview" title="Сменить камеру"
-                            style="padding: 6px 10px;">
-                            <span class="material-symbols-outlined" style="font-size: 16px;">flip_camera_ios</span>
+                        <button class="studio-btn-secondary" id="btnFlipCamPreview" title="Сменить камеру">
+                            <span class="material-symbols-outlined">flip_camera_ios</span>
                         </button>
                     </div>
                 </div>
 
                 <div class="lobby-settings-pane">
-                    <div>
-                        <div
-                            style="font-size: 11px; font-family: var(--font-mono); color: var(--text-muted); margin-bottom: 6px;">
-                            NAME / CALLSIGN
-                        </div>
+                    <div class="input-group">
+                        <label class="studio-label">NAME / CALLSIGN</label>
                         <input type="text" class="studio-input" id="inputUserName" placeholder="Ваше имя..."
-                            style="width: 100%;" maxlength="15">
+                            maxlength="18">
                     </div>
 
                     <button class="studio-btn-primary" id="btnCreateRoom">
-                        <span class="material-symbols-outlined">add</span> Создать конференцию
+                        <span class="material-symbols-outlined">video_call</span> Создать встречу
                     </button>
 
-                    <div style="display: flex; align-items: center; gap: 10px; margin: 2px 0;">
-                        <div style="flex: 1; height: 1px; background: var(--border-subtle);"></div>
-                        <span style="font-size: 10px; font-family: var(--font-mono); color: var(--text-muted);">ИЛИ ВХОД
-                            ПО КОДУ</span>
-                        <div style="flex: 1; height: 1px; background: var(--border-subtle);"></div>
+                    <div class="divider-text">
+                        <span>ИЛИ ВХОД ПО КОДУ</span>
                     </div>
 
-                    <div style="display: flex; gap: 6px;">
-                        <input type="text" class="studio-input" id="inputRoomCode" placeholder="КОД" maxlength="5"
-                            style="font-family: var(--font-mono); font-weight: 700; letter-spacing: 2px; text-align: center;">
+                    <div class="join-row">
+                        <input type="text" class="studio-input input-room-code" id="inputRoomCode" placeholder="КОД"
+                            maxlength="6">
                         <button class="studio-btn-secondary" id="btnJoinRoom">Войти</button>
                     </div>
                 </div>
@@ -111,19 +101,20 @@
         </div>
 
         <!-- КОНФЕРЕНЦИЯ -->
-        <div id="conferenceScreen" class="p2p-hidden"
-            style="flex: 1; display: flex; flex-direction: column; overflow: hidden; min-height: 0;">
-            <div class="conf-main-area">
+        <div id="conferenceScreen" class="conference-container p2p-hidden">
+            <!-- ОСНОВНАЯ ЗОНА (ВИДЕО СЕТКА + ЧАТ СО СЖАТИЕМ) -->
+            <div class="conf-main-area" id="confMainArea">
                 <div class="conf-video-container" id="videoWrapper">
                     <div class="conf-grid count-1" id="videoGrid">
                         <!-- Локальная камера -->
                         <div class="video-tile mirrored" id="tile-cam-local">
                             <video id="localVideo" autoplay playsinline muted></video>
                             <div id="myAvatar" class="tile-avatar" style="display: none;">
-                                <span class="material-symbols-outlined" style="font-size: 32px;">person</span>
+                                <span class="material-symbols-outlined">person</span>
                             </div>
                             <div class="tile-overlay">
                                 <div class="tile-top-actions">
+                                    <div class="admin-badge p2p-hidden" id="myHostBadge">👑 Хост</div>
                                     <div class="hand-badge p2p-hidden" id="myHandBadge">✋ Рука</div>
                                     <button class="tile-action-btn" title="На весь экран"
                                         onclick="toggleNativeFullscreen('tile-cam-local')">
@@ -131,84 +122,214 @@
                                     </button>
                                 </div>
                                 <div class="tile-tag">
-                                    <span id="myTagMic" class="material-symbols-outlined"
-                                        style="font-size: 14px; color: var(--google-green);">mic</span>
+                                    <span id="myTagMic" class="material-symbols-outlined mic-icon">mic</span>
                                     <span id="myTagName">Вы</span>
                                 </div>
                             </div>
                         </div>
                     </div>
+
+                    <!-- Всплывающие сообщения поверх видео (когда чат закрыт) -->
+                    <div class="chat-toast-container" id="chatToastContainer"></div>
                 </div>
 
-                <!-- ЧАТ -->
-                <div class="chat-drawer p2p-hidden" id="chatPanel">
+                <!-- БОКОВОЙ ЧАТ (СЖИМАЕТ СЕТКУ ВИДЕО) -->
+                <aside class="chat-drawer p2p-hidden" id="chatPanel">
                     <div class="chat-header">
-                        <span style="display: flex; align-items: center; gap: 6px;">
-                            <span class="material-symbols-outlined">chat_bubble</span> Чат
-                        </span>
-                        <button class="tile-action-btn" id="btnCloseChat"><span
-                                class="material-symbols-outlined">close</span></button>
+                        <div class="chat-header-title">
+                            <span class="material-symbols-outlined">chat</span>
+                            <span>Сообщения встречи</span>
+                        </div>
+                        <button class="tile-action-btn" id="btnCloseChat" title="Закрыть чат">
+                            <span class="material-symbols-outlined">close</span>
+                        </button>
                     </div>
                     <div class="chat-messages" id="chatMessages"></div>
                     <div class="chat-input-box">
                         <input type="text" id="inputChatMessage" class="studio-input"
-                            placeholder="Сообщение... (Enter)">
-                        <button class="studio-btn-primary" id="btnSendChat" style="padding: 0 12px;"><span
-                                class="material-symbols-outlined">send</span></button>
+                            placeholder="Отправить сообщение...">
+                        <button class="studio-btn-primary send-btn" id="btnSendChat" title="Отправить">
+                            <span class="material-symbols-outlined">send</span>
+                        </button>
                     </div>
-                </div>
+                </aside>
             </div>
 
-            <!-- Реакции -->
-            <div class="reactions-bar p2p-hidden" id="reactionBar">
+            <!-- ПАНЕЛЬ ЭМОДЗИ (Мульти-выбор без автозакрытия) -->
+            <div class="reactions-popover p2p-hidden" id="reactionBar">
                 <button class="reaction-item-btn" data-emoji="👍">👍</button>
                 <button class="reaction-item-btn" data-emoji="❤️">❤️</button>
                 <button class="reaction-item-btn" data-emoji="😂">😂</button>
                 <button class="reaction-item-btn" data-emoji="🔥">🔥</button>
                 <button class="reaction-item-btn" data-emoji="🎉">🎉</button>
                 <button class="reaction-item-btn" data-emoji="👏">👏</button>
+                <button class="reaction-item-btn" data-emoji="😮">😮</button>
+                <button class="reaction-item-btn" data-emoji="🤔">🤔</button>
+                <button class="reaction-item-close" id="btnCloseReactions" title="Закрыть">
+                    <span class="material-symbols-outlined">close</span>
+                </button>
             </div>
 
-            <!-- Панель управления -->
-            <div class="conf-controls-bar">
-                <button class="studio-btn-dock" id="btnMicToggle" title="Микрофон [M]"><span
-                        class="material-symbols-outlined">mic</span></button>
-                <button class="studio-btn-dock" id="btnCamToggle" title="Камера [V]"><span
-                        class="material-symbols-outlined">videocam</span></button>
-                <button class="studio-btn-dock" id="btnFlipCam" title="Сменить камеру"><span
-                        class="material-symbols-outlined">flip_camera_ios</span></button>
-                <button class="studio-btn-dock" id="btnScreenShare" title="Экран [S]"><span
-                        class="material-symbols-outlined">present_to_all</span></button>
-                <button class="studio-btn-dock" id="btnHandRaise" title="Рука [H]"><span
-                        class="material-symbols-outlined">back_hand</span></button>
-                <button class="studio-btn-dock" id="btnReactionToggle" title="Реакции"><span
-                        class="material-symbols-outlined">add_reaction</span></button>
-                <button class="studio-btn-dock" id="btnChatToggle" title="Чат [C]"><span
-                        class="material-symbols-outlined">chat</span></button>
-                <button class="studio-btn-dock" id="btnInviteInfo" title="Пригласить"><span
-                        class="material-symbols-outlined">link</span></button>
-                <button class="studio-btn-dock studio-btn-danger" id="btnLeaveCall" title="Выйти"><span
-                        class="material-symbols-outlined">call_end</span></button>
+            <!-- НИЖНЯЯ ПАНЕЛЬ В СТИЛЕ GOOGLE MEET -->
+            <footer class="meet-bottom-bar">
+                <!-- Левая секция: время и код комнаты -->
+                <div class="meet-bar-left hide-mobile">
+                    <div class="meet-time-pill" id="meetLiveTime">12:00</div>
+                    <div class="meet-room-pill" id="meetRoomCodePill" title="Копировать код">
+                        <span id="meetRoomCodeText">ROOM</span>
+                        <span class="material-symbols-outlined" style="font-size: 14px;">content_copy</span>
+                    </div>
+                </div>
+
+                <!-- Центральная секция: основные органы управления -->
+                <div class="meet-bar-center">
+                    <button class="meet-btn" id="btnMicToggle" title="Микрофон [M]">
+                        <span class="material-symbols-outlined">mic</span>
+                    </button>
+                    <button class="meet-btn" id="btnCamToggle" title="Камера [V]">
+                        <span class="material-symbols-outlined">videocam</span>
+                    </button>
+                    <button class="meet-btn" id="btnFlipCam" title="Сменить камеру">
+                        <span class="material-symbols-outlined">flip_camera_ios</span>
+                    </button>
+                    <button class="meet-btn" id="btnScreenShare" title="Поделиться экраном [S]">
+                        <span class="material-symbols-outlined">present_to_all</span>
+                    </button>
+                    <button class="meet-btn" id="btnHandRaise" title="Поднять руку [H]">
+                        <span class="material-symbols-outlined">back_hand</span>
+                    </button>
+                    <button class="meet-btn" id="btnReactionToggle" title="Реакции">
+                        <span class="material-symbols-outlined">add_reaction</span>
+                    </button>
+                    <button class="meet-btn meet-btn-danger" id="btnLeaveCall" title="Покинуть звонок">
+                        <span class="material-symbols-outlined">call_end</span>
+                    </button>
+                </div>
+
+                <!-- Правая секция: чат, участники, ссылка -->
+                <div class="meet-bar-right">
+                    <button class="meet-btn" id="btnInviteInfo" title="Информация о встрече">
+                        <span class="material-symbols-outlined">info</span>
+                    </button>
+                    <button class="meet-btn" id="btnChatToggle" title="Чат [C]">
+                        <span class="material-symbols-outlined">chat</span>
+                        <span class="chat-unread-dot p2p-hidden" id="chatUnreadDot"></span>
+                    </button>
+                </div>
+            </footer>
+        </div>
+
+        <!-- МОДАЛЬНОЕ ОКНО НАСТРОЕК С ВКЛАДКАМИ -->
+        <div class="p2p-modal-backdrop p2p-hidden" id="settingsModal">
+            <div class="studio-modal modal-settings">
+                <div class="modal-header">
+                    <div class="modal-title">
+                        <span class="material-symbols-outlined">settings</span> Настройки
+                    </div>
+                    <button class="tile-action-btn" id="btnCloseSettings"><span
+                            class="material-symbols-outlined">close</span></button>
+                </div>
+
+                <!-- Табы настроек -->
+                <div class="settings-tabs">
+                    <button class="settings-tab-btn active" data-tab="tab-devices">Оборудование</button>
+                    <button class="settings-tab-btn" data-tab="tab-ui">Интерфейс & Звук</button>
+                    <button class="settings-tab-btn" data-tab="tab-admin">Администрирование</button>
+                </div>
+
+                <div class="settings-body">
+                    <!-- ТАБ 1: ОБОРУДОВАНИЕ -->
+                    <div class="tab-content active" id="tab-devices">
+                        <div class="settings-form-group">
+                            <label class="studio-label">Камера</label>
+                            <select class="studio-select" id="selectVideoInput"></select>
+                        </div>
+                        <div class="settings-form-group">
+                            <label class="studio-label">Микрофон</label>
+                            <select class="studio-select" id="selectAudioInput"></select>
+                        </div>
+                        <div class="settings-form-group">
+                            <label class="studio-label">Динамики</label>
+                            <select class="studio-select" id="selectAudioOutput"></select>
+                        </div>
+                        <div class="settings-checkbox-group">
+                            <label class="checkbox-container">
+                                <input type="checkbox" id="chkNoiseSuppression" checked>
+                                <span>Шумоподавление и эхоподавление</span>
+                            </label>
+                            <label class="checkbox-container">
+                                <input type="checkbox" id="chkMirrorVideo" checked>
+                                <span>Зеркалировать собственную камеру</span>
+                            </label>
+                        </div>
+                    </div>
+
+                    <!-- ТАБ 2: ИНТЕРФЕЙС И ЗВУКИ -->
+                    <div class="tab-content" id="tab-ui">
+                        <div class="settings-checkbox-group">
+                            <label class="checkbox-container">
+                                <input type="checkbox" id="chkSoundFx" checked>
+                                <span>Звуковые эффекты (вход, чат, реакции, рука)</span>
+                            </label>
+                            <label class="checkbox-container">
+                                <input type="checkbox" id="chkChatToasts" checked>
+                                <span>Показывать всплывающие сообщения поверх видео</span>
+                            </label>
+                        </div>
+                        <div class="settings-form-group" style="margin-top: 10px;">
+                            <label class="studio-label">Громкость звуков</label>
+                            <input type="range" class="studio-range" id="rangeSoundVolume" min="0" max="1" step="0.05"
+                                value="0.5">
+                        </div>
+                    </div>
+
+                    <!-- ТАБ 3: АДМИНИСТРИРОВАНИЕ -->
+                    <div class="tab-content" id="tab-admin">
+                        <div class="admin-status-box" id="adminStatusBox">
+                            <span class="material-symbols-outlined" id="adminStatusIcon">admin_panel_settings</span>
+                            <span id="adminStatusText">Вы являетесь администратором комнаты</span>
+                        </div>
+
+                        <div class="settings-checkbox-group" id="adminControlsBlock">
+                            <label class="checkbox-container">
+                                <input type="checkbox" id="chkLockRoom">
+                                <span>Заблокировать комнату (запретить вход новым)</span>
+                            </label>
+                            <label class="checkbox-container">
+                                <input type="checkbox" id="chkAllowScreenShare" checked>
+                                <span>Разрешить участникам демонстрацию экрана</span>
+                            </label>
+                        </div>
+
+                        <div class="admin-participants-area">
+                            <div class="studio-label" style="margin-bottom: 6px;">Участники встречи</div>
+                            <div class="participants-list" id="adminParticipantsList">
+                                <!-- Список генерируется через JS -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="modal-footer">
+                    <button class="studio-btn-primary" id="btnSaveSettings">Применить</button>
+                </div>
             </div>
         </div>
 
-        <!-- МОДАЛЬНОЕ ОКНО АУДИТА -->
+        <!-- МОДАЛЬНОЕ ОКНО АУДИТА СИСТЕМЫ -->
         <div class="p2p-modal-backdrop p2p-hidden" id="logModal">
             <div class="studio-modal modal-large">
-                <div style="display: flex; justify-content: space-between; align-items: center;">
-                    <div style="font-size: 13px; font-weight: 600; display: flex; align-items: center; gap: 8px;">
+                <div class="modal-header">
+                    <div class="modal-title">
                         <span class="material-symbols-outlined" style="color: var(--google-yellow);">terminal</span>
-                        Аудит системы
+                        Системный аудит & WebRTC Watchdog
                     </div>
                     <div style="display: flex; gap: 6px;">
-                        <button class="studio-btn-secondary" id="btnCopyLogs"
-                            style="padding: 4px 10px; font-size: 11px;">
-                            <span class="material-symbols-outlined" style="font-size: 14px;">content_copy</span>
-                            Скопировать всё
+                        <button class="studio-btn-secondary" id="btnCopyLogs">
+                            <span class="material-symbols-outlined">content_copy</span> Копировать
                         </button>
-                        <button class="studio-btn-secondary" id="btnClearLogs"
-                            style="padding: 4px 10px; font-size: 11px;">
-                            <span class="material-symbols-outlined" style="font-size: 14px;">delete</span> Очистить
+                        <button class="studio-btn-secondary" id="btnClearLogs">
+                            <span class="material-symbols-outlined">delete</span> Очистить
                         </button>
                         <button class="tile-action-btn" id="btnCloseLogs"><span
                                 class="material-symbols-outlined">close</span></button>
@@ -218,42 +339,27 @@
             </div>
         </div>
 
-        <!-- НАСТРОЙКИ ОБОРУДОВАНИЯ -->
-        <div class="p2p-modal-backdrop p2p-hidden" id="settingsModal">
-            <div class="studio-modal">
-                <div style="font-size: 13px; font-weight: 600;">Выбор оборудования</div>
-                <div style="display: flex; flex-direction: column; gap: 8px; text-align: left;">
-                    <label style="font-size: 11px; color: var(--text-muted);">Камера</label>
-                    <select class="studio-select" id="selectVideoInput"></select>
-
-                    <label style="font-size: 11px; color: var(--text-muted);">Микрофон</label>
-                    <select class="studio-select" id="selectAudioInput"></select>
-
-                    <label style="font-size: 11px; color: var(--text-muted);">Динамики</label>
-                    <select class="studio-select" id="selectAudioOutput"></select>
-                </div>
-                <button class="studio-btn-primary" id="btnSaveSettings" style="margin-top: 6px;">Применить</button>
-                <button class="studio-btn-secondary" id="btnCloseSettings">Отмена</button>
-            </div>
-        </div>
-
-        <!-- МОДАЛКА ССЫЛКИ -->
+        <!-- МОДАЛКА ПРИГЛАШЕНИЯ -->
         <div class="p2p-modal-backdrop p2p-hidden" id="inviteModal">
-            <div class="studio-modal" style="text-align: center;">
-                <div style="font-size: 11px; font-family: var(--font-mono); color: var(--text-muted);">ROOM ID</div>
-                <div style="font-size: 26px; font-family: var(--font-mono); font-weight: 700; color: var(--google-blue);"
-                    id="modalRoomCode">...</div>
-                <div id="modalQrCode"
-                    style="display: flex; justify-content: center; padding: 10px; background: #fff; border-radius: var(--radius-sm); margin: 6px auto;">
+            <div class="studio-modal modal-invite">
+                <div class="modal-header">
+                    <div class="modal-title">Пригласить участников</div>
+                    <button class="tile-action-btn" id="btnCloseInviteModal"><span
+                            class="material-symbols-outlined">close</span></button>
                 </div>
-                <button class="studio-btn-primary" id="btnCopyInviteLink"><span
-                        class="material-symbols-outlined">content_copy</span> Копировать ссылку</button>
-                <button class="studio-btn-secondary" id="btnCloseInviteModal">Закрыть</button>
+                <div class="invite-content">
+                    <div class="studio-label">КОД ВСТРЕЧИ</div>
+                    <div class="room-code-display" id="modalRoomCode">...</div>
+                    <div id="modalQrCode" class="qr-container"></div>
+                    <button class="studio-btn-primary" id="btnCopyInviteLink" style="width: 100%;">
+                        <span class="material-symbols-outlined">link</span> Скопировать ссылку
+                    </button>
+                </div>
             </div>
         </div>
     </div>
 
-    <script src="./script.js"> </script>
+    <script src="./script.js"></script>
 </body>
 
 </html>

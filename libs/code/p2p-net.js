@@ -1,9 +1,11 @@
 /**
- * P2PNet v3.5 - Надежный WebRTC Mesh с распределенным VAD и аудио-разблокировкой
+ * P2PNet v4.0 - Полноценный WebRTC Mesh с Watchdog-восстановлением,
+ * авто-исправлением медиа-дорожек, выборами Host/Admin и контролем доступа
  */
 class P2PNet {
     static ALPHABET = "23456789ABCDEFGHJKMNPQRSTUVWXYZ";
     static HEARTBEAT_INTERVAL = 3000;
+    static WATCHDOG_INTERVAL = 4000;
 
     static DEFAULT_ICE_SERVERS = [
         { urls: 'stun:stun.l.google.com:19302' },
@@ -22,8 +24,14 @@ class P2PNet {
         this.peer = null;
         this.roomId = null;
         this.isHost = false;
+        this.hostId = null;
+        this.hostName = '';
         this.isDestroyed = false;
         this.userName = 'User';
+
+        // Политики комнаты
+        this.isLocked = false;
+        this.allowScreenShare = true;
 
         this.peers = new Map();
         this.localStream = null;
@@ -32,6 +40,7 @@ class P2PNet {
         this._events = {};
 
         this._heartbeatTimer = null;
+        this._watchdogTimer = null;
         this._reconnectAttempts = 0;
     }
 
@@ -89,7 +98,10 @@ class P2PNet {
             try {
                 await this._initPeer(fullPeerId);
                 this.roomId = code;
+                this.hostId = this.peer.id;
+                this.hostName = this.userName;
                 this._startHeartbeat();
+                this._startWatchdog();
                 this._audit('SYS', `Комната создана: ${this.roomId}`);
                 this.emit('room-created', { roomId: this.roomId, isHost: true });
                 return this.roomId;
@@ -108,27 +120,26 @@ class P2PNet {
         this.userName = myData.name || 'Guest';
         const hostPeerId = `${this.appPrefix}-${this.roomId}`;
 
-        this._audit('NET', `Подключение к сессии хоста: ${hostPeerId}`);
+        this._audit('NET', `Подключение к сессии: ${hostPeerId}`);
         await this._initPeer();
         this._startHeartbeat();
+        this._startWatchdog();
 
         return new Promise((resolve, reject) => {
             const timer = setTimeout(() => {
-                this._audit('ERR', `Таймаут подключения к хосту ${hostPeerId}`);
-                reject(new Error("Таймаут подключения к хосту"));
+                this._audit('ERR', `Таймаут подключения к комнате ${this.roomId}`);
+                reject(new Error("Таймаут подключения. Проверьте код комнаты."));
             }, 14000);
 
             this._connectToPeer(hostPeerId, {
                 onOpen: (conn) => {
                     clearTimeout(timer);
                     this._audit('NET', `DataChannel с хостом установлен. Отправка JOIN_REQ`);
-                    this.emit('joined-room', { roomId: this.roomId, isHost: false });
                     conn.send({ __sys: 'JOIN_REQ', peerId: this.peer.id, name: this.userName, ...myData });
                     resolve(conn);
                 },
                 onError: (err) => {
                     clearTimeout(timer);
-                    this._audit('ERR', `Ошибка подключения:`, err);
                     reject(err);
                 }
             });
@@ -170,7 +181,7 @@ class P2PNet {
             });
 
             this.peer.on('disconnected', () => {
-                this._audit('WARN', "Сигнальный сервер разорвал соединение. Авто-реконнект...");
+                this._audit('WARN', "Сигнальный сервер отключен. Авто-реконнект...");
                 this.emit('status', { online: false, reconnecting: true });
                 this._tryReconnect();
             });
@@ -196,6 +207,52 @@ class P2PNet {
         }, delay);
     }
 
+    /* ==========================================================================
+       WATCHDOG И ICE-RECOVERY МЕХАНИЗМ (ВОССТАНОВЛЕНИЕ ПОТОКОВ)
+       ========================================================================== */
+    _startWatchdog() {
+        if (this._watchdogTimer) clearInterval(this._watchdogTimer);
+        this._watchdogTimer = setInterval(() => {
+            if (this.isDestroyed || !this.peer) return;
+
+            this.peers.forEach((record, peerId) => {
+                // Проверка жизнеспособности звонка
+                if (record.call && record.call.peerConnection) {
+                    const pc = record.call.peerConnection;
+                    const iceState = pc.iceConnectionState;
+
+                    if (iceState === 'failed' || iceState === 'disconnected') {
+                        this._audit('WARN', `ICE сбой у ${peerId} (${iceState}). Запуск ICE Restart...`);
+                        try {
+                            if (pc.restartIce) pc.restartIce();
+                        } catch (e) { }
+                    }
+
+                    // Проверка активности медиа треков
+                    const receivers = pc.getReceivers ? pc.getReceivers() : [];
+                    const activeTracks = receivers.filter(r => r.track && r.track.readyState === 'live');
+
+                    if (receivers.length > 0 && activeTracks.length === 0 && record.isReady) {
+                        this._audit('WARN', `У пира ${peerId} застряли медиа-треки. Переподключение медиа-сессии...`);
+                        this.repairPeerMedia(peerId);
+                    }
+                }
+            });
+        }, P2PNet.WATCHDOG_INTERVAL);
+    }
+
+    repairPeerMedia(peerId) {
+        if (!this.localStream || this.isDestroyed) return;
+        this._audit('MEDIA', `Восстановление медиа-сессии с ${peerId}`);
+        const record = this.peers.get(peerId);
+        if (record && record.call) {
+            try { record.call.close(); } catch (e) { }
+        }
+        setTimeout(() => {
+            this.call(peerId, this.localStream, { type: 'camera', name: this.userName });
+        }, 300);
+    }
+
     _startHeartbeat() {
         if (this._heartbeatTimer) clearInterval(this._heartbeatTimer);
         this._heartbeatTimer = setInterval(() => {
@@ -205,7 +262,7 @@ class P2PNet {
                     record.conn.send({ __sys: 'PING', ts: now });
                 }
                 if (record.lastSeen && now - record.lastSeen > 12000) {
-                    this._audit('WARN', `Таймаут пира ${peerId} (>12s). Отключение.`);
+                    this._audit('WARN', `Таймаут пира ${peerId} (>12s).`);
                     this._cleanupPeer(peerId);
                 }
             });
@@ -231,7 +288,7 @@ class P2PNet {
                 conn.send(peerRecord.queue.shift());
             }
             if (callbacks.onOpen) callbacks.onOpen(conn);
-            this.emit('peer-connected', { peerId: remotePeerId, totalPeers: this.peers.size });
+            this.emit('peer-connected', { peerId: remotePeerId, name: peerRecord.name, totalPeers: this.peers.size });
         });
 
         this._bindDataEvents(conn, peerRecord);
@@ -247,7 +304,7 @@ class P2PNet {
             peerRecord.isReady = true;
             peerRecord.lastSeen = Date.now();
             this._audit('NET', `Канал данных подключен: ${conn.peer}`);
-            this.emit('peer-connected', { peerId: conn.peer, totalPeers: this.peers.size });
+            this.emit('peer-connected', { peerId: conn.peer, name: peerRecord.name, totalPeers: this.peers.size });
         });
 
         this._bindDataEvents(conn, peerRecord);
@@ -266,7 +323,7 @@ class P2PNet {
         });
 
         conn.on('close', () => {
-            this._audit('NET', `Канал данных закрыт: ${conn.peer}`);
+            this._audit('NET', `Канал закрыт: ${conn.peer}`);
             this._cleanupPeer(conn.peer);
         });
         conn.on('error', (e) => {
@@ -287,8 +344,57 @@ class P2PNet {
             try { sc.close(); } catch (e) { }
             this.screenCalls.delete(peerId);
         }
-        this._audit('SYS', `Пир ${peerId} удален из сети`);
+
+        this._audit('SYS', `Пир ${peerId} удален`);
         this.emit('peer-disconnected', { peerId, totalPeers: this.peers.size });
+
+        // Если отключился хост — производим выборы нового хоста
+        if (peerId === this.hostId) {
+            this._electNewHost();
+        }
+    }
+
+    /* ==========================================================================
+       УПРАВЛЕНИЕ ХОСТОМ, БЛОКИРОВКА И ИСКЛЮЧЕНИЕ
+       ========================================================================== */
+    _electNewHost() {
+        const allIds = [this.peer.id, ...Array.from(this.peers.keys())].sort();
+        const nextHostId = allIds[0];
+
+        if (nextHostId === this.peer.id) {
+            this.isHost = true;
+            this.hostId = this.peer.id;
+            this.hostName = this.userName;
+            this._audit('SYS', `👑 Права администратора перешли к вам!`);
+            this.broadcast({ __sys: 'HOST_CHANGED', hostId: this.peer.id, hostName: this.userName });
+            this.emit('host-changed', { isHost: true, hostName: this.userName, hostId: this.peer.id });
+        } else {
+            this.isHost = false;
+            this.hostId = nextHostId;
+            const hRecord = this.peers.get(nextHostId);
+            this.hostName = hRecord ? hRecord.name : 'Admin';
+            this._audit('SYS', `Новый администратор: ${this.hostName} (${nextHostId})`);
+            this.emit('host-changed', { isHost: false, hostName: this.hostName, hostId: nextHostId });
+        }
+    }
+
+    setRoomLocked(locked) {
+        if (!this.isHost) return;
+        this.isLocked = !!locked;
+        this.broadcast({ __sys: 'ROOM_LOCK_STATUS', isLocked: this.isLocked });
+    }
+
+    setScreenShareAllowed(allowed) {
+        if (!this.isHost) return;
+        this.allowScreenShare = !!allowed;
+        this.broadcast({ type: 'SCREEN_PERM_CHANGED', allowed: this.allowScreenShare });
+    }
+
+    kickPeer(targetPeerId) {
+        if (!this.isHost || !this.peers.has(targetPeerId)) return;
+        this._audit('SYS', `Исключение пира ${targetPeerId}`);
+        this.send({ __sys: 'KICKED' }, targetPeerId);
+        setTimeout(() => this._cleanupPeer(targetPeerId), 200);
     }
 
     _handleSystemPacket(senderPeerId, packet) {
@@ -296,10 +402,17 @@ class P2PNet {
             this.send({ __sys: 'PONG', ts: packet.ts }, senderPeerId);
         } else if (packet.__sys === 'PONG') {
             // Heartbeat OK
-        } else if (packet.__sys === 'JOIN_REQ' && this.isHost) {
+        } else if (packet.__sys === 'JOIN_REQ') {
             const guestName = packet.name || 'Guest';
-            this._audit('SYS', `Хост принял запрос от ${senderPeerId} (${guestName})`);
 
+            // Проверка блокировки комнаты хостом
+            if (this.isHost && this.isLocked) {
+                this._audit('SYS', `Отказ входа для ${senderPeerId}: комната заблокирована`);
+                this.send({ __sys: 'JOIN_REJECTED', reason: 'Комната заблокирована организатором.' }, senderPeerId);
+                return;
+            }
+
+            this._audit('SYS', `Принят запрос от ${senderPeerId} (${guestName})`);
             let peerRecord = this.peers.get(senderPeerId);
             if (peerRecord) peerRecord.name = guestName;
 
@@ -308,13 +421,19 @@ class P2PNet {
                 name: this.peers.get(id)?.name || ''
             }));
 
-            this.send({ __sys: 'ROOM_MEMBERS', members, hostId: this.peer.id, hostName: this.userName }, senderPeerId);
+            this.send({
+                __sys: 'ROOM_MEMBERS',
+                members,
+                hostId: this.isHost ? this.peer.id : this.hostId,
+                hostName: this.isHost ? this.userName : this.hostName,
+                isLocked: this.isLocked,
+                allowScreenShare: this.allowScreenShare
+            }, senderPeerId);
+
             this.broadcast({ __sys: 'NEW_PEER', peerId: senderPeerId, name: guestName }, [senderPeerId]);
 
-            // Звонок к гостю
             setTimeout(() => {
                 if (this.localStream) {
-                    this._audit('MEDIA', `Хост звонит участнику ${senderPeerId}`);
                     this.call(senderPeerId, this.localStream, { type: 'camera', name: this.userName });
                 }
             }, 300);
@@ -323,7 +442,14 @@ class P2PNet {
                 setTimeout(() => this.callScreen(senderPeerId, this.screenStream, this.userName), 600);
             }
         } else if (packet.__sys === 'ROOM_MEMBERS') {
-            this._audit('SYS', `Список участников от хоста:`, packet.members);
+            this.hostId = packet.hostId;
+            this.hostName = packet.hostName || 'Host';
+            this.isLocked = !!packet.isLocked;
+            this.allowScreenShare = packet.allowScreenShare ?? true;
+
+            this._audit('SYS', `Список участников от хоста (${this.hostName}):`, packet.members);
+            this.emit('host-changed', { isHost: this.isHost, hostName: this.hostName, hostId: this.hostId });
+
             packet.members.forEach(m => {
                 if (m.peerId !== this.peer.id && !this.peers.has(m.peerId)) {
                     const conn = this._connectToPeer(m.peerId);
@@ -344,6 +470,20 @@ class P2PNet {
                     }
                 }, 400);
             }
+        } else if (packet.__sys === 'KICKED') {
+            this.emit('kicked');
+            this.destroy(true);
+        } else if (packet.__sys === 'JOIN_REJECTED') {
+            alert(packet.reason || "Вход отклонен.");
+            this.destroy(true);
+            window.location.reload();
+        } else if (packet.__sys === 'HOST_CHANGED') {
+            this.hostId = packet.hostId;
+            this.hostName = packet.hostName;
+            this.isHost = (this.peer.id === this.hostId);
+            this.emit('host-changed', { isHost: this.isHost, hostName: this.hostName, hostId: this.hostId });
+        } else if (packet.__sys === 'ROOM_LOCK_STATUS') {
+            this.isLocked = packet.isLocked;
         }
     }
 
@@ -375,7 +515,7 @@ class P2PNet {
         if (!mediaStream) return;
 
         const meta = { type: 'camera', name: this.userName, ...metadata };
-        this._audit('MEDIA', `Инициация peer.call() -> ${remotePeerId}`, meta);
+        this._audit('MEDIA', `peer.call() -> ${remotePeerId}`, meta);
         const call = this.peer.call(remotePeerId, mediaStream, { metadata: meta });
         if (!call) return;
 
@@ -402,7 +542,7 @@ class P2PNet {
 
     _handleIncomingCall(call) {
         const meta = call.metadata || { type: 'camera', name: 'Участник' };
-        this._audit('MEDIA', `Принят вызов от ${call.peer}`, meta);
+        this._audit('MEDIA', `Принят звонок от ${call.peer}`, meta);
 
         let peerRecord = this.peers.get(call.peer);
         if (!peerRecord) {
@@ -423,12 +563,7 @@ class P2PNet {
     }
 
     _setupCallEvents(call, peerId, meta) {
-        let streamReceived = false;
-
         call.on('stream', (remoteStream) => {
-            if (streamReceived) return;
-            streamReceived = true;
-
             const vCount = remoteStream.getVideoTracks().length;
             const aCount = remoteStream.getAudioTracks().length;
             const peerName = this.peers.get(peerId)?.name || meta.name || 'Участник';
@@ -442,7 +577,7 @@ class P2PNet {
         });
 
         call.on('error', (err) => {
-            this._audit('ERR', `Ошибка в MediaCall (${peerId}): ${err.message}`);
+            this._audit('ERR', `Ошибка вызова (${peerId}): ${err.message}`);
         });
 
         if (call.peerConnection) {
@@ -476,9 +611,7 @@ class P2PNet {
 
                 if (targetSender) {
                     promises.push(
-                        targetSender.replaceTrack(newTrack).then(() => {
-                            this._audit('MEDIA', `replaceTrack успешен для ${peerId}`);
-                        }).catch(e => {
+                        targetSender.replaceTrack(newTrack).catch(e => {
                             this._audit('ERR', `Ошибка replaceTrack у ${peerId}: ${e.message}`);
                         })
                     );
@@ -517,6 +650,7 @@ class P2PNet {
     destroy(keepStream = false) {
         this.isDestroyed = true;
         if (this._heartbeatTimer) { clearInterval(this._heartbeatTimer); this._heartbeatTimer = null; }
+        if (this._watchdogTimer) { clearInterval(this._watchdogTimer); this._watchdogTimer = null; }
         this.stopScreenShare();
 
         this.peers.forEach(p => {
@@ -535,6 +669,6 @@ class P2PNet {
             this.peer = null;
         }
         this.roomId = null;
-        this._audit('SYS', 'Экземпляр P2PNet уничтожен');
+        this._audit('SYS', 'P2PNet экземпляр завершен');
     }
 }

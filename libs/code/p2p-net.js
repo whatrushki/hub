@@ -1,5 +1,5 @@
 /**
- * P2PNet v2.5 - Автоматическое переподключение, Heartbeat и защита соединений
+ * P2PNet v2.6 - Надежный replaceTrack через Transceivers и восстановление треков
  */
 class P2PNet {
     static ALPHABET = "23456789ABCDEFGHJKMNPQRSTUVWXYZ";
@@ -155,9 +155,6 @@ class P2PNet {
 
             this.peer.on('error', (err) => {
                 this._log("Peer error:", err.type, err);
-                if (err.type === 'peer-unavailable') {
-                    // Пир отключился
-                }
                 this.emit('error', err);
                 if (!opened) reject(err);
             });
@@ -188,9 +185,8 @@ class P2PNet {
                 if (record.conn && record.conn.open) {
                     record.conn.send({ __sys: 'PING', ts: now });
                 }
-                // Проверка жизнеспособности (если не было ответа > 12 сек)
                 if (record.lastSeen && now - record.lastSeen > 12000) {
-                    this._log(`Пир ${peerId} не отвечает (таймаут). Очистка...`);
+                    this._log(`Пир ${peerId} не отвечает. Очистка...`);
                     this._cleanupPeer(peerId);
                 }
             });
@@ -271,7 +267,7 @@ class P2PNet {
         if (packet.__sys === 'PING') {
             this.send({ __sys: 'PONG', ts: packet.ts }, senderPeerId);
         } else if (packet.__sys === 'PONG') {
-            // Heartbeat подтвержден
+            // Heartbeat OK
         } else if (packet.__sys === 'JOIN_REQ' && this.isHost) {
             const members = Array.from(this.peers.keys()).map(id => ({ peerId: id, name: this.peers.get(id)?.name || '' }));
             this.send({ __sys: 'ROOM_MEMBERS', members, hostId: this.peer.id }, senderPeerId);
@@ -358,7 +354,7 @@ class P2PNet {
     _handleIncomingCall(call) {
         const meta = call.metadata || { type: 'camera' };
         if (meta.type === 'screen') {
-            call.answer(); // Экран принимаем без отправки локального стрима
+            call.answer();
         } else {
             call.answer(this.localStream);
         }
@@ -370,12 +366,11 @@ class P2PNet {
             this.emit('remote-stream', { peerId, stream: remoteStream, metadata: meta });
         });
 
-        // Мониторинг качества ICE-соединения
         if (call.peerConnection) {
             call.peerConnection.oniceconnectionstatechange = () => {
                 const state = call.peerConnection.iceConnectionState;
                 if (state === 'failed' || state === 'disconnected') {
-                    this._log(`ICE state [${state}] с пиром ${peerId}. Попытка рестарта...`);
+                    this._log(`ICE state [${state}] с пиром ${peerId}. Рестарт...`);
                     try {
                         call.peerConnection.restartIce();
                     } catch (e) { }
@@ -384,13 +379,35 @@ class P2PNet {
         }
     }
 
+    // НАДЕЖНАЯ ЗАМЕНА ТРЕКА ЧЕРЕЗ TRANSCEIVERS
     replaceTrack(newTrack, kind = 'video') {
         this.peers.forEach(peerRecord => {
             if (peerRecord.call && peerRecord.call.peerConnection) {
-                const senders = peerRecord.call.peerConnection.getSenders();
-                const sender = senders.find(s => s.track && s.track.kind === kind);
-                if (sender) {
-                    sender.replaceTrack(newTrack);
+                const pc = peerRecord.call.peerConnection;
+                let targetSender = null;
+
+                // 1. Поиск прямого сендера
+                const senders = pc.getSenders();
+                targetSender = senders.find(s => s.track && s.track.kind === kind);
+
+                // 2. Если трек был равен null, ищем через трансмиттер
+                if (!targetSender && pc.getTransceivers) {
+                    const transceivers = pc.getTransceivers();
+                    const trans = transceivers.find(t =>
+                        (t.sender && t.sender.track && t.sender.track.kind === kind) ||
+                        (t.receiver && t.receiver.track && t.receiver.track.kind === kind)
+                    );
+                    if (trans && trans.sender) targetSender = trans.sender;
+                }
+
+                if (targetSender) {
+                    targetSender.replaceTrack(newTrack).catch(e => console.error("replaceTrack error:", e));
+                } else if (newTrack) {
+                    try {
+                        pc.addTrack(newTrack, this.localStream);
+                    } catch (e) {
+                        console.warn("addTrack error:", e);
+                    }
                 }
             }
         });

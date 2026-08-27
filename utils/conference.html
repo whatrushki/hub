@@ -1,4 +1,3 @@
-<!DOCTYPE html>
 <html lang="ru">
 
 <head>
@@ -299,7 +298,7 @@
             box-shadow: 0 0 14px rgba(168, 199, 250, 0.45) !important;
         }
 
-        /* ДЕМОНСТРАЦИЯ ЭКРАНА — СТРОГО БЕЗ ПОДСВЕТКИ И БЕЗ GLOW */
+        /* ДЕМОНСТРАЦИЯ ЭКРАНА — СТРОГО БЕЗ ПОДСВЕТКИ */
         .video-tile.screen-tile,
         .video-tile.screen-tile.speaking,
         div.video-tile.screen-tile {
@@ -334,6 +333,32 @@
             border-radius: 0 !important;
             border: none !important;
             background: #000 !important;
+        }
+
+        /* ПЛАВАЮЩАЯ КНОПКА ЧАТА В ПОЛНОЭКРАННОМ РЕЖИМЕ (СНИЗУ СПРАВА) */
+        .fullscreen-chat-fab {
+            position: fixed;
+            bottom: 24px;
+            right: 24px;
+            z-index: 100010 !important;
+            background: rgba(30, 31, 32, 0.9);
+            border: 1px solid var(--border-focus);
+            backdrop-filter: blur(12px);
+            color: var(--text-primary);
+            padding: 10px 16px;
+            border-radius: var(--radius-full);
+            font-size: 13px;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            cursor: pointer;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.7);
+            transition: all 0.2s ease;
+        }
+
+        .fullscreen-chat-fab:active {
+            transform: scale(0.94);
         }
 
         /* ОВЕРЛЕИ КАРТОЧКИ */
@@ -483,7 +508,7 @@
             border-color: rgba(242, 139, 130, 0.3);
         }
 
-        /* 4. ВСПЛЫВАЮЩИЕ УВЕДОМЛЕНИЯ СВЕРХУ (ПОВЕРХ FULLSCREEN) */
+        /* 4. ВСПЛЫВАЮЩИЕ УВЕДОМЛЕНИЯ СВЕРХУ (ПОВЕРХ ВСЕГО) */
         .chat-toast-container {
             position: fixed;
             top: 16px;
@@ -492,7 +517,6 @@
             flex-direction: column;
             gap: 8px;
             z-index: 200000 !important;
-            /* Выше любого Fullscreen */
             pointer-events: none;
             max-width: 320px;
             width: calc(100% - 32px);
@@ -544,7 +568,7 @@
             }
         }
 
-        /* 5. ЧАТ-ПАНЕЛЬ (ВЫЕЗЖАЕТ ПОВЕРХ FULLSCREEN) */
+        /* 5. ЧАТ ПАНЕЛЬ */
         .chat-drawer {
             width: 340px;
             height: 100%;
@@ -888,6 +912,12 @@
     <!-- ВСПЛЫВАЮЩИЕ СООБЩЕНИЯ СВЕРХУ (ПОВЕРХ FULLSCREEN) -->
     <div class="chat-toast-container" id="chatToastContainer"></div>
 
+    <!-- ПЛАВАЮЩАЯ КНОПКА ЧАТА ДЛЯ ПОЛНОЭКРАННОГО РЕЖИМА (СНИЗУ СПРАВА) -->
+    <button class="fullscreen-chat-fab p2p-hidden" id="fullscreenChatFab" onclick="toggleChat(true)">
+        <span class="material-symbols-outlined">chat</span>
+        <span>Чат</span>
+    </button>
+
     <div class="conf-app" id="reactionContainer">
         <!-- 1. STUDIO HEADER -->
         <header class="studio-header">
@@ -980,7 +1010,7 @@
 
                     <!-- Сетка потоков -->
                     <div class="conf-grid count-1" id="videoGrid">
-                        <!-- Локальная камера (без лишней иконки чата) -->
+                        <!-- Локальная камера -->
                         <div class="video-tile mirrored" id="tile-cam-local">
                             <video id="localVideo" autoplay playsinline webkit-playsinline muted></video>
                             <div id="myAvatar" class="tile-avatar" style="display: none;">
@@ -1011,7 +1041,7 @@
                     <div class="spotlight-strip p2p-hidden" id="spotlightStrip"></div>
                 </div>
 
-                <!-- ЧАТ (ОТКРЫВАЕТСЯ И В ОБЫЧНОМ РЕЖИМЕ, И ПОВЕРХ FULLSCREEN) -->
+                <!-- ЧАТ -->
                 <div class="chat-drawer p2p-hidden" id="chatPanel">
                     <div class="chat-header">
                         <span style="display: flex; align-items: center; gap: 6px;">
@@ -1134,12 +1164,16 @@
         }
 
         /* ==========================================================================
-           2. АУДИОСИНТЕЗАТОР И VAD (СТРОГО БЕЗ ПОДСВЕТКИ ЭКРАНА)
+           2. АУДИОСИНТЕЗАТОР И VAD (С КЛОНИРОВАНИЕМ ТРЕКА ДЛЯ ЗАЩИТЫ ЗВУКА)
            ========================================================================== */
         const SoundFX = {
             ctx: null,
-            init() { if (!this.ctx) this.ctx = new (window.AudioContext || window.webkitAudioContext)(); },
+            init() {
+                if (!this.ctx) this.ctx = new (window.AudioContext || window.webkitAudioContext)();
+                if (this.ctx && this.ctx.state === 'suspended') this.ctx.resume();
+            },
             playChime(type = 'join') {
+                this.init();
                 if (!this.ctx) return;
                 const now = this.ctx.currentTime;
                 const osc = this.ctx.createOscillator(), gain = this.ctx.createGain();
@@ -1167,8 +1201,22 @@
                 }
             }
         };
-        window.addEventListener('click', () => SoundFX.init(), { once: true });
-        window.addEventListener('keydown', () => SoundFX.init(), { once: true });
+
+        // Разблокировка аудио при первом взаимодействии
+        function unlockAudioOutput() {
+            SoundFX.init();
+            audioVAD.init();
+            document.querySelectorAll('video').forEach(v => {
+                if (v.id !== 'localVideo' && v.id !== 'previewVideo' && !v.id.includes('local')) {
+                    v.muted = false;
+                    v.volume = 1.0;
+                    v.play().catch(() => { });
+                }
+            });
+        }
+        window.addEventListener('click', unlockAudioOutput, { once: true });
+        window.addEventListener('touchstart', unlockAudioOutput, { once: true });
+        window.addEventListener('keydown', unlockAudioOutput, { once: true });
 
         class AudioActivityMonitor {
             constructor() {
@@ -1178,15 +1226,22 @@
 
             init() {
                 if (!this.ctx) this.ctx = new (window.AudioContext || window.webkitAudioContext)();
+                if (this.ctx && this.ctx.state === 'suspended') this.ctx.resume();
             }
 
             watch(peerId, stream, isLocal = false) {
                 this.init();
                 this.unwatch(peerId);
-                if (!stream || stream.getAudioTracks().length === 0) return;
+                if (!stream) return;
+                const audioTracks = stream.getAudioTracks();
+                if (audioTracks.length === 0) return;
 
                 try {
-                    const source = this.ctx.createMediaStreamSource(stream);
+                    // КРИТИЧЕСКИЙ ФИКС: Клонируем трек, чтобы WebAudio не глушил динамики
+                    const clonedTrack = audioTracks[0].clone();
+                    const clonedStream = new MediaStream([clonedTrack]);
+
+                    const source = this.ctx.createMediaStreamSource(clonedStream);
                     const analyser = this.ctx.createAnalyser();
                     analyser.fftSize = 256;
                     analyser.smoothingTimeConstant = 0.4;
@@ -1219,7 +1274,14 @@
                     };
                     loop();
 
-                    this.monitors.set(peerId, { source, analyser, cancel: () => cancelAnimationFrame(animFrame) });
+                    this.monitors.set(peerId, {
+                        source,
+                        clonedTrack,
+                        cancel: () => {
+                            cancelAnimationFrame(animFrame);
+                            clonedTrack.stop();
+                        }
+                    });
                 } catch (e) {
                     console.warn("VAD warning:", e);
                 }
@@ -1260,6 +1322,7 @@
         let isScreenSharing = false;
         let isHandRaised = false;
         let currentFacingMode = 'user';
+        let currentVideoDeviceId = null;
         let activeSpotlightId = null;
         let screenStream = null;
 
@@ -1285,6 +1348,7 @@
         const videoGrid = document.getElementById('videoGrid');
         const spotlightSlot = document.getElementById('spotlightSlot');
         const spotlightStrip = document.getElementById('spotlightStrip');
+        const fullscreenChatFab = document.getElementById('fullscreenChatFab');
 
         const btnMicToggle = document.getElementById('btnMicToggle');
         const btnCamToggle = document.getElementById('btnCamToggle');
@@ -1326,7 +1390,7 @@
         }
 
         /* ==========================================================================
-           4. ПЕРЕКЛЮЧЕНИЕ КАМЕРЫ И ЗЕРКАЛО
+           4. УМНАЯ ВАЛИДАЦИЯ И ПЕРЕКЛЮЧЕНИЕ КАМЕР
            ========================================================================== */
         function updateMirrorState() {
             const isFront = (currentFacingMode === 'user');
@@ -1334,23 +1398,69 @@
             if (tileCamLocal) tileCamLocal.classList.toggle('mirrored', isFront);
         }
 
+        // Фильтрация нерабочих сенсоров и захват гарантированно живого стрима
         async function getSafeUserMedia(facingMode = 'user', audioSourceId = null, videoSourceId = null) {
-            const videoConstraints = videoSourceId
-                ? { deviceId: { exact: videoSourceId } }
-                : { facingMode: { ideal: facingMode }, width: { ideal: 1280 }, height: { ideal: 720 } };
-
             const audioConstraints = audioSourceId
-                ? { deviceId: { exact: audioSourceId }, echoCancellation: true, noiseSuppression: true }
-                : { echoCancellation: true, noiseSuppression: true };
+                ? { deviceId: { exact: audioSourceId }, echoCancellation: true, noiseSuppression: true, autoGainControl: true }
+                : { echoCancellation: true, noiseSuppression: true, autoGainControl: true };
 
-            try {
-                return await navigator.mediaDevices.getUserMedia({ video: videoConstraints, audio: audioConstraints });
-            } catch (err) {
-                return await navigator.mediaDevices.getUserMedia({
-                    video: { facingMode },
-                    audio: true
-                });
+            // 1. Попытка с конкретным устройством
+            if (videoSourceId) {
+                try {
+                    const stream = await navigator.mediaDevices.getUserMedia({
+                        video: { deviceId: { exact: videoSourceId }, width: { ideal: 1280 }, height: { ideal: 720 } },
+                        audio: audioConstraints
+                    });
+                    if (stream.getVideoTracks().length > 0 && stream.getVideoTracks()[0].readyState === 'live') {
+                        currentVideoDeviceId = videoSourceId;
+                        return stream;
+                    }
+                } catch (e) {
+                    sysLog("Выбранная камера недоступна, запуск автоподбора...");
+                }
             }
+
+            // 2. Умный поиск среди всех камер устройства
+            let devices = [];
+            try {
+                devices = await navigator.mediaDevices.enumerateDevices();
+            } catch (e) { }
+
+            const videoDevices = devices.filter(d => {
+                if (d.kind !== 'videoinput') return false;
+                const label = (d.label || '').toLowerCase();
+                // Исключаем сенсоры глубины и инфракрасные датчики
+                return !label.includes('depth') && !label.includes('ir') && !label.includes('infrared') && !label.includes('tof');
+            });
+
+            // Формируем список кандидатов в зависимости от выбранного режима
+            const isFront = (facingMode === 'user');
+            const sortedDevices = videoDevices.filter(d => {
+                const l = (d.label || '').toLowerCase();
+                return isFront ? (l.includes('front') || l.includes('передн') || l.includes('selfie') || l.includes('user'))
+                    : (l.includes('back') || l.includes('задн') || l.includes('rear') || l.includes('environment'));
+            });
+
+            const candidateList = sortedDevices.length > 0 ? sortedDevices : videoDevices;
+
+            for (const dev of candidateList) {
+                try {
+                    const stream = await navigator.mediaDevices.getUserMedia({
+                        video: { deviceId: { exact: dev.deviceId }, width: { ideal: 1280 }, height: { ideal: 720 } },
+                        audio: audioConstraints
+                    });
+                    if (stream.getVideoTracks().length > 0 && stream.getVideoTracks()[0].readyState === 'live') {
+                        currentVideoDeviceId = dev.deviceId;
+                        return stream;
+                    }
+                } catch (err) { }
+            }
+
+            // 3. Финальный fallback на базовые ограничения
+            return await navigator.mediaDevices.getUserMedia({
+                video: { facingMode },
+                audio: audioConstraints
+            });
         }
 
         async function initPreview() {
@@ -1359,12 +1469,16 @@
                 net.localStream = stream;
                 previewVideo.srcObject = stream;
                 localVideo.srcObject = stream;
+
+                previewVideo.muted = true;
+                localVideo.muted = true;
+
                 previewVideo.play().catch(() => { });
                 localVideo.play().catch(() => { });
                 audioVAD.watch('local', stream, true);
                 updateMirrorState();
             } catch (e) {
-                sysLog("Media unavailable: " + e.message);
+                sysLog("Камера/микрофон недоступны: " + e.message);
                 isCamOn = false; isMicOn = false;
                 previewAvatar.style.display = 'flex';
                 myAvatar.style.display = 'flex';
@@ -1384,19 +1498,9 @@
             }
 
             try {
-                let newStream = null;
-                try {
-                    newStream = await navigator.mediaDevices.getUserMedia({
-                        video: { facingMode: { exact: nextMode }, width: { ideal: 1280 }, height: { ideal: 720 } }
-                    });
-                } catch (eExact) {
-                    newStream = await navigator.mediaDevices.getUserMedia({
-                        video: { facingMode: nextMode }
-                    });
-                }
-
-                const newVideoTrack = newStream.getVideoTracks()[0];
                 currentFacingMode = nextMode;
+                const newStream = await getSafeUserMedia(currentFacingMode);
+                const newVideoTrack = newStream.getVideoTracks()[0];
 
                 if (!net.localStream) {
                     net.localStream = newStream;
@@ -1411,6 +1515,8 @@
 
                 updateMirrorState();
                 net.replaceTrack(newVideoTrack, 'video');
+                net.broadcast({ type: 'CAM_STATUS', isCamOn: true });
+
                 showToast(currentFacingMode === 'user' ? "Фронтальная камера" : "Основная камера (без зеркала)", 'flip_camera_ios');
             } catch (err) {
                 showToast("Не удалось переключить камеру: " + err.message, 'error');
@@ -1434,7 +1540,7 @@
                 net.broadcast({ type: 'CAM_STATUS', isCamOn: false });
             } else {
                 try {
-                    const freshStream = await getSafeUserMedia(currentFacingMode);
+                    const freshStream = await getSafeUserMedia(currentFacingMode, null, currentVideoDeviceId);
                     const newVideoTrack = freshStream.getVideoTracks()[0];
 
                     if (!net.localStream) net.localStream = freshStream;
@@ -1472,7 +1578,7 @@
                 net.broadcast({ type: 'MIC_STATUS', isMicOn: false });
             } else {
                 try {
-                    const freshStream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true } });
+                    const freshStream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true } });
                     const newAudioTrack = freshStream.getAudioTracks()[0];
 
                     if (!net.localStream) net.localStream = freshStream;
@@ -1518,8 +1624,7 @@
             } else if (e.key.toLowerCase() === 'c') {
                 toggleChat();
             } else if (e.key === 'Escape') {
-                document.querySelectorAll('.pseudo-fullscreen').forEach(el => el.classList.remove('pseudo-fullscreen'));
-                document.body.classList.remove('has-fullscreen');
+                exitAllFullscreens();
             }
         });
 
@@ -1619,6 +1724,8 @@
             const videoEl = document.getElementById(`video-cam-${peerId}`);
             if (videoEl && stream) {
                 videoEl.srcObject = stream;
+                videoEl.muted = false; // ГАРАНТИЯ ЗВУКА
+                videoEl.volume = 1.0;
                 videoEl.play().catch(() => { });
                 audioVAD.watch(peerId, stream, false);
             }
@@ -1656,7 +1763,10 @@
             const videoEl = document.getElementById(`video-screen-${peerId}`);
             if (videoEl && stream) {
                 videoEl.srcObject = stream;
-                if (!isLocal) { videoEl.muted = false; videoEl.volume = 1.0; }
+                if (!isLocal) {
+                    videoEl.muted = false;
+                    videoEl.volume = 1.0;
+                }
                 videoEl.play().catch(() => { });
             }
             updateGridCount();
@@ -1719,20 +1829,26 @@
             updateGridCount();
         };
 
-        // Разворот на весь экран с поддержкой бокового чата
+        // Разворот на весь экран
         window.toggleNativeFullscreen = function (tileId) {
             const tile = document.getElementById(tileId);
             if (!tile) return;
 
             if (tile.classList.contains('pseudo-fullscreen')) {
-                tile.classList.remove('pseudo-fullscreen');
-                document.body.classList.remove('has-fullscreen');
+                exitAllFullscreens();
             } else {
                 document.querySelectorAll('.pseudo-fullscreen').forEach(el => el.classList.remove('pseudo-fullscreen'));
                 tile.classList.add('pseudo-fullscreen');
                 document.body.classList.add('has-fullscreen');
+                fullscreenChatFab.classList.remove('p2p-hidden');
             }
         };
+
+        function exitAllFullscreens() {
+            document.querySelectorAll('.pseudo-fullscreen').forEach(el => el.classList.remove('pseudo-fullscreen'));
+            document.body.classList.remove('has-fullscreen');
+            fullscreenChatFab.classList.add('p2p-hidden');
+        }
 
         /* ==========================================================================
            8. НАСТРОЙКИ ОБОРУДОВАНИЯ
@@ -1752,9 +1868,15 @@
                 const opt = document.createElement('option');
                 opt.value = d.deviceId;
                 opt.text = d.label || `${d.kind} (${d.deviceId.slice(0, 5)}...)`;
-                if (d.kind === 'videoinput') selectVideoInput.appendChild(opt);
-                else if (d.kind === 'audioinput') selectAudioInput.appendChild(opt);
-                else if (d.kind === 'audiooutput') selectAudioOutput.appendChild(opt);
+
+                if (d.kind === 'videoinput') {
+                    if (d.deviceId === currentVideoDeviceId) opt.selected = true;
+                    selectVideoInput.appendChild(opt);
+                } else if (d.kind === 'audioinput') {
+                    selectAudioInput.appendChild(opt);
+                } else if (d.kind === 'audiooutput') {
+                    selectAudioOutput.appendChild(opt);
+                }
             });
 
             settingsModal.classList.remove('p2p-hidden');
@@ -1767,6 +1889,11 @@
             settingsModal.classList.add('p2p-hidden');
 
             try {
+                // Останавливаем старые треки перед получением нового оборудования
+                if (net.localStream) {
+                    net.localStream.getTracks().forEach(t => t.stop());
+                }
+
                 const stream = await getSafeUserMedia(currentFacingMode, audioId, videoId);
                 net.localStream = stream;
                 localVideo.srcObject = stream;
@@ -1777,9 +1904,12 @@
                 if (vTrack) net.replaceTrack(vTrack, 'video');
                 if (aTrack) net.replaceTrack(aTrack, 'audio');
 
+                net.broadcast({ type: 'CAM_STATUS', isCamOn: true });
+                net.broadcast({ type: 'MIC_STATUS', isMicOn: true });
+
                 showToast("Устройства обновлены", 'check_circle');
             } catch (e) {
-                showToast("Ошибка переключения устройств", 'error');
+                showToast("Ошибка переключения устройств: " + e.message, 'error');
             }
         };
 
@@ -1828,6 +1958,7 @@
 
         function leaveConference() {
             clearSession();
+            exitAllFullscreens();
             if (activeSpotlightId) toggleSpotlight(activeSpotlightId);
             stopScreenShare();
 
@@ -1840,8 +1971,6 @@
             lobbyScreen.classList.remove('p2p-hidden');
             netBadge.className = "studio-badge";
             netBadgeText.textContent = "STANDBY";
-            document.body.classList.remove('has-fullscreen');
-            document.querySelectorAll('.pseudo-fullscreen').forEach(el => el.classList.remove('pseudo-fullscreen'));
             updateGridCount();
         }
         document.getElementById('btnLeaveCall').onclick = leaveConference;
@@ -2010,7 +2139,7 @@
         };
 
         /* ==========================================================================
-           12. ИНИЦИАЛИЗАЦИЯ И ВОССТАНОВЛЕНИЕ СЕССИИ ПРИ ПЕРЕЗАГРУЗКЕ
+           12. ИНИЦИАЛИЗАЦИЯ И ВОССТАНОВЛЕНИЕ СЕССИИ
            ========================================================================== */
         async function checkAutoReconnect() {
             const raw = sessionStorage.getItem(SESSION_KEY);

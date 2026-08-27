@@ -1,9 +1,8 @@
 /**
- * P2PNet v2.6 - Надежный replaceTrack через Transceivers и восстановление треков
+ * P2PNet v3.0 - Промышленный WebRTC Mesh с гарантированным replaceTrack и селектором камер
  */
 class P2PNet {
     static ALPHABET = "23456789ABCDEFGHJKMNPQRSTUVWXYZ";
-    static CHUNK_SIZE = 16 * 1024;
     static HEARTBEAT_INTERVAL = 4000;
 
     static DEFAULT_ICE_SERVERS = [
@@ -106,7 +105,7 @@ class P2PNet {
         this._log(`Подключение к хосту: ${hostPeerId}`);
 
         return new Promise((resolve, reject) => {
-            const timer = setTimeout(() => reject(new Error("Таймаут подключения к сессии")), 14000);
+            const timer = setTimeout(() => reject(new Error("Таймаут подключения к хосту")), 15000);
 
             this._connectToPeer(hostPeerId, {
                 onOpen: (conn) => {
@@ -139,7 +138,7 @@ class P2PNet {
             this.peer.on('open', (id) => {
                 opened = true;
                 this._reconnectAttempts = 0;
-                this._log(`PeerJS подключен: ${id}`);
+                this._log(`PeerJS готов: ${id}`);
                 this.emit('status', { online: true, id });
                 resolve(id);
             });
@@ -148,7 +147,7 @@ class P2PNet {
             this.peer.on('call', (call) => this._handleIncomingCall(call));
 
             this.peer.on('disconnected', () => {
-                this._log("Потерян сигнальный сервер. Авто-реконнект...");
+                this._log("Потерян сигнальный сервер. Переподключение...");
                 this.emit('status', { online: false, reconnecting: true });
                 this._tryReconnect();
             });
@@ -168,11 +167,7 @@ class P2PNet {
 
         setTimeout(() => {
             if (!this.isDestroyed && this.peer && this.peer.disconnected) {
-                try {
-                    this.peer.reconnect();
-                } catch (e) {
-                    this._log("Ошибка reconnect:", e);
-                }
+                try { this.peer.reconnect(); } catch (e) { }
             }
         }, delay);
     }
@@ -186,7 +181,6 @@ class P2PNet {
                     record.conn.send({ __sys: 'PING', ts: now });
                 }
                 if (record.lastSeen && now - record.lastSeen > 12000) {
-                    this._log(`Пир ${peerId} не отвечает. Очистка...`);
                     this._cleanupPeer(peerId);
                 }
             });
@@ -356,6 +350,7 @@ class P2PNet {
         if (meta.type === 'screen') {
             call.answer();
         } else {
+            // Отвечаем текущим localStream (он всегда должен содержать оба трека)
             call.answer(this.localStream);
         }
         this._setupCallEvents(call, call.peer, meta);
@@ -370,47 +365,54 @@ class P2PNet {
             call.peerConnection.oniceconnectionstatechange = () => {
                 const state = call.peerConnection.iceConnectionState;
                 if (state === 'failed' || state === 'disconnected') {
-                    this._log(`ICE state [${state}] с пиром ${peerId}. Рестарт...`);
-                    try {
-                        call.peerConnection.restartIce();
-                    } catch (e) { }
+                    this._log(`ICE state [${state}] с пиром ${peerId}. Рестарт ICE...`);
+                    try { call.peerConnection.restartIce(); } catch (e) { }
                 }
             };
         }
     }
 
-    // НАДЕЖНАЯ ЗАМЕНА ТРЕКА ЧЕРЕЗ TRANSCEIVERS
-    replaceTrack(newTrack, kind = 'video') {
-        this.peers.forEach(peerRecord => {
+    /**
+     * НАДЕЖНАЯ ЗАМЕНА ТРЕКА (REPLACE TRACK)
+     * Ищет RTP Sender соответствующего типа (audio/video) и на лету подменяет трек
+     */
+    async replaceTrack(newTrack, kind = 'video') {
+        const promises = [];
+        this.peers.forEach((peerRecord, peerId) => {
             if (peerRecord.call && peerRecord.call.peerConnection) {
                 const pc = peerRecord.call.peerConnection;
-                let targetSender = null;
+                let sender = pc.getSenders().find(s => {
+                    if (s.track && s.track.kind === kind) return true;
+                    // Если трек был сброшен в null, проверяем transceiver
+                    return false;
+                });
 
-                // 1. Поиск прямого сендера
-                const senders = pc.getSenders();
-                targetSender = senders.find(s => s.track && s.track.kind === kind);
-
-                // 2. Если трек был равен null, ищем через трансмиттер
-                if (!targetSender && pc.getTransceivers) {
-                    const transceivers = pc.getTransceivers();
-                    const trans = transceivers.find(t =>
-                        (t.sender && t.sender.track && t.sender.track.kind === kind) ||
-                        (t.receiver && t.receiver.track && t.receiver.track.kind === kind)
-                    );
-                    if (trans && trans.sender) targetSender = trans.sender;
+                if (!sender && pc.getTransceivers) {
+                    const transceiver = pc.getTransceivers().find(t => {
+                        return (t.sender && t.sender.track && t.sender.track.kind === kind) ||
+                            (t.receiver && t.receiver.track && t.receiver.track.kind === kind);
+                    });
+                    if (transceiver && transceiver.sender) {
+                        sender = transceiver.sender;
+                    }
                 }
 
-                if (targetSender) {
-                    targetSender.replaceTrack(newTrack).catch(e => console.error("replaceTrack error:", e));
+                if (sender) {
+                    promises.push(
+                        sender.replaceTrack(newTrack).catch(err => {
+                            console.error(`[P2PNet] Ошибка replaceTrack для ${peerId}:`, err);
+                        })
+                    );
                 } else if (newTrack) {
                     try {
                         pc.addTrack(newTrack, this.localStream);
                     } catch (e) {
-                        console.warn("addTrack error:", e);
+                        console.warn(`[P2PNet] addTrack error для ${peerId}:`, e);
                     }
                 }
             }
         });
+        await Promise.all(promises);
     }
 
     startScreenShare(stream, myName = '') {

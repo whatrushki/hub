@@ -1149,8 +1149,8 @@
 
     <script>
         /* ==========================================================================
-           1. СЕССИОННОЕ ХРАНИЛИЩЕ И АВТО-ПЕРЕПОДКЛЮЧЕНИЕ ПРИ F5
-           ========================================================================== */
+   1. СЕССИОННОЕ ХРАНИЛИЩЕ И АВТО-ПЕРЕПОДКЛЮЧЕНИЕ ПРИ F5
+   ========================================================================== */
         const SESSION_KEY = 'dropconf_active_session';
 
         function saveSession(roomId, isHost, userName) {
@@ -1164,45 +1164,51 @@
         }
 
         /* ==========================================================================
-           2. АУДИОСИНТЕЗАТОР И VAD (С КЛОНИРОВАНИЕМ ТРЕКА ДЛЯ ЗАЩИТЫ ЗВУКА)
+           2. ЗВУКОВОЙ ДВИЖОК И БЕЗОПАСНЫЙ VAD
            ========================================================================== */
         const SoundFX = {
             ctx: null,
             init() {
-                if (!this.ctx) this.ctx = new (window.AudioContext || window.webkitAudioContext)();
-                if (this.ctx && this.ctx.state === 'suspended') this.ctx.resume();
+                if (!this.ctx) {
+                    const AudioCtx = window.AudioContext || window.webkitAudioContext;
+                    if (AudioCtx) this.ctx = new AudioCtx();
+                }
+                if (this.ctx && this.ctx.state === 'suspended') {
+                    this.ctx.resume();
+                }
             },
             playChime(type = 'join') {
-                this.init();
-                if (!this.ctx) return;
-                const now = this.ctx.currentTime;
-                const osc = this.ctx.createOscillator(), gain = this.ctx.createGain();
-                osc.connect(gain); gain.connect(this.ctx.destination);
+                try {
+                    this.init();
+                    if (!this.ctx) return;
+                    const now = this.ctx.currentTime;
+                    const osc = this.ctx.createOscillator(), gain = this.ctx.createGain();
+                    osc.connect(gain); gain.connect(this.ctx.destination);
 
-                if (type === 'join') {
-                    osc.frequency.setValueAtTime(440, now);
-                    osc.frequency.exponentialRampToValueAtTime(880, now + 0.15);
-                    gain.gain.setValueAtTime(0.1, now);
-                    gain.gain.exponentialRampToValueAtTime(0.01, now + 0.2);
-                    osc.start(now); osc.stop(now + 0.2);
-                } else if (type === 'leave') {
-                    osc.frequency.setValueAtTime(660, now);
-                    osc.frequency.exponentialRampToValueAtTime(330, now + 0.18);
-                    gain.gain.setValueAtTime(0.1, now);
-                    gain.gain.exponentialRampToValueAtTime(0.01, now + 0.2);
-                    osc.start(now); osc.stop(now + 0.2);
-                } else if (type === 'hand') {
-                    osc.type = 'triangle';
-                    osc.frequency.setValueAtTime(523.25, now);
-                    osc.frequency.setValueAtTime(659.25, now + 0.08);
-                    gain.gain.setValueAtTime(0.12, now);
-                    gain.gain.exponentialRampToValueAtTime(0.01, now + 0.25);
-                    osc.start(now); osc.stop(now + 0.25);
-                }
+                    if (type === 'join') {
+                        osc.frequency.setValueAtTime(440, now);
+                        osc.frequency.exponentialRampToValueAtTime(880, now + 0.15);
+                        gain.gain.setValueAtTime(0.1, now);
+                        gain.gain.exponentialRampToValueAtTime(0.01, now + 0.2);
+                        osc.start(now); osc.stop(now + 0.2);
+                    } else if (type === 'leave') {
+                        osc.frequency.setValueAtTime(660, now);
+                        osc.frequency.exponentialRampToValueAtTime(330, now + 0.18);
+                        gain.gain.setValueAtTime(0.1, now);
+                        gain.gain.exponentialRampToValueAtTime(0.01, now + 0.2);
+                        osc.start(now); osc.stop(now + 0.2);
+                    } else if (type === 'hand') {
+                        osc.type = 'triangle';
+                        osc.frequency.setValueAtTime(523.25, now);
+                        osc.frequency.setValueAtTime(659.25, now + 0.08);
+                        gain.gain.setValueAtTime(0.12, now);
+                        gain.gain.exponentialRampToValueAtTime(0.01, now + 0.25);
+                        osc.start(now); osc.stop(now + 0.25);
+                    }
+                } catch (e) { }
             }
         };
 
-        // Разблокировка аудио при первом взаимодействии
         function unlockAudioOutput() {
             SoundFX.init();
             audioVAD.init();
@@ -1225,23 +1231,24 @@
             }
 
             init() {
-                if (!this.ctx) this.ctx = new (window.AudioContext || window.webkitAudioContext)();
-                if (this.ctx && this.ctx.state === 'suspended') this.ctx.resume();
+                if (!this.ctx) {
+                    const AudioCtx = window.AudioContext || window.webkitAudioContext;
+                    if (AudioCtx) this.ctx = new AudioCtx();
+                }
+                if (this.ctx && this.ctx.state === 'suspended') {
+                    this.ctx.resume();
+                }
             }
 
             watch(peerId, stream, isLocal = false) {
                 this.init();
                 this.unwatch(peerId);
-                if (!stream) return;
+                if (!stream || !this.ctx) return;
                 const audioTracks = stream.getAudioTracks();
                 if (audioTracks.length === 0) return;
 
                 try {
-                    // КРИТИЧЕСКИЙ ФИКС: Клонируем трек, чтобы WebAudio не глушил динамики
-                    const clonedTrack = audioTracks[0].clone();
-                    const clonedStream = new MediaStream([clonedTrack]);
-
-                    const source = this.ctx.createMediaStreamSource(clonedStream);
+                    const source = this.ctx.createMediaStreamSource(stream);
                     const analyser = this.ctx.createAnalyser();
                     analyser.fftSize = 256;
                     analyser.smoothingTimeConstant = 0.4;
@@ -1253,6 +1260,15 @@
                     let animFrame = null;
 
                     const loop = () => {
+                        if (!audioTracks[0] || !audioTracks[0].enabled) {
+                            if (isSpeaking) {
+                                isSpeaking = false;
+                                this.updateSpeakerUI(peerId, false);
+                            }
+                            animFrame = requestAnimationFrame(loop);
+                            return;
+                        }
+
                         analyser.getByteFrequencyData(data);
                         let sum = 0;
                         for (let i = 0; i < data.length; i++) sum += data[i];
@@ -1276,14 +1292,13 @@
 
                     this.monitors.set(peerId, {
                         source,
-                        clonedTrack,
                         cancel: () => {
                             cancelAnimationFrame(animFrame);
-                            clonedTrack.stop();
+                            try { source.disconnect(); } catch (e) { }
                         }
                     });
                 } catch (e) {
-                    console.warn("VAD warning:", e);
+                    console.warn("[VAD] Error:", e);
                 }
             }
 
@@ -1291,14 +1306,12 @@
                 if (this.monitors.has(peerId)) {
                     const m = this.monitors.get(peerId);
                     m.cancel();
-                    try { m.source.disconnect(); } catch (e) { }
                     this.monitors.delete(peerId);
                     this.updateSpeakerUI(peerId, false);
                 }
             }
 
             updateSpeakerUI(peerId, isSpeaking) {
-                // Подсвечиваем ТОЛЬКО плитку камеры tile-cam-*. Экран tile-screen-* строго игнорируется!
                 const tile = document.getElementById(`tile-cam-${peerId}`);
                 if (tile) {
                     tile.classList.toggle('speaking', isSpeaking);
@@ -1323,6 +1336,7 @@
         let isHandRaised = false;
         let currentFacingMode = 'user';
         let currentVideoDeviceId = null;
+        let currentAudioDeviceId = null;
         let activeSpotlightId = null;
         let screenStream = null;
 
@@ -1390,7 +1404,7 @@
         }
 
         /* ==========================================================================
-           4. УМНАЯ ВАЛИДАЦИЯ И ПЕРЕКЛЮЧЕНИЕ КАМЕР
+           4. ВАЛИДАЦИЯ КАМЕР И ПЕРЕКЛЮЧЕНИЕ ОБОРУДОВАНИЯ (КАК В GOOGLE MEET)
            ========================================================================== */
         function updateMirrorState() {
             const isFront = (currentFacingMode === 'user');
@@ -1398,69 +1412,122 @@
             if (tileCamLocal) tileCamLocal.classList.toggle('mirrored', isFront);
         }
 
-        // Фильтрация нерабочих сенсоров и захват гарантированно живого стрима
-        async function getSafeUserMedia(facingMode = 'user', audioSourceId = null, videoSourceId = null) {
-            const audioConstraints = audioSourceId
-                ? { deviceId: { exact: audioSourceId }, echoCancellation: true, noiseSuppression: true, autoGainControl: true }
-                : { echoCancellation: true, noiseSuppression: true, autoGainControl: true };
+        /**
+         * Проверка реального поступления кадров с камеры
+         */
+        async function verifyVideoStream(stream, timeoutMs = 600) {
+            const track = stream.getVideoTracks()[0];
+            if (!track) return false;
 
-            // 1. Попытка с конкретным устройством
+            const testVideo = document.createElement('video');
+            testVideo.muted = true;
+            testVideo.playsInline = true;
+            testVideo.srcObject = stream;
+
+            try {
+                await testVideo.play();
+            } catch (e) {
+                return false;
+            }
+
+            return new Promise((resolve) => {
+                let isDone = false;
+                const cleanup = (res) => {
+                    if (isDone) return;
+                    isDone = true;
+                    testVideo.pause();
+                    testVideo.srcObject = null;
+                    resolve(res);
+                };
+
+                const timer = setTimeout(() => cleanup(false), timeoutMs);
+
+                if ('requestVideoFrameCallback' in testVideo) {
+                    testVideo.requestVideoFrameCallback(() => {
+                        clearTimeout(timer);
+                        cleanup(testVideo.videoWidth > 0);
+                    });
+                } else {
+                    testVideo.onloadedmetadata = () => {
+                        if (testVideo.videoWidth > 0) {
+                            clearTimeout(timer);
+                            cleanup(true);
+                        }
+                    };
+                }
+            });
+        }
+
+        /**
+         * Интеллектуальный захват аудио и видео с автоматическим обходом нерабочих сенсоров
+         */
+        async function getSafeUserMedia(facingMode = 'user', audioSourceId = null, videoSourceId = null) {
+            const audioConstraints = {
+                echoCancellation: true,
+                noiseSuppression: true,
+                autoGainControl: true,
+                ...(audioSourceId ? { deviceId: { exact: audioSourceId } } : {})
+            };
+
+            // 1. Если указан конкретный deviceId
             if (videoSourceId) {
                 try {
                     const stream = await navigator.mediaDevices.getUserMedia({
                         video: { deviceId: { exact: videoSourceId }, width: { ideal: 1280 }, height: { ideal: 720 } },
                         audio: audioConstraints
                     });
-                    if (stream.getVideoTracks().length > 0 && stream.getVideoTracks()[0].readyState === 'live') {
+                    const isWorking = await verifyVideoStream(stream);
+                    if (isWorking) {
                         currentVideoDeviceId = videoSourceId;
                         return stream;
                     }
-                } catch (e) {
-                    sysLog("Выбранная камера недоступна, запуск автоподбора...");
-                }
+                    stream.getTracks().forEach(t => t.stop());
+                    sysLog("Камера " + videoSourceId + " не дает кадров. Поиск альтернативы...");
+                } catch (e) { }
             }
 
-            // 2. Умный поиск среди всех камер устройства
-            let devices = [];
+            // 2. Семантический захват по facingMode (выбирает главную рабочую камеру ОС)
             try {
-                devices = await navigator.mediaDevices.enumerateDevices();
+                const stream = await navigator.mediaDevices.getUserMedia({
+                    video: {
+                        facingMode: { ideal: facingMode },
+                        width: { ideal: 1280 },
+                        height: { ideal: 720 }
+                    },
+                    audio: audioConstraints
+                });
+                const isWorking = await verifyVideoStream(stream);
+                if (isWorking) {
+                    const track = stream.getVideoTracks()[0];
+                    const settings = track.getSettings();
+                    if (settings.deviceId) currentVideoDeviceId = settings.deviceId;
+                    return stream;
+                }
+                stream.getTracks().forEach(t => t.stop());
             } catch (e) { }
 
-            const videoDevices = devices.filter(d => {
-                if (d.kind !== 'videoinput') return false;
-                const label = (d.label || '').toLowerCase();
-                // Исключаем сенсоры глубины и инфракрасные датчики
-                return !label.includes('depth') && !label.includes('ir') && !label.includes('infrared') && !label.includes('tof');
-            });
+            // 3. Fallback: перебор всех доступных видеоустройств
+            let devices = [];
+            try { devices = await navigator.mediaDevices.enumerateDevices(); } catch (e) { }
+            const videoDevs = devices.filter(d => d.kind === 'videoinput');
 
-            // Формируем список кандидатов в зависимости от выбранного режима
-            const isFront = (facingMode === 'user');
-            const sortedDevices = videoDevices.filter(d => {
-                const l = (d.label || '').toLowerCase();
-                return isFront ? (l.includes('front') || l.includes('передн') || l.includes('selfie') || l.includes('user'))
-                    : (l.includes('back') || l.includes('задн') || l.includes('rear') || l.includes('environment'));
-            });
-
-            const candidateList = sortedDevices.length > 0 ? sortedDevices : videoDevices;
-
-            for (const dev of candidateList) {
+            for (const dev of videoDevs) {
                 try {
                     const stream = await navigator.mediaDevices.getUserMedia({
-                        video: { deviceId: { exact: dev.deviceId }, width: { ideal: 1280 }, height: { ideal: 720 } },
+                        video: { deviceId: { exact: dev.deviceId } },
                         audio: audioConstraints
                     });
-                    if (stream.getVideoTracks().length > 0 && stream.getVideoTracks()[0].readyState === 'live') {
+                    const ok = await verifyVideoStream(stream);
+                    if (ok) {
                         currentVideoDeviceId = dev.deviceId;
                         return stream;
                     }
+                    stream.getTracks().forEach(t => t.stop());
                 } catch (err) { }
             }
 
-            // 3. Финальный fallback на базовые ограничения
-            return await navigator.mediaDevices.getUserMedia({
-                video: { facingMode },
-                audio: audioConstraints
-            });
+            // 4. Финальный аварийный запрос только базового аудио/видео
+            return await navigator.mediaDevices.getUserMedia({ video: true, audio: audioConstraints });
         }
 
         async function initPreview() {
@@ -1473,12 +1540,13 @@
                 previewVideo.muted = true;
                 localVideo.muted = true;
 
-                previewVideo.play().catch(() => { });
-                localVideo.play().catch(() => { });
+                await previewVideo.play().catch(() => { });
+                await localVideo.play().catch(() => { });
+
                 audioVAD.watch('local', stream, true);
                 updateMirrorState();
             } catch (e) {
-                sysLog("Камера/микрофон недоступны: " + e.message);
+                sysLog("Ошибка инициализации медиа: " + e.message);
                 isCamOn = false; isMicOn = false;
                 previewAvatar.style.display = 'flex';
                 myAvatar.style.display = 'flex';
@@ -1487,25 +1555,29 @@
             }
         }
 
+        /**
+         * Переключение фронтальной / тыловой камеры
+         */
         async function flipCamera() {
             const nextMode = (currentFacingMode === 'user') ? 'environment' : 'user';
-
-            if (net.localStream) {
-                net.localStream.getVideoTracks().forEach(track => {
-                    track.stop();
-                    net.localStream.removeTrack(track);
-                });
-            }
+            showToast("Переключение камеры...", 'sync');
 
             try {
-                currentFacingMode = nextMode;
-                const newStream = await getSafeUserMedia(currentFacingMode);
+                const newStream = await getSafeUserMedia(nextMode, currentAudioDeviceId, null);
+                const oldVideoTrack = net.localStream ? net.localStream.getVideoTracks()[0] : null;
                 const newVideoTrack = newStream.getVideoTracks()[0];
 
-                if (!net.localStream) {
-                    net.localStream = newStream;
-                } else {
+                currentFacingMode = nextMode;
+                updateMirrorState();
+
+                if (net.localStream) {
+                    if (oldVideoTrack) {
+                        net.localStream.removeTrack(oldVideoTrack);
+                        oldVideoTrack.stop();
+                    }
                     net.localStream.addTrack(newVideoTrack);
+                } else {
+                    net.localStream = newStream;
                 }
 
                 localVideo.srcObject = net.localStream;
@@ -1513,90 +1585,73 @@
                 localVideo.play().catch(() => { });
                 previewVideo.play().catch(() => { });
 
-                updateMirrorState();
-                net.replaceTrack(newVideoTrack, 'video');
-                net.broadcast({ type: 'CAM_STATUS', isCamOn: true });
+                // Подменяем трек в активных WebRTC-соединениях
+                await net.replaceTrack(newVideoTrack, 'video');
 
-                showToast(currentFacingMode === 'user' ? "Фронтальная камера" : "Основная камера (без зеркала)", 'flip_camera_ios');
+                // Если камера была выключена — активируем
+                newVideoTrack.enabled = isCamOn;
+                net.broadcast({ type: 'CAM_STATUS', isCamOn: isCamOn });
+
+                showToast(currentFacingMode === 'user' ? "Фронтальная камера" : "Основная камера", 'flip_camera_ios');
             } catch (err) {
-                showToast("Не удалось переключить камеру: " + err.message, 'error');
-                initPreview();
+                showToast("Ошибка переключения камеры: " + err.message, 'error');
             }
         }
 
         btnFlipCam.onclick = flipCamera;
         document.getElementById('btnFlipCamPreview').onclick = flipCamera;
 
-        async function toggleCamera() {
+        /**
+         * Быстрое включение/выключение камеры (через enabled без разрушения соединения)
+         */
+        function toggleCamera() {
+            if (!net.localStream) return;
+            const videoTrack = net.localStream.getVideoTracks()[0];
+
             if (isCamOn) {
-                if (net.localStream) {
-                    net.localStream.getVideoTracks().forEach(t => { t.stop(); net.localStream.removeTrack(t); });
-                }
+                if (videoTrack) videoTrack.enabled = false;
                 isCamOn = false;
-                localVideo.srcObject = null; previewVideo.srcObject = null;
-                myAvatar.style.display = 'flex'; previewAvatar.style.display = 'flex';
+                myAvatar.style.display = 'flex';
+                previewAvatar.style.display = 'flex';
                 btnCamToggle.classList.add('off');
                 btnCamToggle.innerHTML = '<span class="material-symbols-outlined">videocam_off</span>';
                 net.broadcast({ type: 'CAM_STATUS', isCamOn: false });
             } else {
-                try {
-                    const freshStream = await getSafeUserMedia(currentFacingMode, null, currentVideoDeviceId);
-                    const newVideoTrack = freshStream.getVideoTracks()[0];
-
-                    if (!net.localStream) net.localStream = freshStream;
-                    else net.localStream.addTrack(newVideoTrack);
-
-                    localVideo.srcObject = net.localStream; previewVideo.srcObject = net.localStream;
-                    localVideo.play().catch(() => { }); previewVideo.play().catch(() => { });
-
-                    myAvatar.style.display = 'none'; previewAvatar.style.display = 'none';
-                    isCamOn = true;
-                    btnCamToggle.classList.remove('off');
-                    btnCamToggle.innerHTML = '<span class="material-symbols-outlined">videocam</span>';
-                    updateMirrorState();
-
-                    net.replaceTrack(newVideoTrack, 'video');
-                    net.broadcast({ type: 'CAM_STATUS', isCamOn: true });
-                } catch (err) {
-                    showToast("Не удалось включить камеру", 'error');
-                }
+                if (videoTrack) videoTrack.enabled = true;
+                isCamOn = true;
+                myAvatar.style.display = 'none';
+                previewAvatar.style.display = 'none';
+                btnCamToggle.classList.remove('off');
+                btnCamToggle.innerHTML = '<span class="material-symbols-outlined">videocam</span>';
+                net.broadcast({ type: 'CAM_STATUS', isCamOn: true });
             }
         }
 
-        async function toggleMicrophone() {
+        /**
+         * Быстрое включение/выключение микрофона (через enabled)
+         */
+        function toggleMicrophone() {
+            if (!net.localStream) return;
+            const audioTrack = net.localStream.getAudioTracks()[0];
+
             if (isMicOn) {
-                if (net.localStream) {
-                    net.localStream.getAudioTracks().forEach(t => { t.stop(); net.localStream.removeTrack(t); });
-                }
+                if (audioTrack) audioTrack.enabled = false;
                 isMicOn = false;
                 myTagMic.textContent = 'mic_off';
                 myTagMic.style.color = 'var(--google-red)';
                 btnMicToggle.classList.add('off');
                 btnMicToggle.innerHTML = '<span class="material-symbols-outlined">mic_off</span>';
                 document.getElementById('btnTogglePreviewMic').innerHTML = '<span class="material-symbols-outlined">mic_off</span> Off';
-                audioVAD.unwatch('local');
                 net.broadcast({ type: 'MIC_STATUS', isMicOn: false });
             } else {
-                try {
-                    const freshStream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true } });
-                    const newAudioTrack = freshStream.getAudioTracks()[0];
-
-                    if (!net.localStream) net.localStream = freshStream;
-                    else net.localStream.addTrack(newAudioTrack);
-
-                    isMicOn = true;
-                    myTagMic.textContent = 'mic';
-                    myTagMic.style.color = 'var(--google-green)';
-                    btnMicToggle.classList.remove('off');
-                    btnMicToggle.innerHTML = '<span class="material-symbols-outlined">mic</span>';
-                    document.getElementById('btnTogglePreviewMic').innerHTML = '<span class="material-symbols-outlined">mic</span> Mic';
-
-                    audioVAD.watch('local', net.localStream, true);
-                    net.replaceTrack(newAudioTrack, 'audio');
-                    net.broadcast({ type: 'MIC_STATUS', isMicOn: true });
-                } catch (err) {
-                    showToast("Не удалось включить микрофон", 'error');
-                }
+                if (audioTrack) audioTrack.enabled = true;
+                isMicOn = true;
+                myTagMic.textContent = 'mic';
+                myTagMic.style.color = 'var(--google-green)';
+                btnMicToggle.classList.remove('off');
+                btnMicToggle.innerHTML = '<span class="material-symbols-outlined">mic</span>';
+                document.getElementById('btnTogglePreviewMic').innerHTML = '<span class="material-symbols-outlined">mic</span> Mic';
+                net.broadcast({ type: 'MIC_STATUS', isMicOn: true });
             }
         }
 
@@ -1653,7 +1708,7 @@
                 stopScreenShare();
             } else {
                 if (!navigator.mediaDevices || !navigator.mediaDevices.getDisplayMedia) {
-                    return showToast("Экран не поддерживается", 'error');
+                    return showToast("Экран не поддерживается вашим браузером", 'error');
                 }
 
                 try {
@@ -1697,26 +1752,26 @@
                 tile.className = 'video-tile';
                 tile.id = tileId;
                 tile.innerHTML = `
-                    <video id="video-cam-${peerId}" autoplay playsinline webkit-playsinline></video>
-                    <div id="avatar-cam-${peerId}" class="tile-avatar" style="display:none;">
-                        <span class="material-symbols-outlined" style="font-size:32px;">person</span>
-                    </div>
-                    <div class="tile-overlay">
-                        <div class="tile-top-actions">
-                            <div class="hand-badge p2p-hidden" id="hand-${peerId}">✋ Рука</div>
-                            <button class="tile-action-btn" title="Закрепить" onclick="toggleSpotlight('${tileId}')">
-                                <span class="material-symbols-outlined">keep</span>
-                            </button>
-                            <button class="tile-action-btn" title="На весь экран" onclick="toggleNativeFullscreen('${tileId}')">
-                                <span class="material-symbols-outlined">fullscreen</span>
-                            </button>
-                        </div>
-                        <div class="tile-tag">
-                            <span id="mic-cam-${peerId}" class="material-symbols-outlined" style="font-size:14px; color:var(--google-green);">mic</span>
-                            <span>${participantName || 'Участник'}</span>
-                        </div>
-                    </div>
-                `;
+            <video id="video-cam-${peerId}" autoplay playsinline webkit-playsinline></video>
+            <div id="avatar-cam-${peerId}" class="tile-avatar" style="display:none;">
+                <span class="material-symbols-outlined" style="font-size:32px;">person</span>
+            </div>
+            <div class="tile-overlay">
+                <div class="tile-top-actions">
+                    <div class="hand-badge p2p-hidden" id="hand-${peerId}">✋ Рука</div>
+                    <button class="tile-action-btn" title="Закрепить" onclick="toggleSpotlight('${tileId}')">
+                        <span class="material-symbols-outlined">keep</span>
+                    </button>
+                    <button class="tile-action-btn" title="На весь экран" onclick="toggleNativeFullscreen('${tileId}')">
+                        <span class="material-symbols-outlined">fullscreen</span>
+                    </button>
+                </div>
+                <div class="tile-tag">
+                    <span id="mic-cam-${peerId}" class="material-symbols-outlined" style="font-size:14px; color:var(--google-green);">mic</span>
+                    <span>${participantName || 'Участник'}</span>
+                </div>
+            </div>
+        `;
                 appendTileProperly(tile);
                 SoundFX.playChime('join');
             }
@@ -1724,7 +1779,7 @@
             const videoEl = document.getElementById(`video-cam-${peerId}`);
             if (videoEl && stream) {
                 videoEl.srcObject = stream;
-                videoEl.muted = false; // ГАРАНТИЯ ЗВУКА
+                videoEl.muted = false;
                 videoEl.volume = 1.0;
                 videoEl.play().catch(() => { });
                 audioVAD.watch(peerId, stream, false);
@@ -1741,22 +1796,22 @@
                 tile.className = 'video-tile screen-tile';
                 tile.id = tileId;
                 tile.innerHTML = `
-                    <video id="video-screen-${peerId}" autoplay playsinline webkit-playsinline ${isLocal ? 'muted' : ''}></video>
-                    <div class="tile-overlay">
-                        <div class="tile-top-actions">
-                            <button class="tile-action-btn" title="Закрепить" onclick="toggleSpotlight('${tileId}')">
-                                <span class="material-symbols-outlined">keep</span>
-                            </button>
-                            <button class="tile-action-btn" title="На весь экран" onclick="toggleNativeFullscreen('${tileId}')">
-                                <span class="material-symbols-outlined">fullscreen</span>
-                            </button>
-                        </div>
-                        <div class="tile-tag" style="border-color: rgba(168, 199, 250, 0.4);">
-                            <span class="material-symbols-outlined" style="font-size:14px; color:var(--google-blue);">screen_share</span>
-                            <span>${titleName || 'Экран'}</span>
-                        </div>
-                    </div>
-                `;
+            <video id="video-screen-${peerId}" autoplay playsinline webkit-playsinline ${isLocal ? 'muted' : ''}></video>
+            <div class="tile-overlay">
+                <div class="tile-top-actions">
+                    <button class="tile-action-btn" title="Закрепить" onclick="toggleSpotlight('${tileId}')">
+                        <span class="material-symbols-outlined">keep</span>
+                    </button>
+                    <button class="tile-action-btn" title="На весь экран" onclick="toggleNativeFullscreen('${tileId}')">
+                        <span class="material-symbols-outlined">fullscreen</span>
+                    </button>
+                </div>
+                <div class="tile-tag" style="border-color: rgba(168, 199, 250, 0.4);">
+                    <span class="material-symbols-outlined" style="font-size:14px; color:var(--google-blue);">screen_share</span>
+                    <span>${titleName || 'Экран'}</span>
+                </div>
+            </div>
+        `;
                 appendTileProperly(tile);
             }
 
@@ -1829,7 +1884,6 @@
             updateGridCount();
         };
 
-        // Разворот на весь экран
         window.toggleNativeFullscreen = function (tileId) {
             const tile = document.getElementById(tileId);
             if (!tile) return;
@@ -1873,6 +1927,7 @@
                     if (d.deviceId === currentVideoDeviceId) opt.selected = true;
                     selectVideoInput.appendChild(opt);
                 } else if (d.kind === 'audioinput') {
+                    if (d.deviceId === currentAudioDeviceId) opt.selected = true;
                     selectAudioInput.appendChild(opt);
                 } else if (d.kind === 'audiooutput') {
                     selectAudioOutput.appendChild(opt);
@@ -1883,33 +1938,48 @@
         };
 
         document.getElementById('btnCloseSettings').onclick = () => settingsModal.classList.add('p2p-hidden');
+
         document.getElementById('btnSaveSettings').onclick = async () => {
             const audioId = selectAudioInput.value;
             const videoId = selectVideoInput.value;
             settingsModal.classList.add('p2p-hidden');
 
             try {
-                // Останавливаем старые треки перед получением нового оборудования
+                const newStream = await getSafeUserMedia(currentFacingMode, audioId, videoId);
+                currentAudioDeviceId = audioId;
+                currentVideoDeviceId = videoId;
+
+                const oldVTrack = net.localStream ? net.localStream.getVideoTracks()[0] : null;
+                const oldATrack = net.localStream ? net.localStream.getAudioTracks()[0] : null;
+
+                const newVTrack = newStream.getVideoTracks()[0];
+                const newATrack = newStream.getAudioTracks()[0];
+
                 if (net.localStream) {
-                    net.localStream.getTracks().forEach(t => t.stop());
+                    if (oldVTrack) { net.localStream.removeTrack(oldVTrack); oldVTrack.stop(); }
+                    if (oldATrack) { net.localStream.removeTrack(oldATrack); oldATrack.stop(); }
+                    if (newVTrack) net.localStream.addTrack(newVTrack);
+                    if (newATrack) net.localStream.addTrack(newATrack);
+                } else {
+                    net.localStream = newStream;
                 }
 
-                const stream = await getSafeUserMedia(currentFacingMode, audioId, videoId);
-                net.localStream = stream;
-                localVideo.srcObject = stream;
-                previewVideo.srcObject = stream;
+                localVideo.srcObject = net.localStream;
+                previewVideo.srcObject = net.localStream;
 
-                const vTrack = stream.getVideoTracks()[0];
-                const aTrack = stream.getAudioTracks()[0];
-                if (vTrack) net.replaceTrack(vTrack, 'video');
-                if (aTrack) net.replaceTrack(aTrack, 'audio');
+                if (newVTrack) {
+                    newVTrack.enabled = isCamOn;
+                    await net.replaceTrack(newVTrack, 'video');
+                }
+                if (newATrack) {
+                    newATrack.enabled = isMicOn;
+                    await net.replaceTrack(newATrack, 'audio');
+                    audioVAD.watch('local', net.localStream, true);
+                }
 
-                net.broadcast({ type: 'CAM_STATUS', isCamOn: true });
-                net.broadcast({ type: 'MIC_STATUS', isMicOn: true });
-
-                showToast("Устройства обновлены", 'check_circle');
+                showToast("Оборудование успешно обновлено", 'check_circle');
             } catch (e) {
-                showToast("Ошибка переключения устройств: " + e.message, 'error');
+                showToast("Ошибка смены оборудования: " + e.message, 'error');
             }
         };
 
@@ -2048,12 +2118,12 @@
             const toastEl = document.createElement('div');
             toastEl.className = 'chat-floating-toast';
             toastEl.innerHTML = `
-                <div class="sender">
-                    <span class="material-symbols-outlined" style="font-size: 14px;">chat</span>
-                    ${escapeHtml(sender)}
-                </div>
-                <div class="text">${escapeHtml(text)}</div>
-            `;
+        <div class="sender">
+            <span class="material-symbols-outlined" style="font-size: 14px;">chat</span>
+            ${escapeHtml(sender)}
+        </div>
+        <div class="text">${escapeHtml(text)}</div>
+    `;
 
             toastEl.onclick = () => {
                 toggleChat(true);
@@ -2116,9 +2186,9 @@
             const msgEl = document.createElement('div');
             msgEl.className = `chat-msg ${isMe ? 'me' : 'other'}`;
             msgEl.innerHTML = `
-                <div class="chat-msg-sender">${sender}</div>
-                <div class="chat-msg-bubble">${escapeHtml(text)}</div>
-            `;
+        <div class="chat-msg-sender">${sender}</div>
+        <div class="chat-msg-bubble">${escapeHtml(text)}</div>
+    `;
             chatMessages.appendChild(msgEl);
             chatMessages.scrollTop = chatMessages.scrollHeight;
         }
